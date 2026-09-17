@@ -6,6 +6,11 @@ import static seedu.address.logic.parser.CliSyntax.PREFIX_REMARK;
 import seedu.address.commons.core.index.Index;
 import seedu.address.logic.commands.exceptions.CommandException;
 import seedu.address.model.Model;
+import seedu.address.model.person.Person;
+import seedu.address.model.person.Remark;
+import seedu.address.logic.Messages;
+import java.util.List;
+import static seedu.address.model.Model.PREDICATE_SHOW_ALL_PERSONS;
 
 /**
  * Changes the remark of an existing person in the address book.
@@ -23,9 +28,11 @@ public class RemarkCommand extends Command {
             + PREFIX_REMARK + "Likes to swim.";
 
     public static final String MESSAGE_ARGUMENTS = "Index: %1$d, Remark: %2$s";
+    public static final String MESSAGE_ADD_REMARK_SUCCESS = "Added remark to Person: %1$s";
+    public static final String MESSAGE_DELETE_REMARK_SUCCESS = "Removed remark from Person: %1$s";
 
     private final Index index;
-    private final String remark;
+    private final Remark remark;
 
     /**
      * @param index of the person in the filtered person list to edit the remark
@@ -35,11 +42,21 @@ public class RemarkCommand extends Command {
         requireAllNonNull(index, remark);
 
         this.index = index;
-        this.remark = remark;
+        this.remark = new Remark(remark);
     }
     @Override
     public CommandResult execute(Model model) throws CommandException {
-        throw new CommandException(String.format(MESSAGE_ARGUMENTS, index.getOneBased(), remark));
+        List<Person> persons = model.getFilteredPersonList();
+        if (index.getZeroBased() >= persons.size()) {
+            throw new CommandException(Messages.MESSAGE_INVALID_PERSON_DISPLAYED_INDEX);
+        }
+        Person oldPerson = persons.get(index.getZeroBased());
+        Person updated = new Person(oldPerson.getName(), oldPerson.getPhone(), oldPerson.getEmail(),
+                oldPerson.getAddress(), remark, oldPerson.getTags());
+        model.setPerson(oldPerson, updated);
+        model.updateFilteredPersonList(PREDICATE_SHOW_ALL_PERSONS);
+        String message = remark.value.isEmpty() ? MESSAGE_DELETE_REMARK_SUCCESS : MESSAGE_ADD_REMARK_SUCCESS;
+        return new CommandResult(String.format(message, Messages.format(updated)));
     }
 
     @Override
