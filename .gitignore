@@ -27,6 +27,12 @@ CLAUDE.md
 /.claude/
 /.codex/
 
+# VS Code and editor-generated folders
+/.vscode/
+/.history/
+/.vscode-test/
+
 # Temp files
 _temp/
 docs/_markbind/logs/
+bin/
