@@ -21,15 +21,15 @@ You can reach us at the email `seer[at]comp.nus.edu.sg`
 
 * Role: Project Advisor
 
-### Jane Doe
+### Tang Ming Hong
 
-<img src="images/johndoe.png" width="200px">
+<img src="images/minghong-dev.png" width="200px">
 
-[[github](http://github.com/johndoe)]
+[[github](https://github.com/minghong-dev)]
 [[portfolio](team/johndoe.md)]
 
-* Role: Team Lead
-* Responsibilities: UI
+* Role: -
+* Responsibilities: -
 
 ### Johnny Doe
 
