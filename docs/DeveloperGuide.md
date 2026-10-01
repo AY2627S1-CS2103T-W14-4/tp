@@ -283,43 +283,54 @@ _{Explain here how the data archiving feature will be implemented}_
 
 Priorities: High (must have) - `* * *`, Medium (nice to have) - `* *`, Low (unlikely to have) - `*`
 
-| Priority | As a …                                    | I want to …                 | So that I can…                                                        |
-|----------|--------------------------------------------|------------------------------|------------------------------------------------------------------------|
-| `* * *`  | new user                                   | see usage instructions       | refer to instructions when I forget how to use the App                 |
-| `* * *`  | user                                       | add a new person             |                                                                        |
-| `* * *`  | user                                       | delete a person              | remove entries that I no longer need                                   |
-| `* * *`  | user                                       | find a person by name        | locate details of persons without having to go through the entire list |
-| `* *`    | user                                       | hide private contact details | minimize chance of someone else seeing them by accident                |
-| `*`      | user with many persons in the address book | sort persons by name         | locate a person easily                                                 |
+| Priority | As a …                                     | I want to …                                                              | So that I can…                                                         |
+|----------|--------------------------------------------|--------------------------------------------------------------------------|------------------------------------------------------------------------|
+| `* * *`  | new freelancer user                        | see instructions for available commands                                  | learn how to use Gigabyte                                              |
+| `* * *`  | user                                       | add a new person                                                         |                                                                        |
+| `* * *`  | user                                       | delete a person                                                          | remove entries that I no longer need                                   |
+| `* * *`  | user                                       | find a person by name                                                    | locate details of persons without having to go through the entire list |
+| `* * *`  | freelancer                                 | record a payment obligation linked to a gig, with an amount and due date | know what payment I expect and when                                    |
+| `* * *`  | freelancer                                 | mark a payment obligation as paid                                        | distinguish settled payments from money still owed                      |
+| `* *`    | user                                       | hide private contact details                                             | minimize chance of someone else seeing them by accident                |
+| `* *`    | freelancer                                 | filter clients or gigs by relevant criteria                              | focus on the records I need                                            |
+| `*`      | user with many persons in the address book | sort persons by name                                                     | locate a person easily                                                 |
+| `*`      | freelancer                                 | archive completed gigs                                                   | keep the active view focused on current work                           |
 
 *{More to be added}*
 
 ### Use cases
 
-(For all use cases below, the **System** is the `AddressBook` and the **Actor** is the `user`, unless specified otherwise)
+For all use cases below, the **System** is the `Gigabyte` and the **Actor** is the `freelancer`, unless specified otherwise.
 
-**Use case: Delete a person**
+**Use case: Record and settle a payment obligation**
+
+**Preconditions:** The relevant gig already exists in Gigabyte.
 
 **MSS**
 
-1.  User requests to list persons
-2.  AddressBook shows a list of persons
-3.  User requests to delete a specific person in the list
-4.  AddressBook deletes the person
+1.  Freelancer requests to view the gig.
+2.  Gigabyte shows the gig and its associated payment obligations.
+3.  Freelancer requests to record a new payment obligation.
+4.  Freelancer supplies the amount and due date.
+5.  Gigabyte validates and records the obligation as outstanding.
+6.  Freelancer requests to view outstanding payments.
+7.  Gigabyte shows the obligation in due date order.
+8.  Freelancer selects the obligation and marks it as paid.
+9.  Gigabyte records the paid status and confirms the change.
 
     Use case ends.
 
 **Extensions**
 
-* 2a. The list is empty.
+* 4a. The amount or due date is invalid.
 
-  Use case ends.
+    * 4a1. Gigabyte explains the error without creating an obligation.
+    Use case resumes at step 4.
 
-* 3a. The given index is invalid.
+* 8a. The selected obligation is already paid.
 
-    * 3a1. AddressBook shows an error message.
-
-      Use case resumes at step 2.
+    * 8a1. Gigabyte informs the freelancer that no change was made.
+    Use case ends.
 
 *{More to be added}*
 
@@ -328,13 +339,22 @@ Priorities: High (must have) - `* * *`, Medium (nice to have) - `* *`, Low (unli
 1.  Should work on any _mainstream OS_ as long as it has Java `25` or above installed.
 2.  Should be able to hold up to 1000 persons without noticeable sluggishness in performance for typical usage.
 3.  A user with above average typing speed for regular English text (i.e. not code, not system admin commands) should be able to accomplish most of the tasks faster using commands than using the mouse.
+4.  Gigabyte should be usable without an installer and should be distributed as a single JAR file.
+5.  Gigabyte should work without a remote server or network connection for its core client, gig, and payment workflows.
+6.  Gigabyte should remain usable at a resolution of 1280×720 with 150% screen scaling, and work well at 1920×1080 with 100% or 125% scaling.
+7.  Gigabyte should allow its main workflows to be completed by typing commands, without requiring mouse input.
 
 *{More to be added}*
 
 ### Glossary
 
+* **Client**: A person or organization that engages the freelancer for work.
+* **Gig**: A piece of work undertaken for a client, with its own deadline, agreed fee, and status.
 * **Mainstream OS**: Windows, Linux, Unix, or macOS
+* **Outstanding payment**: A payment obligation that has not been marked as paid.
+* **Overdue payment**: An outstanding payment whose due date is before the current date.
 * **Private contact detail**: A contact detail that is not meant to be shared with others
+* **Payment obligation**: An amount the freelancer expects to receive for a gig, with a due date and payment status.
 
 --------------------------------------------------------------------------------------------------------------------
 
