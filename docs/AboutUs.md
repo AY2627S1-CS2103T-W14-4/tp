@@ -7,7 +7,7 @@
 
 We are a team based in the [School of Computing, National University of Singapore](http://www.comp.nus.edu.sg).
 
-You can reach us at the email `seer[at]comp.nus.edu.sg`
+You can reach us at the email `gigabyte[at]comp.nus.edu.sg`
 
 ## Project team
 
@@ -50,12 +50,12 @@ You can reach us at the email `seer[at]comp.nus.edu.sg`
 * Role: Developer
 * Responsibilities: coding! (placeholder)
 
-### James Doe
+### Clement
 
-<img src="images/johndoe.png" width="200px">
+<img src="images/approxneo.png" width="200px">
 
-[[github](http://github.com/johndoe)]
-[[portfolio](team/johndoe.md)]
+[[github](http://github.com/ApproxNeo)]
+[[portfolio](team/ApproxNeo.md)]
 
 * Role: Developer
-* Responsibilities: UI
+* Responsibilities: coding! (placeholder)
