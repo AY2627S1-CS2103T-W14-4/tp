@@ -4,10 +4,10 @@
 
 ![Ui](docs/images/Ui.png)
 
-**Gigabyte** is a desktop app for **Freelancers** who manage multiple clients, projects, and payment deadlines independently.
+**Gigabyte** is a desktop app for **Freelancers** who manage multiple clients, projects, and payment deadlines independently. It is designed for users who prefer typing commands. 
 
 
-## Raison d'être
+## Why Gigabyte?
 
 We help freelancers keep their client work and payment obligations organised, making it easier to prioritise tasks and avoid overdue invoices.
 
