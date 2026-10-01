@@ -26,16 +26,16 @@ You can reach us at the email `seer[at]comp.nus.edu.sg`
 <img src="images/minghong-dev.png" width="200px">
 
 [[github](https://github.com/minghong-dev)]
-[[portfolio](team/johndoe.md)]
+[[portfolio](team/minghong-dev.md)]
 
 * Role: -
 * Responsibilities: -
 
-### Johnny Doe
+### Lim Kerjun
 
-<img src="images/johndoe.png" width="200px">
+<img src="images/patientotter.png" width="200px">
 
-[[github](http://github.com/johndoe)] [[portfolio](team/johndoe.md)]
+[[github](https://github.com/patientotter)] [[portfolio](team/patientotter.md)]
 
 * Role: Developer
 * Responsibilities: Data

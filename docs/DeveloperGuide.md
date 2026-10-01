@@ -296,7 +296,6 @@ Priorities: High (must have) - `* * *`, Medium (nice to have) - `* *`, Low (unli
 | `*`      | user with many persons in the address book | sort persons by name                                                     | locate a person easily                                                 |
 | `*`      | freelancer                                 | archive completed gigs                                                   | keep the active view focused on current work                           |
 
-*{More to be added}*
 
 ### Use cases
 
@@ -332,19 +331,14 @@ For all use cases below, the **System** is the `Gigabyte` and the **Actor** is t
     * 8a1. Gigabyte informs the freelancer that no change was made.
     Use case ends.
 
-*{More to be added}*
-
 ### Non-Functional Requirements
 
-1.  Should work on any _mainstream OS_ as long as it has Java `25` or above installed.
-2.  Should be able to hold up to 1000 persons without noticeable sluggishness in performance for typical usage.
-3.  A user with above average typing speed for regular English text (i.e. not code, not system admin commands) should be able to accomplish most of the tasks faster using commands than using the mouse.
-4.  Gigabyte should be usable without an installer and should be distributed as a single JAR file.
-5.  Gigabyte should work without a remote server or network connection for its core client, gig, and payment workflows.
-6.  Gigabyte should remain usable at a resolution of 1280×720 with 150% screen scaling, and work well at 1920×1080 with 100% or 125% scaling.
-7.  Gigabyte should allow its main workflows to be completed by typing commands, without requiring mouse input.
-
-*{More to be added}*
+1. Platform and distribution: Gigabyte should run on mainstream desktop operating systems with Java 25 or above installed, and be distributed as a single JAR file that requires no installer.
+2. Offline use and persistence: Gigabyte’s core client, gig, and payment workflows should work without a remote server or network connection. Changes should be saved locally and remain available after the application is closed and reopened.
+3. Capacity and performance: Gigabyte should support up to 1,000 clients, 5,000 gigs, and 5,000 payment obligations without noticeable sluggishness during typical use. On a supported computer, searches, filters, and deadline or due-date views should display results within 2 seconds.
+4. Command-based usability: Users should be able to complete the main workflows by typing commands, without needing a mouse. For regular English text, users with above-average typing speed should be able to complete most tasks faster with commands than with the mouse.
+5. Display compatibility: Gigabyte should remain usable at 1280×720 with 150% screen scaling, and work well at 1920×1080 with 100% or 125% scaling.
+6. Data integrity and validation: Gigabyte should maintain valid links between gigs and clients, and between payment obligations and gigs. It should reject invalid dates and fees with clear error messages.
 
 ### Glossary
 
