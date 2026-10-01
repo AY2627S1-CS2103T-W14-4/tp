@@ -31,11 +31,11 @@ You can reach us at the email `seer[at]comp.nus.edu.sg`
 * Role: -
 * Responsibilities: -
 
-### Johnny Doe
+### Lim Kerjun
 
-<img src="images/johndoe.png" width="200px">
+<img src="images/patientotter.png" width="200px">
 
-[[github](http://github.com/johndoe)] [[portfolio](team/johndoe.md)]
+[[github](https://github.com/patientotter)] [[portfolio](team/patientotter.md)]
 
 * Role: Developer
 * Responsibilities: Data
