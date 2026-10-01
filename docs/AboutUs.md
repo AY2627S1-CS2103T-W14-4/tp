@@ -26,7 +26,7 @@ You can reach us at the email `seer[at]comp.nus.edu.sg`
 <img src="images/minghong-dev.png" width="200px">
 
 [[github](https://github.com/minghong-dev)]
-[[portfolio](team/johndoe.md)]
+[[portfolio](team/minghong-dev.md)]
 
 * Role: -
 * Responsibilities: -
