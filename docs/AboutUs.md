@@ -35,7 +35,7 @@ You can reach us at the email `seer[at]comp.nus.edu.sg`
 
 <img src="images/patientotter.png" width="200px">
 
-[[github](http://github.com/patientotter)] [[portfolio](team/patientotter.md)]
+[[github](https://github.com/patientotter)] [[portfolio](team/patientotter.md)]
 
 * Role: Developer
 * Responsibilities: Data
