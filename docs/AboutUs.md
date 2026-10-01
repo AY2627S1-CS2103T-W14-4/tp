@@ -40,15 +40,15 @@ You can reach us at the email `seer[at]comp.nus.edu.sg`
 * Role: Developer
 * Responsibilities: Data
 
-### Jean Doe
+### Axel Heng
 
-<img src="images/johndoe.png" width="200px">
+<img src="images/axelheng.png" width="200px">
 
-[[github](http://github.com/johndoe)]
-[[portfolio](team/johndoe.md)]
+[[github](http://github.com/axelheng)]
+[[portfolio](team/axelheng.md)]
 
 * Role: Developer
-* Responsibilities: Dev Ops + Threading
+* Responsibilities: coding! (placeholder)
 
 ### James Doe
 
