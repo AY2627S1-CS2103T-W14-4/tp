@@ -324,10 +324,11 @@ Priorities: High (must have) - `* * *`, Medium (nice to have) - `* *`, Low (unli
 *{More to be added}*
 
 ### Non-Functional Requirements
-
-1.  Should work on any _mainstream OS_ as long as it has Java `25` or above installed.
-2.  Should be able to hold up to 1000 persons without noticeable sluggishness in performance for typical usage.
-3.  A user with above average typing speed for regular English text (i.e. not code, not system admin commands) should be able to accomplish most of the tasks faster using commands than using the mouse.
+1.  Gigabyte should run on mainstream desktop operating systems with Java 25 or above installed.
+2.  Gigabyte should allow users to manage clients, gigs, and payment obligations without a continuous internet connection.
+3.  Gigabyte should save changes locally so that records remain available after the application is closed and reopened.
+4.  For up to 1,000 clients, 5,000 gigs, and 5,000 payment obligations, searches, filters, and deadline or due-date views should display results within 2 seconds on a supported computer.
+5.  Gigabyte should maintain valid links between gigs and clients, and between payment obligations and gigs. It should reject invalid dates and fees with a clear error message.
 
 *{More to be added}*
 
