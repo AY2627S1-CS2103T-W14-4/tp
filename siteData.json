@@ -11,7 +11,7 @@
         "tang-ming-hong": "Tang Ming Hong",
         "lim-kerjun": "Lim Kerjun",
         "axel-heng": "Axel Heng",
-        "james-doe": "James Doe"
+        "clement": "Clement"
       },
       "headingKeywords": {}
     },
@@ -132,6 +132,14 @@
       "title": "",
       "headings": {
         "addressbook-level-3": "AddressBook Level-3"
+      },
+      "headingKeywords": {}
+    },
+    {
+      "src": "team/ApproxNeo.md",
+      "title": "Clement's Project Portfolio Page",
+      "headings": {
+        "project-gigabyte": "Project: Gigabyte"
       },
       "headingKeywords": {}
     },
