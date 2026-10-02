@@ -291,6 +291,9 @@ Priorities: High (must have) - `* * *`, Medium (nice to have) - `* *`, Low (unli
 | `* * *`  | user                                       | find a person by name                                                    | locate details of persons without having to go through the entire list |
 | `* * *`  | freelancer                                 | record a payment obligation linked to a gig, with an amount and due date | know what payment I expect and when                                    |
 | `* * *`  | freelancer                                 | mark a payment obligation as paid                                        | distinguish settled payments from money still owed                      |
+| `* * *`  | freelancer                                 | view a client’s details and associated gigs                              | understand my work with that client                                    |
+| `* * *`  | freelancer                                 | create a gig linked to a client with a title, status, deadline, and fee  | track each piece of work                                               |
+| `* * *`  | freelancer                                 | view upcoming gig deadlines in date order                                | prioritise my work                                                     |
 | `* *`    | user                                       | hide private contact details                                             | minimize chance of someone else seeing them by accident                |
 | `* *`    | freelancer                                 | filter clients or gigs by relevant criteria                              | focus on the records I need                                            |
 | `*`      | user with many persons in the address book | sort persons by name                                                     | locate a person easily                                                 |

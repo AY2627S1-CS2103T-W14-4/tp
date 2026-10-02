@@ -1,6 +1,6 @@
 # Gigabyte
 
-[![CI Status](https://github.com/se-edu/addressbook-level3/workflows/Java%20CI/badge.svg)](https://github.com/se-edu/addressbook-level3/actions)
+[![CI Status](https://github.com/AY2627S1-CS2103T-W14-4/tp/actions/workflows/gradle.yml/badge.svg)](https://github.com/AY2627S1-CS2103T-W14-4/tp/actions/workflows/gradle.yml)
 
 ![Ui](docs/images/Ui.png)
 
@@ -36,4 +36,3 @@ For the detailed documentation of this project, see the **[Gigabyte Product Webs
 ## Acknowledgements
 
 This project is based on the **AddressBook-Level3** project created by the [SE-EDU initiative](https://se-education.org).
-
