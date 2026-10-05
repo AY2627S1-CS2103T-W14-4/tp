@@ -4,9 +4,9 @@ skinparam ArrowFontStyle plain
 
 box Logic LOGIC_COLOR_T1
 participant ":LogicManager" as LogicManager LOGIC_COLOR
-participant ":AddressBookParser" as AddressBookParser LOGIC_COLOR
-participant ":DeleteCommandParser" as DeleteCommandParser LOGIC_COLOR
-participant "d:DeleteCommand" as DeleteCommand LOGIC_COLOR
+participant ":GigabyteParser" as GigabyteParser LOGIC_COLOR
+participant ":DeleteClientCommandParser" as DeleteClientCommandParser LOGIC_COLOR
+participant "d:DeleteClientCommand" as DeleteClientCommand LOGIC_COLOR
 participant "r:CommandResult" as CommandResult LOGIC_COLOR
 end box
 
@@ -17,53 +17,53 @@ end box
 [-> LogicManager : execute("delete 1")
 activate LogicManager
 
-LogicManager -> AddressBookParser : parseCommand("delete 1")
-activate AddressBookParser
+LogicManager -> GigabyteParser : parseCommand("delete 1")
+activate GigabyteParser
 
-create DeleteCommandParser
-AddressBookParser -> DeleteCommandParser
-activate DeleteCommandParser
+create DeleteClientCommandParser
+GigabyteParser -> DeleteClientCommandParser
+activate DeleteClientCommandParser
 
-DeleteCommandParser --> AddressBookParser
-deactivate DeleteCommandParser
+DeleteClientCommandParser --> GigabyteParser
+deactivate DeleteClientCommandParser
 
-AddressBookParser -> DeleteCommandParser : parse("1")
-activate DeleteCommandParser
+GigabyteParser -> DeleteClientCommandParser : parse("1")
+activate DeleteClientCommandParser
 
-create DeleteCommand
-DeleteCommandParser -> DeleteCommand
-activate DeleteCommand
+create DeleteClientCommand
+DeleteClientCommandParser -> DeleteClientCommand
+activate DeleteClientCommand
 
-DeleteCommand --> DeleteCommandParser :
-deactivate DeleteCommand
+DeleteClientCommand --> DeleteClientCommandParser :
+deactivate DeleteClientCommand
 
-DeleteCommandParser --> AddressBookParser : d
-deactivate DeleteCommandParser
+DeleteClientCommandParser --> GigabyteParser : d
+deactivate DeleteClientCommandParser
 'Hidden arrow to position the destroy marker below the end of the activation bar.
-DeleteCommandParser -[hidden]-> AddressBookParser
-destroy DeleteCommandParser
+DeleteClientCommandParser -[hidden]-> GigabyteParser
+destroy DeleteClientCommandParser
 
-AddressBookParser --> LogicManager : d
-deactivate AddressBookParser
+GigabyteParser --> LogicManager : d
+deactivate GigabyteParser
 
-LogicManager -> DeleteCommand : execute(m)
-activate DeleteCommand
+LogicManager -> DeleteClientCommand : execute(m)
+activate DeleteClientCommand
 
-DeleteCommand -> Model : deletePerson(1)
+DeleteClientCommand -> Model : deleteClient(1)
 activate Model
 
-Model --> DeleteCommand
+Model --> DeleteClientCommand
 deactivate Model
 
 create CommandResult
-DeleteCommand -> CommandResult
+DeleteClientCommand -> CommandResult
 activate CommandResult
 
-CommandResult --> DeleteCommand
+CommandResult --> DeleteClientCommand
 deactivate CommandResult
 
-DeleteCommand --> LogicManager : r
-deactivate DeleteCommand
+DeleteClientCommand --> LogicManager : r
+deactivate DeleteClientCommand
 
 [<--LogicManager
 deactivate LogicManager
