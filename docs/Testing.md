@@ -34,8 +34,8 @@ You can run tests in two ways.
 This project has three types of tests:
 
 1. *Unit tests* target the lowest-level methods and classes.<br>
-   For example: `gigabyte.commons.util.StringUtilTest`
+   For example: `seedu.address.commons.StringUtilTest`
 1. *Integration tests* check how multiple code units work together; the individual units are assumed to work.<br>
-   For example: `gigabyte.storage.StorageManagerTest`
+   For example: `seedu.address.storage.StorageManagerTest`
 1. *Hybrid tests* combine unit and integration testing. These tests check both the individual units and how they work together.<br>
-   For example: `gigabyte.logic.LogicManagerTest`
+   For example: `seedu.address.logic.LogicManagerTest`

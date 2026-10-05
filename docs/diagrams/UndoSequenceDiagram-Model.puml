@@ -4,18 +4,18 @@ skinparam ArrowFontStyle plain
 
 box Model MODEL_COLOR_T1
 participant ":Model" as Model MODEL_COLOR
-participant ":VersionedGigabyteData" as VersionedGigabyteData MODEL_COLOR
+participant ":VersionedAddressBook" as VersionedAddressBook MODEL_COLOR
 end box
 
-[-> Model : undoGigabyteData()
+[-> Model : undoAddressBook()
 activate Model
 
-Model -> VersionedGigabyteData : undo()
-activate VersionedGigabyteData
+Model -> VersionedAddressBook : undo()
+activate VersionedAddressBook
 
-VersionedGigabyteData -> VersionedGigabyteData :resetData(ReadOnlyGigabyteData)
-VersionedGigabyteData --> Model :
-deactivate VersionedGigabyteData
+VersionedAddressBook -> VersionedAddressBook :resetData(ReadOnlyAddressBook)
+VersionedAddressBook --> Model :
+deactivate VersionedAddressBook
 
 [<-- Model
 deactivate Model
