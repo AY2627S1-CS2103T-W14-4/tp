@@ -9,6 +9,7 @@ import java.util.logging.Logger;
 import gigabyte.commons.core.GuiSettings;
 import gigabyte.commons.core.LogsCenter;
 import gigabyte.model.client.Client;
+import gigabyte.model.gig.Gig;
 import javafx.collections.ObservableList;
 import javafx.collections.transformation.FilteredList;
 
@@ -91,6 +92,19 @@ public class ModelManager implements Model {
         requireAllNonNull(target, editedClient);
 
         gigabyteData.setClient(target, editedClient);
+    }
+
+    //=========== Gig Operations ================================================================================
+
+    @Override
+    public void addGig(Gig gig) {
+        requireNonNull(gig);
+        gigabyteData.addGig(gig);
+    }
+
+    @Override
+    public ObservableList<Gig> getGigList() {
+        return gigabyteData.getGigList();
     }
 
     //=========== Filtered Client List Accessors =============================================================

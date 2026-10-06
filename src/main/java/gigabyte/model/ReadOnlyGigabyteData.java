@@ -1,17 +1,21 @@
 package gigabyte.model;
 
 import gigabyte.model.client.Client;
+import gigabyte.model.gig.Gig;
 import javafx.collections.ObservableList;
 
 /**
- * Unmodifiable view of an client list
+ * Unmodifiable view of Gigabyte data.
  */
 public interface ReadOnlyGigabyteData {
 
     /**
-     * Returns an unmodifiable view of the clients list.
-     * This list will not contain any duplicate clients.
+     * Returns an unmodifiable view of the clients.
      */
     ObservableList<Client> getClientList();
 
+    /**
+     * Returns an unmodifiable view of the gigs.
+     */
+    ObservableList<Gig> getGigList();
 }

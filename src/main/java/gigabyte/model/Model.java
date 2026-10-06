@@ -4,6 +4,7 @@ import java.util.function.Predicate;
 
 import gigabyte.commons.core.GuiSettings;
 import gigabyte.model.client.Client;
+import gigabyte.model.gig.Gig;
 import javafx.collections.ObservableList;
 
 /**
@@ -68,4 +69,15 @@ public interface Model {
      * @throws NullPointerException if {@code predicate} is null.
      */
     void updateFilteredClientList(Predicate<Client> predicate);
+
+    /**
+     * Adds a gig.
+     * The gig's client must already exist.
+     */
+    void addGig(Gig gig);
+
+    /**
+     * Returns an unmodifiable view of all gigs.
+     */
+    ObservableList<Gig> getGigList();
 }

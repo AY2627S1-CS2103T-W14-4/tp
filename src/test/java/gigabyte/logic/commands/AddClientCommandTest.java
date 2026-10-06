@@ -21,6 +21,7 @@ import gigabyte.model.Model;
 import gigabyte.model.ReadOnlyGigabyteData;
 import gigabyte.model.ReadOnlyUserPrefs;
 import gigabyte.model.client.Client;
+import gigabyte.model.gig.Gig;
 import gigabyte.testutil.ClientBuilder;
 import javafx.collections.ObservableList;
 
@@ -140,6 +141,16 @@ public class AddClientCommandTest {
 
         @Override
         public void updateFilteredClientList(Predicate<Client> predicate) {
+            throw new AssertionError("This method should not be called.");
+        }
+
+        @Override
+        public void addGig(Gig gig) {
+            throw new AssertionError("This method should not be called.");
+        }
+
+        @Override
+        public ObservableList<Gig> getGigList() {
             throw new AssertionError("This method should not be called.");
         }
     }

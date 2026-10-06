@@ -6,6 +6,7 @@ import static gigabyte.testutil.TypicalClients.ALICE;
 import static gigabyte.testutil.TypicalClients.BENSON;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.List;
@@ -13,7 +14,15 @@ import java.util.List;
 import org.junit.jupiter.api.Test;
 
 import gigabyte.commons.core.GuiSettings;
+import gigabyte.model.client.Client;
 import gigabyte.model.client.ClientNameContainsKeywordsPredicate;
+import gigabyte.model.gig.Deadline;
+import gigabyte.model.gig.Fee;
+import gigabyte.model.gig.Gig;
+import gigabyte.model.gig.GigStatus;
+import gigabyte.model.gig.exceptions.ClientHasGigsException;
+import gigabyte.model.gig.exceptions.GigClientNotFoundException;
+import gigabyte.testutil.ClientBuilder;
 import gigabyte.testutil.GigabyteBuilder;
 
 public class ModelManagerTest {
@@ -108,5 +117,69 @@ public class ModelManagerTest {
         UserPrefs differentUserPrefs = new UserPrefs();
         differentUserPrefs.setGuiSettings(new GuiSettings(1, 2, 3, 4));
         assertFalse(modelManager.equals(new ModelManager(gigabyteData, differentUserPrefs)));
+    }
+
+    @Test
+    public void addGig_existingClient_addsGig() {
+        modelManager.addClient(ALICE);
+        Gig gig = createGig(ALICE);
+
+        modelManager.addGig(gig);
+
+        assertEquals(List.of(gig), modelManager.getGigList());
+    }
+
+    @Test
+    public void addGig_nonexistentClient_throwsGigClientNotFoundException() {
+        Gig gig = createGig(ALICE);
+
+        assertThrows(GigClientNotFoundException.class,
+                GigClientNotFoundException.MESSAGE, () -> modelManager.addGig(gig));
+    }
+
+    @Test
+    public void addGig_equivalentClient_usesStoredClientReference() {
+        modelManager.addClient(ALICE);
+        Client equivalentAlice = new ClientBuilder(ALICE)
+                .withAddress("Different address")
+                .build();
+
+        modelManager.addGig(createGig(equivalentAlice));
+
+        assertSame(ALICE, modelManager.getGigList().get(0).getClient());
+    }
+
+    @Test
+    public void getGigList_modifyList_throwsUnsupportedOperationException() {
+        assertThrows(UnsupportedOperationException.class, () ->
+                modelManager.getGigList().add(createGig(ALICE)));
+    }
+
+    @Test
+    public void deleteClient_clientHasGig_throwsClientHasGigsException() {
+        modelManager.addClient(ALICE);
+        modelManager.addGig(createGig(ALICE));
+
+        assertThrows(ClientHasGigsException.class,
+                ClientHasGigsException.MESSAGE, () -> modelManager.deleteClient(ALICE));
+        assertTrue(modelManager.hasClient(ALICE));
+    }
+
+    @Test
+    public void setClient_clientHasGig_updatesGigClientReference() {
+        modelManager.addClient(ALICE);
+        modelManager.addGig(createGig(ALICE));
+        Client editedAlice = new ClientBuilder(ALICE)
+                .withAddress("Updated address")
+                .build();
+
+        modelManager.setClient(ALICE, editedAlice);
+
+        assertSame(editedAlice, modelManager.getGigList().get(0).getClient());
+    }
+
+    private Gig createGig(Client client) {
+        return new Gig(client, GigStatus.NOT_STARTED,
+                new Deadline("2027-01-31"), new Fee("1250.00"));
     }
 }

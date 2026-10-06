@@ -16,6 +16,7 @@ import org.junit.jupiter.api.Test;
 
 import gigabyte.model.client.Client;
 import gigabyte.model.client.exceptions.DuplicateClientException;
+import gigabyte.model.gig.Gig;
 import gigabyte.testutil.ClientBuilder;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -83,7 +84,9 @@ public class GigabyteDataTest {
 
     @Test
     public void toStringMethod() {
-        String expected = GigabyteData.class.getCanonicalName() + "{clients=" + gigabyteData.getClientList() + "}";
+        String expected = GigabyteData.class.getCanonicalName()
+                + "{clients=" + gigabyteData.getClientList()
+                + ", gigs=" + gigabyteData.getGigList() + "}";
         assertEquals(expected, gigabyteData.toString());
     }
 
@@ -92,6 +95,7 @@ public class GigabyteDataTest {
      */
     private static class GigabyteDataStub implements ReadOnlyGigabyteData {
         private final ObservableList<Client> clients = FXCollections.observableArrayList();
+        private final ObservableList<Gig> gigs = FXCollections.observableArrayList();
 
         GigabyteDataStub(Collection<Client> clients) {
             this.clients.setAll(clients);
@@ -100,6 +104,11 @@ public class GigabyteDataTest {
         @Override
         public ObservableList<Client> getClientList() {
             return clients;
+        }
+
+        @Override
+        public ObservableList<Gig> getGigList() {
+            return gigs;
         }
     }
 
