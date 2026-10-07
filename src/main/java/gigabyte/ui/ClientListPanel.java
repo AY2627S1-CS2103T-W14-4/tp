@@ -1,6 +1,7 @@
 package gigabyte.ui;
 
 import java.util.logging.Logger;
+import java.util.function.Consumer;
 
 import gigabyte.commons.core.LogsCenter;
 import gigabyte.model.client.Client;
@@ -19,14 +20,22 @@ public class ClientListPanel extends UiPart<Region> {
 
     @FXML
     private ListView<Client> clientListView;
+    private final Consumer<Client> clientSelectionHandler;
 
     /**
      * Creates a {@code ClientListPanel} with the given {@code ObservableList}.
      */
     public ClientListPanel(ObservableList<Client> clientList) {
+        this(clientList, client -> { });
+    }
+
+    public ClientListPanel(ObservableList<Client> clientList, Consumer<Client> clientSelectionHandler) {
         super(FXML);
+        this.clientSelectionHandler = clientSelectionHandler;
         clientListView.setItems(clientList);
         clientListView.setCellFactory(listView -> new ClientListViewCell());
+        clientListView.getSelectionModel().selectedItemProperty().addListener(
+                (observable, oldClient, newClient) -> clientSelectionHandler.accept(newClient));
     }
 
     /**

@@ -13,6 +13,7 @@ import gigabyte.logic.parser.GigabyteParser;
 import gigabyte.logic.parser.exceptions.ParseException;
 import gigabyte.model.Model;
 import gigabyte.model.client.Client;
+import gigabyte.model.gig.Gig;
 import gigabyte.storage.Storage;
 import javafx.collections.ObservableList;
 
@@ -62,6 +63,11 @@ public class LogicManager implements Logic {
     @Override
     public ObservableList<Client> getFilteredClientList() {
         return model.getFilteredClientList();
+    }
+
+    @Override
+    public ObservableList<Gig> getGigList() {
+        return model.getGigList();
     }
 
     @Override
