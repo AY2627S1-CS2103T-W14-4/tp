@@ -27,15 +27,22 @@ class JsonSerializableGigabyteData {
     @JsonProperty("gigs")
     private final List<JsonAdaptedGig> gigs = new ArrayList<>();
 
+    @JsonProperty("paymentObligations")
+    private final List<JsonAdaptedPaymentObligation> paymentObligations = new ArrayList<>();
+
     /**
-     * Constructs data from JSON, treating an absent gig list in older files as empty.
+     * Constructs data from JSON, treating absent gig and obligation lists in older files as empty.
      */
     @JsonCreator
     public JsonSerializableGigabyteData(@JsonProperty("persons") List<JsonAdaptedClient> clients,
-            @JsonProperty("gigs") List<JsonAdaptedGig> gigs) {
+            @JsonProperty("gigs") List<JsonAdaptedGig> gigs,
+            @JsonProperty("paymentObligations") List<JsonAdaptedPaymentObligation> paymentObligations) {
         this.clients.addAll(clients);
         if (gigs != null) {
             this.gigs.addAll(gigs);
+        }
+        if (paymentObligations != null) {
+            this.paymentObligations.addAll(paymentObligations);
         }
     }
 
@@ -47,6 +54,8 @@ class JsonSerializableGigabyteData {
     public JsonSerializableGigabyteData(ReadOnlyGigabyteData source) {
         clients.addAll(source.getClientList().stream().map(JsonAdaptedClient::new).collect(Collectors.toList()));
         gigs.addAll(source.getGigList().stream().map(JsonAdaptedGig::new).collect(Collectors.toList()));
+        paymentObligations.addAll(source.getPaymentObligationList().stream()
+                .map(obligation -> new JsonAdaptedPaymentObligation(obligation, source.getGigList())).toList());
     }
 
     /**
@@ -68,6 +77,12 @@ class JsonSerializableGigabyteData {
                 throw new IllegalValueException(JsonAdaptedGig.MISSING_FIELD_MESSAGE);
             }
             gigabyteData.addGig(gig.toModelType(gigabyteData.getClientList()));
+        }
+        for (JsonAdaptedPaymentObligation obligation : paymentObligations) {
+            if (obligation == null) {
+                throw new IllegalValueException(JsonAdaptedPaymentObligation.MISSING_FIELD_MESSAGE);
+            }
+            gigabyteData.addPaymentObligation(obligation.toModelType(gigabyteData.getGigList()));
         }
         return gigabyteData;
     }
