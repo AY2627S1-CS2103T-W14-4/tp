@@ -137,6 +137,9 @@ public class GigabyteDataTest {
                 + ", gigs=" + gigabyteData.getGigList()
                 + ", paymentObligations=" + gigabyteData.getPaymentObligationList() + "}";
         assertEquals(expected, gigabyteData.toString());
+        assertTrue(gigabyteData.equals(gigabyteData));
+        assertFalse(gigabyteData.equals("not gigabyte data"));
+        assertEquals(gigabyteData.hashCode(), gigabyteData.hashCode());
     }
 
     /**

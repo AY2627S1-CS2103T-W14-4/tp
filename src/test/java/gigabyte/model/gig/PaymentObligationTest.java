@@ -37,9 +37,11 @@ public class PaymentObligationTest {
         assertEquals(AMOUNT, obligation.getAmount());
         assertEquals(DUE_DATE, obligation.getDueDate());
         assertTrue(obligation.equals(equivalent));
+        assertTrue(obligation.equals(obligation));
         assertEquals(obligation.hashCode(), equivalent.hashCode());
         assertTrue(obligation.toString().contains("PaymentObligation"));
         assertFalse(obligation.equals(null));
+        assertFalse(obligation.equals("not an obligation"));
     }
 
     @Test
