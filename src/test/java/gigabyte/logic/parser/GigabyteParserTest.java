@@ -14,6 +14,7 @@ import org.junit.jupiter.api.Test;
 
 import gigabyte.logic.commands.AddClientCommand;
 import gigabyte.logic.commands.AddGigCommand;
+import gigabyte.logic.commands.AddPaymentCommand;
 import gigabyte.logic.commands.ClearClientsCommand;
 import gigabyte.logic.commands.DeleteClientCommand;
 import gigabyte.logic.commands.EditClientCommand;
@@ -46,6 +47,12 @@ public class GigabyteParserTest {
     public void parseCommand_addGig() throws Exception {
         assertEquals(new AddGigCommand(INDEX_FIRST_CLIENT, GigStatus.NOT_STARTED, new Deadline("2027-01-31"),
                 new Fee("1250.00")), parser.parseCommand("addgig 1 s/NOT_STARTED d/2027-01-31 f/1250.00"));
+    }
+
+    @Test
+    public void parseCommand_addPayment() throws Exception {
+        assertEquals(new AddPaymentCommand(INDEX_FIRST_CLIENT, INDEX_FIRST_CLIENT, new Fee("50.00"),
+                new Deadline("2027-01-31")), parser.parseCommand("addpayment 1 1 a/50.00 d/2027-01-31"));
     }
 
     @Test

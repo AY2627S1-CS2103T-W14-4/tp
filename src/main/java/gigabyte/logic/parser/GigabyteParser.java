@@ -10,6 +10,7 @@ import java.util.regex.Pattern;
 import gigabyte.commons.core.LogsCenter;
 import gigabyte.logic.commands.AddClientCommand;
 import gigabyte.logic.commands.AddGigCommand;
+import gigabyte.logic.commands.AddPaymentCommand;
 import gigabyte.logic.commands.ClearClientsCommand;
 import gigabyte.logic.commands.Command;
 import gigabyte.logic.commands.DeleteClientCommand;
@@ -55,6 +56,7 @@ public class GigabyteParser {
         return switch (commandWord) {
             case AddClientCommand.COMMAND_WORD -> new AddClientCommandParser().parse(arguments);
             case AddGigCommand.COMMAND_WORD -> new AddGigCommandParser().parse(arguments);
+            case AddPaymentCommand.COMMAND_WORD -> new AddPaymentCommandParser().parse(arguments);
             case EditClientCommand.COMMAND_WORD -> new EditClientCommandParser().parse(arguments);
             case DeleteClientCommand.COMMAND_WORD -> new DeleteClientCommandParser().parse(arguments);
             case ClearClientsCommand.COMMAND_WORD -> new ClearClientsCommand();
