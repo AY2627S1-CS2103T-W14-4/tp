@@ -94,8 +94,8 @@ public class UniqueClientListTest {
     @Test
     public void setClient_editedClientHasDifferentUid_throwsIllegalArgumentException() {
         uniqueClientList.add(ALICE);
-        assertThrows(IllegalArgumentException.class, "An edited client must retain its uid.",
-                () -> uniqueClientList.setClient(ALICE, BOB));
+        assertThrows(IllegalArgumentException.class, "An edited client must retain its uid.", () ->
+                uniqueClientList.setClient(ALICE, BOB));
         assertEquals(List.of(ALICE), uniqueClientList.asUnmodifiableObservableList());
     }
 
