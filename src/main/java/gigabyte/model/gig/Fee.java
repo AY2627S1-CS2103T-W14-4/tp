@@ -4,6 +4,7 @@ import static gigabyte.commons.util.AppUtil.checkArgument;
 import static java.util.Objects.requireNonNull;
 
 import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.util.Objects;
 
 /**
@@ -31,6 +32,18 @@ public class Fee {
 
     public BigDecimal getValue() {
         return value;
+    }
+
+    /** Returns this fee as an exact integer count of cents. */
+    public BigInteger getCents() {
+        return value.movePointRight(2).toBigIntegerExact();
+    }
+
+    /** Creates a fee from a positive integer count of cents. */
+    public static Fee fromCents(BigInteger cents) {
+        requireNonNull(cents);
+        checkArgument(cents.signum() > 0, MESSAGE_CONSTRAINTS);
+        return new Fee(new BigDecimal(cents, 2).toPlainString());
     }
 
     /**

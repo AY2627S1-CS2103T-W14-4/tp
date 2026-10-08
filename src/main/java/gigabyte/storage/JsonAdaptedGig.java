@@ -1,6 +1,8 @@
 package gigabyte.storage;
 
+import java.math.BigInteger;
 import java.util.List;
+import java.util.UUID;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -13,50 +15,80 @@ import gigabyte.model.gig.Gig;
 import gigabyte.model.gig.GigStatus;
 import gigabyte.model.gig.exceptions.GigClientNotFoundException;
 
-/**
- * Stores a gig's fields and its client identity in JSON.
- */
+/** Stores a gig's fields and stable references in JSON. */
 class JsonAdaptedGig {
-    public static final String MISSING_FIELD_MESSAGE = "A gig must have a clientName, status, deadline, and fee.";
+    public static final String MISSING_FIELD_MESSAGE =
+            "A gig must have a uid, clientUid, status, deadline, and feeCents.";
+    public static final String INVALID_UID_MESSAGE = "Gig uid must be a valid UUID.";
 
+    private final String uid;
+    private final String clientUid;
+    @JsonProperty(value = "clientName", access = JsonProperty.Access.WRITE_ONLY)
     private final String clientName;
     private final String status;
     private final String deadline;
-    private final String fee;
+    private final BigInteger feeCents;
+    @JsonProperty(value = "fee", access = JsonProperty.Access.WRITE_ONLY)
+    private final String legacyFee;
 
-    /**
-     * Creates a JSON-friendly gig with the given fields.
-     */
+    /** Creates an adapted gig from either the new ID-based format or the legacy name-based format. */
     @JsonCreator
-    public JsonAdaptedGig(@JsonProperty("clientName") String clientName, @JsonProperty("status") String status,
-            @JsonProperty("deadline") String deadline, @JsonProperty("fee") String fee) {
+    public JsonAdaptedGig(@JsonProperty("uid") String uid, @JsonProperty("clientUid") String clientUid,
+            @JsonProperty("clientName") String clientName, @JsonProperty("status") String status,
+            @JsonProperty("deadline") String deadline, @JsonProperty("feeCents") BigInteger feeCents,
+            @JsonProperty("fee") String legacyFee) {
+        this.uid = uid;
+        this.clientUid = clientUid;
         this.clientName = clientName;
         this.status = status;
         this.deadline = deadline;
-        this.fee = fee;
+        this.feeCents = feeCents;
+        this.legacyFee = legacyFee;
     }
 
-    /**
-     * Copies {@code gig} for serialization.
-     */
+    /** Retains the previous adapter constructor for legacy data and tests. */
+    public JsonAdaptedGig(String clientName, String status, String deadline, String fee) {
+        this(null, null, clientName, status, deadline, null, fee);
+    }
+
+    /** Copies {@code gig} for serialization. */
     public JsonAdaptedGig(Gig gig) {
-        this(gig.getClient().getName().fullName, gig.getStatus().name(), gig.getDeadline().toString(),
-                gig.getAgreedFee().toString());
+        this(gig.getUid().toString(), gig.getClient().getUid().toString(), null, gig.getStatus().name(),
+                gig.getDeadline().toString(), gig.getAgreedFee().getCents(), null);
     }
 
-    /**
-     * Restores a gig linked to an existing canonical client.
-     *
-     * @throws IllegalValueException if fields are missing, invalid, or the client does not exist.
-     */
+    /** Restores a gig linked to an existing canonical client. */
     public Gig toModelType(List<Client> clients) throws IllegalValueException {
-        if (clientName == null || status == null || deadline == null || fee == null) {
+        if ((clientUid == null && clientName == null) || status == null || deadline == null
+                || (feeCents == null && legacyFee == null) || (clientUid != null && uid == null)) {
             throw new IllegalValueException(MISSING_FIELD_MESSAGE);
         }
-        Client client = clients.stream()
-                .filter(candidate -> candidate.getName().fullName.equals(clientName))
-                .findFirst()
-                .orElseThrow(() -> new IllegalValueException(GigClientNotFoundException.MESSAGE));
+
+        UUID modelUid;
+        try {
+            modelUid = uid == null ? UUID.randomUUID() : UUID.fromString(uid);
+        } catch (IllegalArgumentException exception) {
+            throw new IllegalValueException(INVALID_UID_MESSAGE);
+        }
+
+        Client client;
+        if (clientUid != null) {
+            UUID modelClientUid;
+            try {
+                modelClientUid = UUID.fromString(clientUid);
+            } catch (IllegalArgumentException exception) {
+                throw new IllegalValueException(GigClientNotFoundException.MESSAGE);
+            }
+            client = clients.stream()
+                    .filter(candidate -> candidate.getUid().equals(modelClientUid))
+                    .findFirst()
+                    .orElseThrow(() -> new IllegalValueException(GigClientNotFoundException.MESSAGE));
+        } else {
+            client = clients.stream()
+                    .filter(candidate -> candidate.getName().fullName.equals(clientName))
+                    .findFirst()
+                    .orElseThrow(() -> new IllegalValueException(GigClientNotFoundException.MESSAGE));
+        }
 
         GigStatus gigStatus;
         try {
@@ -67,9 +99,19 @@ class JsonAdaptedGig {
         if (!Deadline.isValidDeadline(deadline)) {
             throw new IllegalValueException(Deadline.MESSAGE_CONSTRAINTS);
         }
-        if (!Fee.isValidFee(fee)) {
-            throw new IllegalValueException(Fee.MESSAGE_CONSTRAINTS);
+
+        Fee fee;
+        if (feeCents != null) {
+            if (feeCents.signum() <= 0) {
+                throw new IllegalValueException(Fee.MESSAGE_CONSTRAINTS);
+            }
+            fee = Fee.fromCents(feeCents);
+        } else {
+            if (!Fee.isValidFee(legacyFee)) {
+                throw new IllegalValueException(Fee.MESSAGE_CONSTRAINTS);
+            }
+            fee = new Fee(legacyFee);
         }
-        return new Gig(client, gigStatus, new Deadline(deadline), new Fee(fee));
+        return new Gig(modelUid, client, gigStatus, new Deadline(deadline), fee);
     }
 }

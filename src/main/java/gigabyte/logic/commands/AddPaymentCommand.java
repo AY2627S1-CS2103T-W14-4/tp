@@ -56,7 +56,7 @@ public class AddPaymentCommand extends Command {
         }
         Client client = clients.get(clientIndex.getZeroBased());
         List<Gig> gigs = model.getGigList().stream()
-                .filter(gig -> gig.getClient().isSameClient(client)).toList();
+                .filter(gig -> gig.getClient().hasSameUid(client)).toList();
         if (gigIndex.getZeroBased() >= gigs.size()) {
             throw new CommandException(MESSAGE_INVALID_GIG_INDEX);
         }

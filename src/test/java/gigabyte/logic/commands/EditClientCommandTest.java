@@ -37,7 +37,14 @@ public class EditClientCommandTest {
 
     @Test
     public void execute_allFieldsSpecifiedUnfilteredList_success() {
-        Client editedClient = new ClientBuilder().build();
+        Client clientToEdit = model.getFilteredClientList().get(INDEX_FIRST_CLIENT.getZeroBased());
+        Client editedClient = new ClientBuilder(clientToEdit)
+                .withName("Edited Client")
+                .withPhone("81234567")
+                .withEmail("edited@example.com")
+                .withAddress("123 Edited Road")
+                .withTags(VALID_TAG_HUSBAND)
+                .build();
         EditClientCommand.EditClientDescriptor descriptor = new EditClientDescriptorBuilder(editedClient).build();
         EditClientCommand editCommand = new EditClientCommand(INDEX_FIRST_CLIENT, descriptor);
 
@@ -45,7 +52,7 @@ public class EditClientCommandTest {
                 Messages.format(editedClient));
 
         Model expectedModel = new ModelManager(new GigabyteData(model.getGigabyteData()), new UserPrefs());
-        expectedModel.setClient(model.getFilteredClientList().get(0), editedClient);
+        expectedModel.setClient(clientToEdit, editedClient);
 
         assertCommandSuccess(editCommand, model, expectedMessage, expectedModel);
     }

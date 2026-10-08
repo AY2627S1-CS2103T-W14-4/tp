@@ -92,19 +92,19 @@ public class UniqueClientListTest {
     }
 
     @Test
-    public void setClient_editedClientHasDifferentIdentity_success() {
+    public void setClient_editedClientHasDifferentUid_throwsIllegalArgumentException() {
         uniqueClientList.add(ALICE);
-        uniqueClientList.setClient(ALICE, BOB);
-        UniqueClientList expectedUniqueClientList = new UniqueClientList();
-        expectedUniqueClientList.add(BOB);
-        assertEquals(expectedUniqueClientList, uniqueClientList);
+        assertThrows(IllegalArgumentException.class, "An edited client must retain its uid.", () ->
+                uniqueClientList.setClient(ALICE, BOB));
+        assertEquals(List.of(ALICE), uniqueClientList.asUnmodifiableObservableList());
     }
 
     @Test
     public void setClient_editedClientHasNonUniqueIdentity_throwsDuplicateClientException() {
         uniqueClientList.add(ALICE);
         uniqueClientList.add(BOB);
-        assertThrows(DuplicateClientException.class, () -> uniqueClientList.setClient(ALICE, BOB));
+        Client editedAlice = new ClientBuilder(ALICE).withName(BOB.getName().fullName).build();
+        assertThrows(DuplicateClientException.class, () -> uniqueClientList.setClient(ALICE, editedAlice));
     }
 
     @Test

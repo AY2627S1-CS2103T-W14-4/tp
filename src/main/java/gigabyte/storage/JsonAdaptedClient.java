@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
@@ -23,7 +24,9 @@ import gigabyte.model.tag.Tag;
 class JsonAdaptedClient {
 
     public static final String MISSING_FIELD_MESSAGE_FORMAT = "Client's %s field is missing!";
+    public static final String INVALID_UID_MESSAGE = "Client uid must be a valid UUID.";
 
+    private final String uid;
     private final String name;
     private final String phone;
     private final String email;
@@ -34,9 +37,11 @@ class JsonAdaptedClient {
      * Constructs a {@code JsonAdaptedClient} with the given client details.
      */
     @JsonCreator
-    public JsonAdaptedClient(@JsonProperty("name") String name, @JsonProperty("phone") String phone,
+    public JsonAdaptedClient(@JsonProperty("uid") String uid, @JsonProperty("name") String name,
+                             @JsonProperty("phone") String phone,
                              @JsonProperty("email") String email, @JsonProperty("address") String address,
                              @JsonProperty("tags") List<JsonAdaptedTag> tags) {
+        this.uid = uid;
         this.name = name;
         this.phone = phone;
         this.email = email;
@@ -46,10 +51,16 @@ class JsonAdaptedClient {
         }
     }
 
+    /** Retains the previous adapter constructor for direct legacy conversions. */
+    public JsonAdaptedClient(String name, String phone, String email, String address, List<JsonAdaptedTag> tags) {
+        this(null, name, phone, email, address, tags);
+    }
+
     /**
      * Converts a given {@code Client} into this class for Jackson use.
      */
     public JsonAdaptedClient(Client source) {
+        uid = source.getUid().toString();
         name = source.getName().fullName;
         phone = source.getPhone().value;
         email = source.getEmail().value;
@@ -103,7 +114,13 @@ class JsonAdaptedClient {
         final Address modelAddress = new Address(address);
 
         final Set<Tag> modelTags = new HashSet<>(clientTags);
-        return new Client(modelName, modelPhone, modelEmail, modelAddress, modelTags);
+        UUID modelUid;
+        try {
+            modelUid = uid == null ? UUID.randomUUID() : UUID.fromString(uid);
+        } catch (IllegalArgumentException exception) {
+            throw new IllegalValueException(INVALID_UID_MESSAGE);
+        }
+        return new Client(modelUid, modelName, modelPhone, modelEmail, modelAddress, modelTags);
     }
 
 }

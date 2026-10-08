@@ -79,7 +79,7 @@ public class EditClientCommand extends Command {
         Client clientToEdit = lastShownList.get(index.getZeroBased());
         Client editedClient = createEditedClient(clientToEdit, editClientDescriptor);
 
-        if (!clientToEdit.isSameClient(editedClient) && model.hasClient(editedClient)) {
+        if (!clientToEdit.hasSameName(editedClient) && model.hasClient(editedClient)) {
             throw new CommandException(MESSAGE_DUPLICATE_CLIENT);
         }
 
@@ -101,7 +101,8 @@ public class EditClientCommand extends Command {
         Address updatedAddress = editClientDescriptor.getAddress().orElse(clientToEdit.getAddress());
         Set<Tag> updatedTags = editClientDescriptor.getTags().orElse(clientToEdit.getTags());
 
-        return new Client(updatedName, updatedPhone, updatedEmail, updatedAddress, updatedTags);
+        return new Client(clientToEdit.getUid(), updatedName, updatedPhone, updatedEmail, updatedAddress,
+                updatedTags);
     }
 
     @Override

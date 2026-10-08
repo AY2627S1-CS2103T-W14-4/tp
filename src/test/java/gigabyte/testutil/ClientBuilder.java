@@ -2,6 +2,7 @@ package gigabyte.testutil;
 
 import java.util.HashSet;
 import java.util.Set;
+import java.util.UUID;
 
 import gigabyte.model.client.Address;
 import gigabyte.model.client.Client;
@@ -21,6 +22,7 @@ public class ClientBuilder {
     public static final String DEFAULT_EMAIL = "amy@gmail.com";
     public static final String DEFAULT_ADDRESS = "123, Jurong West Ave 6, #08-111";
 
+    private UUID uid = UUID.randomUUID();
     private Name name;
     private Phone phone;
     private Email email;
@@ -42,6 +44,7 @@ public class ClientBuilder {
      * Initializes the ClientBuilder with the data of {@code clientToCopy}.
      */
     public ClientBuilder(Client clientToCopy) {
+        uid = clientToCopy.getUid();
         name = clientToCopy.getName();
         phone = clientToCopy.getPhone();
         email = clientToCopy.getEmail();
@@ -90,7 +93,7 @@ public class ClientBuilder {
     }
 
     public Client build() {
-        return new Client(name, phone, email, address, tags);
+        return new Client(uid, name, phone, email, address, tags);
     }
 
 }

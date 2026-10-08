@@ -135,8 +135,7 @@ Format: `addpayment CLIENT_INDEX GIG_INDEX a/AMOUNT d/DUE_DATE`
 Example: `addpayment 1 2 a/500.00 d/2027-01-31` records an obligation for the second gig of the first displayed client.
 
 The confirmation names the client and gig position, amount, and due date. Saved obligations can also be
-inspected in the `paymentObligations` array in `data/addressbook.json`; their `gigIndex` refers to the
-one-based position in that file's complete `gigs` array.
+inspected in the `paymentObligations` array in `data/addressbook.json`; each obligation refers to its gig by `gigUid`.
 
 ### Editing a client: `edit`
 
@@ -205,6 +204,11 @@ Gigabyte automatically saves data after every command. You do not need to save m
 ### Editing the data file
 
 Gigabyte data is saved automatically as a JSON file `[JAR file location]/data/addressbook.json`. Advanced users are welcome to update data directly by editing that data file.
+
+Client records are stored in the `clients` array with stable `uid` values. Gigs refer to clients by `clientUid`,
+and payment obligations refer to gigs by `gigUid`. Fees and payment amounts are stored as integer cents. Older
+files using `persons`, client names, decimal fee strings, and `gigIndex` references are still loaded; Gigabyte writes
+the current format the next time it saves.
 
 <box type="warning" seamless>
 
