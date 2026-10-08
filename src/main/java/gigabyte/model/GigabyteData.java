@@ -166,9 +166,11 @@ public class GigabyteData implements ReadOnlyGigabyteData {
     /** Adds a payment obligation linked to an existing gig. */
     public void addPaymentObligation(PaymentObligation obligation) {
         requireNonNull(obligation);
-        Gig storedGig = gigs.stream().filter(obligation.getGig()::equals)
-                .findFirst().orElseThrow(GigNotFoundException::new);
-        paymentObligations.add(obligation.withGig(storedGig));
+        int index = findGigIndex(gigs, obligation.getGig());
+        if (index < 0) {
+            throw new GigNotFoundException();
+        }
+        paymentObligations.add(obligation.withGig(gigs.get(index)));
     }
 
     //// accessors
@@ -192,12 +194,24 @@ public class GigabyteData implements ReadOnlyGigabyteData {
             List<Gig> oldGigs, List<Gig> newGigs, List<PaymentObligation> obligations) {
         List<Integer> replacementIndexes = matchReplacementGigIndexes(oldGigs, newGigs);
         return obligations.stream().map(obligation -> {
-            int index = oldGigs.indexOf(obligation.getGig());
+            int index = findGigIndex(oldGigs, obligation.getGig());
             if (index < 0 || replacementIndexes.get(index) < 0) {
                 throw new GigNotFoundException();
             }
             return obligation.withGig(newGigs.get(replacementIndexes.get(index)));
         }).toList();
+    }
+
+    /**
+     * Preserves the exact gig when several gigs have identical fields, falling back to value equality for copies.
+     */
+    private static int findGigIndex(List<Gig> gigs, Gig target) {
+        for (int index = 0; index < gigs.size(); index++) {
+            if (gigs.get(index) == target) {
+                return index;
+            }
+        }
+        return gigs.indexOf(target);
     }
 
     /**
