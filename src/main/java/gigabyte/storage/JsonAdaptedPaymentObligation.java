@@ -1,7 +1,8 @@
 package gigabyte.storage;
 
+import java.math.BigInteger;
 import java.util.List;
-import java.util.stream.IntStream;
+import java.util.UUID;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -13,60 +14,95 @@ import gigabyte.model.gig.Gig;
 import gigabyte.model.gig.PaymentObligation;
 import gigabyte.model.gig.exceptions.GigNotFoundException;
 
-/**
- * Stores a payment obligation and a one-based reference to its gig in the saved gig list.
- */
+/** Stores a payment obligation linked to a gig's stable ID. */
 class JsonAdaptedPaymentObligation {
     public static final String MISSING_FIELD_MESSAGE =
-            "A payment obligation must have a gigIndex, amount, dueDate, and paid state.";
+            "A payment obligation must have a gigUid, amountCents, dueDate, and paid state.";
 
-    private final Integer gigIndex;
-    private final String amount;
+    private final String gigUid;
+    @JsonProperty(value = "gigIndex", access = JsonProperty.Access.WRITE_ONLY)
+    private final Integer legacyGigIndex;
+    private final BigInteger amountCents;
+    @JsonProperty(value = "amount", access = JsonProperty.Access.WRITE_ONLY)
+    private final String legacyAmount;
     private final String dueDate;
     private final Boolean paid;
 
-    /**
-     * Creates a JSON-friendly payment obligation from its saved fields.
-     */
+    /** Reads the stable-ID format and the previous index-based format. */
     @JsonCreator
-    public JsonAdaptedPaymentObligation(@JsonProperty("gigIndex") Integer gigIndex,
+    public JsonAdaptedPaymentObligation(@JsonProperty("gigUid") String gigUid,
+            @JsonProperty("gigIndex") Integer gigIndex, @JsonProperty("amountCents") BigInteger amountCents,
             @JsonProperty("amount") String amount, @JsonProperty("dueDate") String dueDate,
             @JsonProperty("paid") Boolean paid) {
-        this.gigIndex = gigIndex;
-        this.amount = amount;
+        this.gigUid = gigUid;
+        this.legacyGigIndex = gigIndex;
+        this.amountCents = amountCents;
+        this.legacyAmount = amount;
         this.dueDate = dueDate;
         this.paid = paid;
     }
 
-    /**
-     * Copies {@code obligation} for serialization, retaining its exact gig reference.
-     */
+    /** Retains the previous constructor for legacy data and tests. */
+    public JsonAdaptedPaymentObligation(Integer gigIndex, String amount, String dueDate, Boolean paid) {
+        this(null, gigIndex, null, amount, dueDate, paid);
+    }
+
+    /** Copies {@code obligation} for serialization, retaining its exact gig reference. */
     public JsonAdaptedPaymentObligation(PaymentObligation obligation, List<Gig> gigs) {
-        gigIndex = IntStream.range(0, gigs.size()).filter(index -> gigs.get(index) == obligation.getGig())
-                .findFirst().orElseThrow(GigNotFoundException::new) + 1;
-        amount = obligation.getAmount().toString();
+        if (gigs.stream().noneMatch(candidate -> candidate.hasSameUid(obligation.getGig()))) {
+            throw new GigNotFoundException();
+        }
+        gigUid = obligation.getGig().getUid().toString();
+        legacyGigIndex = null;
+        amountCents = obligation.getAmount().getCents();
+        legacyAmount = null;
         dueDate = obligation.getDueDate().toString();
         paid = obligation.isPaid();
     }
 
-    /**
-     * Restores an obligation linked to the canonical saved gig.
-     *
-     * @throws IllegalValueException if its fields are invalid or its gig does not exist.
-     */
+    /** Restores an obligation linked to its canonical saved gig. */
     public PaymentObligation toModelType(List<Gig> gigs) throws IllegalValueException {
-        if (gigIndex == null || amount == null || dueDate == null || paid == null) {
+        if (dueDate == null || paid == null) {
             throw new IllegalValueException(MISSING_FIELD_MESSAGE);
         }
-        if (gigIndex < 1 || gigIndex > gigs.size()) {
-            throw new IllegalValueException(GigNotFoundException.MESSAGE);
+
+        Gig gig;
+        Fee amount;
+        if (gigUid != null) {
+            UUID modelGigUid;
+            try {
+                modelGigUid = UUID.fromString(gigUid);
+            } catch (IllegalArgumentException exception) {
+                throw new IllegalValueException(GigNotFoundException.MESSAGE);
+            }
+            if (amountCents == null) {
+                throw new IllegalValueException(MISSING_FIELD_MESSAGE);
+            }
+            gig = gigs.stream()
+                    .filter(candidate -> candidate.getUid().equals(modelGigUid))
+                    .findFirst()
+                    .orElseThrow(() -> new IllegalValueException(GigNotFoundException.MESSAGE));
+            if (amountCents.signum() <= 0) {
+                throw new IllegalValueException(Fee.MESSAGE_CONSTRAINTS);
+            }
+            amount = Fee.fromCents(amountCents);
+        } else {
+            if (legacyGigIndex == null || legacyAmount == null) {
+                throw new IllegalValueException(MISSING_FIELD_MESSAGE);
+            }
+            if (legacyGigIndex < 1 || legacyGigIndex > gigs.size()) {
+                throw new IllegalValueException(GigNotFoundException.MESSAGE);
+            }
+            if (!Fee.isValidFee(legacyAmount)) {
+                throw new IllegalValueException(Fee.MESSAGE_CONSTRAINTS);
+            }
+            gig = gigs.get(legacyGigIndex - 1);
+            amount = new Fee(legacyAmount);
         }
-        if (!Fee.isValidFee(amount)) {
-            throw new IllegalValueException(Fee.MESSAGE_CONSTRAINTS);
-        }
+
         if (!Deadline.isValidDeadline(dueDate)) {
             throw new IllegalValueException(Deadline.MESSAGE_CONSTRAINTS);
         }
-        return new PaymentObligation(gigs.get(gigIndex - 1), new Fee(amount), new Deadline(dueDate), paid);
+        return new PaymentObligation(gig, amount, new Deadline(dueDate), paid);
     }
 }

@@ -1,7 +1,10 @@
 package gigabyte.storage;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
@@ -20,8 +23,9 @@ import gigabyte.model.client.Client;
 class JsonSerializableGigabyteData {
 
     public static final String MESSAGE_DUPLICATE_CLIENT = "Clients list contains duplicate client(s).";
+    public static final String MESSAGE_DUPLICATE_GIG = "Gigs list contains duplicate gig uid(s).";
 
-    @JsonProperty("persons")
+    @JsonProperty("clients")
     private final List<JsonAdaptedClient> clients = new ArrayList<>();
 
     @JsonProperty("gigs")
@@ -34,16 +38,27 @@ class JsonSerializableGigabyteData {
      * Constructs data from JSON, treating absent gig and obligation lists in older files as empty.
      */
     @JsonCreator
-    public JsonSerializableGigabyteData(@JsonProperty("persons") List<JsonAdaptedClient> clients,
+    public JsonSerializableGigabyteData(@JsonProperty("clients") List<JsonAdaptedClient> clients,
+            @JsonProperty(value = "persons", access = JsonProperty.Access.WRITE_ONLY)
+            List<JsonAdaptedClient> legacyClients,
             @JsonProperty("gigs") List<JsonAdaptedGig> gigs,
             @JsonProperty("paymentObligations") List<JsonAdaptedPaymentObligation> paymentObligations) {
-        this.clients.addAll(clients);
+        List<JsonAdaptedClient> clientsToLoad = clients == null ? legacyClients : clients;
+        if (clientsToLoad != null) {
+            this.clients.addAll(clientsToLoad);
+        }
         if (gigs != null) {
             this.gigs.addAll(gigs);
         }
         if (paymentObligations != null) {
             this.paymentObligations.addAll(paymentObligations);
         }
+    }
+
+    /** Retains the existing constructor used by direct conversions. */
+    public JsonSerializableGigabyteData(List<JsonAdaptedClient> clients, List<JsonAdaptedGig> gigs,
+            List<JsonAdaptedPaymentObligation> paymentObligations) {
+        this(clients, null, gigs, paymentObligations);
     }
 
     /**
@@ -67,16 +82,22 @@ class JsonSerializableGigabyteData {
         GigabyteData gigabyteData = new GigabyteData();
         for (JsonAdaptedClient jsonAdaptedClient : clients) {
             Client client = jsonAdaptedClient.toModelType();
-            if (gigabyteData.hasClient(client)) {
+            if (gigabyteData.hasClient(client) || gigabyteData.getClientList().stream()
+                    .anyMatch(existing -> existing.hasSameUid(client))) {
                 throw new IllegalValueException(MESSAGE_DUPLICATE_CLIENT);
             }
             gigabyteData.addClient(client);
         }
+        Set<UUID> gigUids = new HashSet<>();
         for (JsonAdaptedGig gig : gigs) {
             if (gig == null) {
                 throw new IllegalValueException(JsonAdaptedGig.MISSING_FIELD_MESSAGE);
             }
-            gigabyteData.addGig(gig.toModelType(gigabyteData.getClientList()));
+            var modelGig = gig.toModelType(gigabyteData.getClientList());
+            if (!gigUids.add(modelGig.getUid())) {
+                throw new IllegalValueException(MESSAGE_DUPLICATE_GIG);
+            }
+            gigabyteData.addGig(modelGig);
         }
         for (JsonAdaptedPaymentObligation obligation : paymentObligations) {
             if (obligation == null) {
