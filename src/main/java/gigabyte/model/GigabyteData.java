@@ -52,11 +52,13 @@ public class GigabyteData implements ReadOnlyGigabyteData {
         requireAllNonNull(clients);
 
         List<Client> replacementClients = List.copyOf(clients);
-        List<Gig> relinkedGigs = linkGigsToClients(replacementClients, gigs);
+        List<Gig> replacementGigs = linkGigsToClients(replacementClients, gigs);
+        List<PaymentObligation> replacementObligations = linkPaymentObligations(gigs, replacementGigs,
+                paymentObligations);
 
         this.clients.setClients(replacementClients);
-        this.gigs.setAll(relinkedGigs);
-        relinkPaymentObligations(relinkedGigs);
+        this.gigs.setAll(replacementGigs);
+        paymentObligations.setAll(replacementObligations);
     }
 
     /**
@@ -67,8 +69,12 @@ public class GigabyteData implements ReadOnlyGigabyteData {
      */
     public void setGigs(List<Gig> gigs) {
         requireAllNonNull(gigs);
-        this.gigs.setAll(linkGigsToClients(getClientList(), gigs));
-        relinkPaymentObligations(this.gigs);
+        List<Gig> replacementGigs = linkGigsToClients(getClientList(), gigs);
+        List<PaymentObligation> replacementObligations = linkPaymentObligations(this.gigs, replacementGigs,
+                paymentObligations);
+
+        this.gigs.setAll(replacementGigs);
+        paymentObligations.setAll(replacementObligations);
     }
 
     /**
@@ -182,21 +188,58 @@ public class GigabyteData implements ReadOnlyGigabyteData {
         return unmodifiablePaymentObligations;
     }
 
-    private void relinkPaymentObligations(List<Gig> currentGigs) {
-        paymentObligations.replaceAll(obligation -> obligation.withGig(
-                currentGigs.stream().filter(obligation.getGig()::equals)
-                        .findFirst().orElseThrow(GigNotFoundException::new)));
-    }
-
     private static List<PaymentObligation> linkPaymentObligations(
             List<Gig> oldGigs, List<Gig> newGigs, List<PaymentObligation> obligations) {
+        List<Integer> replacementIndexes = matchReplacementGigIndexes(oldGigs, newGigs);
         return obligations.stream().map(obligation -> {
             int index = oldGigs.indexOf(obligation.getGig());
-            if (index < 0) {
+            if (index < 0 || replacementIndexes.get(index) < 0) {
                 throw new GigNotFoundException();
             }
-            return obligation.withGig(newGigs.get(index));
+            return obligation.withGig(newGigs.get(replacementIndexes.get(index)));
         }).toList();
+    }
+
+    /**
+     * Matches equal gigs first so reordering does not change obligation ownership. If every remaining old gig has
+     * one remaining new gig, those unmatched entries are treated as edited replacements in relative order.
+     */
+    private static List<Integer> matchReplacementGigIndexes(List<Gig> oldGigs, List<Gig> newGigs) {
+        List<Integer> replacementIndexes = new ArrayList<>();
+        boolean[] matchedNewGigs = new boolean[newGigs.size()];
+        for (int index = 0; index < oldGigs.size(); index++) {
+            replacementIndexes.add(-1);
+        }
+
+        for (int oldIndex = 0; oldIndex < oldGigs.size(); oldIndex++) {
+            for (int newIndex = 0; newIndex < newGigs.size(); newIndex++) {
+                if (!matchedNewGigs[newIndex] && oldGigs.get(oldIndex).equals(newGigs.get(newIndex))) {
+                    replacementIndexes.set(oldIndex, newIndex);
+                    matchedNewGigs[newIndex] = true;
+                    break;
+                }
+            }
+        }
+
+        List<Integer> unmatchedOldIndexes = new ArrayList<>();
+        List<Integer> unmatchedNewIndexes = new ArrayList<>();
+        for (int oldIndex = 0; oldIndex < oldGigs.size(); oldIndex++) {
+            if (replacementIndexes.get(oldIndex) < 0) {
+                unmatchedOldIndexes.add(oldIndex);
+            }
+        }
+        for (int newIndex = 0; newIndex < newGigs.size(); newIndex++) {
+            if (!matchedNewGigs[newIndex]) {
+                unmatchedNewIndexes.add(newIndex);
+            }
+        }
+
+        if (unmatchedOldIndexes.size() == unmatchedNewIndexes.size()) {
+            for (int index = 0; index < unmatchedOldIndexes.size(); index++) {
+                replacementIndexes.set(unmatchedOldIndexes.get(index), unmatchedNewIndexes.get(index));
+            }
+        }
+        return replacementIndexes;
     }
 
     private static List<Gig> linkGigsToClients(
