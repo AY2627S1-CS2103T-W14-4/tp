@@ -9,7 +9,7 @@ import javafx.scene.control.ListCell;
 import javafx.scene.control.ListView;
 import javafx.scene.layout.Region;
 
-/** Displays gigs for the selected client. */
+/** Panel displaying gigs for the selected client. */
 public class GigListPanel extends UiPart<Region> {
     private static final String NO_CLIENT = "Select a client to view their gigs.";
     private static final String NO_GIGS = "This client has no gigs.";
@@ -17,6 +17,7 @@ public class GigListPanel extends UiPart<Region> {
     @javafx.fxml.FXML private Label emptyState;
     @javafx.fxml.FXML private ListView<Gig> gigListView;
 
+    /** Creates a gig list panel backed by the given gigs. */
     public GigListPanel(ObservableList<Gig> gigs) {
         super("GigListPanel.fxml");
         filteredGigs = new FilteredList<>(gigs);
@@ -33,6 +34,7 @@ public class GigListPanel extends UiPart<Region> {
         filteredGigs.addListener((javafx.collections.ListChangeListener<Gig>) change -> updateEmptyState());
     }
 
+    /** Displays only the gigs belonging to {@code client}. */
     public void showGigsFor(Client client) {
         filteredGigs.setPredicate(gig -> client != null && gig.getClient().isSameClient(client));
         updateEmptyState();
