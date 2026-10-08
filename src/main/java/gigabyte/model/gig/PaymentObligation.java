@@ -21,10 +21,18 @@ public class PaymentObligation {
         this.dueDate = dueDate;
         this.paid = paid;
     }
-    public Gig getGig() { return gig; }
-    public Fee getAmount() { return amount; }
-    public Deadline getDueDate() { return dueDate; }
-    public boolean isPaid() { return paid; }
+    public Gig getGig() {
+        return gig;
+    }
+    public Fee getAmount() {
+        return amount;
+    }
+    public Deadline getDueDate() {
+        return dueDate;
+    }
+    public boolean isPaid() {
+        return paid;
+    }
 
     /** Returns a copy with the payment state changed. */
     public PaymentObligation withPaid(boolean paid) {
@@ -38,13 +46,19 @@ public class PaymentObligation {
 
     @Override
     public boolean equals(Object other) {
-        if (other == this) { return true; }
-        if (!(other instanceof PaymentObligation otherPayment)) { return false; }
+        if (other == this) {
+            return true;
+        }
+        if (!(other instanceof PaymentObligation otherPayment)) {
+            return false;
+        }
         return gig.equals(otherPayment.gig) && amount.equals(otherPayment.amount)
                 && dueDate.equals(otherPayment.dueDate) && paid == otherPayment.paid;
     }
     @Override
-    public int hashCode() { return Objects.hash(gig, amount, dueDate, paid); }
+    public int hashCode() {
+        return Objects.hash(gig, amount, dueDate, paid);
+    }
     @Override
     public String toString() {
         return new ToStringBuilder(this).add("gig", gig).add("amount", amount)

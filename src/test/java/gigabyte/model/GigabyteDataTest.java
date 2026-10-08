@@ -16,9 +16,9 @@ import org.junit.jupiter.api.Test;
 
 import gigabyte.model.client.Client;
 import gigabyte.model.client.exceptions.DuplicateClientException;
-import gigabyte.model.gig.Gig;
 import gigabyte.model.gig.Deadline;
 import gigabyte.model.gig.Fee;
+import gigabyte.model.gig.Gig;
 import gigabyte.model.gig.GigStatus;
 import gigabyte.model.gig.PaymentObligation;
 import gigabyte.model.gig.exceptions.GigNotFoundException;
