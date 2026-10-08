@@ -5,6 +5,7 @@ import gigabyte.logic.commands.CommandResult;
 import gigabyte.logic.commands.exceptions.CommandException;
 import gigabyte.logic.parser.exceptions.ParseException;
 import gigabyte.model.client.Client;
+import gigabyte.model.gig.Gig;
 import javafx.collections.ObservableList;
 
 /**
@@ -22,6 +23,8 @@ public interface Logic {
 
     /** Returns an unmodifiable view of the filtered list of clients */
     ObservableList<Client> getFilteredClientList();
+
+    ObservableList<Gig> getGigList();
 
     /**
      * Returns the user prefs' GUI settings.
