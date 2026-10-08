@@ -13,6 +13,9 @@ import gigabyte.model.client.Address;
 import gigabyte.model.client.Email;
 import gigabyte.model.client.Name;
 import gigabyte.model.client.Phone;
+import gigabyte.model.gig.Deadline;
+import gigabyte.model.gig.Fee;
+import gigabyte.model.gig.GigStatus;
 import gigabyte.model.tag.Tag;
 
 /**
@@ -120,5 +123,41 @@ public class ParserUtil {
             tagSet.add(parseTag(tagName));
         }
         return tagSet;
+    }
+
+    /**
+     * Parses a gig status, ignoring case and surrounding whitespace.
+     */
+    public static GigStatus parseGigStatus(String status) throws ParseException {
+        requireNonNull(status);
+        try {
+            return GigStatus.parse(status);
+        } catch (IllegalArgumentException exception) {
+            throw new ParseException(GigStatus.MESSAGE_CONSTRAINTS, exception);
+        }
+    }
+
+    /**
+     * Parses a valid gig deadline, trimming surrounding whitespace.
+     */
+    public static Deadline parseDeadline(String deadline) throws ParseException {
+        requireNonNull(deadline);
+        String trimmedDeadline = deadline.trim();
+        if (!Deadline.isValidDeadline(trimmedDeadline)) {
+            throw new ParseException(Deadline.MESSAGE_CONSTRAINTS);
+        }
+        return new Deadline(trimmedDeadline);
+    }
+
+    /**
+     * Parses a positive gig fee, trimming surrounding whitespace.
+     */
+    public static Fee parseFee(String fee) throws ParseException {
+        requireNonNull(fee);
+        String trimmedFee = fee.trim();
+        if (!Fee.isValidFee(trimmedFee)) {
+            throw new ParseException(Fee.MESSAGE_CONSTRAINTS);
+        }
+        return new Fee(trimmedFee);
     }
 }

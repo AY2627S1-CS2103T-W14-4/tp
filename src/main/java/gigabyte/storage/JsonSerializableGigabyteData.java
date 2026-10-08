@@ -24,12 +24,19 @@ class JsonSerializableGigabyteData {
     @JsonProperty("persons")
     private final List<JsonAdaptedClient> clients = new ArrayList<>();
 
+    @JsonProperty("gigs")
+    private final List<JsonAdaptedGig> gigs = new ArrayList<>();
+
     /**
-     * Constructs a {@code JsonSerializableGigabyteData} with the given clients.
+     * Constructs data from JSON, treating an absent gig list in older files as empty.
      */
     @JsonCreator
-    public JsonSerializableGigabyteData(@JsonProperty("persons") List<JsonAdaptedClient> clients) {
+    public JsonSerializableGigabyteData(@JsonProperty("persons") List<JsonAdaptedClient> clients,
+            @JsonProperty("gigs") List<JsonAdaptedGig> gigs) {
         this.clients.addAll(clients);
+        if (gigs != null) {
+            this.gigs.addAll(gigs);
+        }
     }
 
     /**
@@ -39,6 +46,7 @@ class JsonSerializableGigabyteData {
      */
     public JsonSerializableGigabyteData(ReadOnlyGigabyteData source) {
         clients.addAll(source.getClientList().stream().map(JsonAdaptedClient::new).collect(Collectors.toList()));
+        gigs.addAll(source.getGigList().stream().map(JsonAdaptedGig::new).collect(Collectors.toList()));
     }
 
     /**
@@ -54,6 +62,12 @@ class JsonSerializableGigabyteData {
                 throw new IllegalValueException(MESSAGE_DUPLICATE_CLIENT);
             }
             gigabyteData.addClient(client);
+        }
+        for (JsonAdaptedGig gig : gigs) {
+            if (gig == null) {
+                throw new IllegalValueException(JsonAdaptedGig.MISSING_FIELD_MESSAGE);
+            }
+            gigabyteData.addGig(gig.toModelType(gigabyteData.getClientList()));
         }
         return gigabyteData;
     }

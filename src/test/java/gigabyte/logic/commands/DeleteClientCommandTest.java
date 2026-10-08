@@ -18,6 +18,11 @@ import gigabyte.model.Model;
 import gigabyte.model.ModelManager;
 import gigabyte.model.UserPrefs;
 import gigabyte.model.client.Client;
+import gigabyte.model.gig.Deadline;
+import gigabyte.model.gig.Fee;
+import gigabyte.model.gig.Gig;
+import gigabyte.model.gig.GigStatus;
+import gigabyte.model.gig.exceptions.ClientHasGigsException;
 
 /**
  * Contains integration tests (interaction with the Model) and unit tests for
@@ -47,6 +52,13 @@ public class DeleteClientCommandTest {
         DeleteClientCommand deleteCommand = new DeleteClientCommand(outOfBoundIndex);
 
         assertCommandFailure(deleteCommand, model, Messages.MESSAGE_INVALID_CLIENT_DISPLAYED_INDEX);
+    }
+
+    @Test
+    public void execute_clientHasGig_returnsClearErrorAndKeepsData() {
+        Client client = model.getFilteredClientList().get(INDEX_FIRST_CLIENT.getZeroBased());
+        model.addGig(new Gig(client, GigStatus.NOT_STARTED, new Deadline("2027-01-31"), new Fee("100")));
+        assertCommandFailure(new DeleteClientCommand(INDEX_FIRST_CLIENT), model, ClientHasGigsException.MESSAGE);
     }
 
     @Test

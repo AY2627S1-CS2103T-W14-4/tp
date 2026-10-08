@@ -10,6 +10,7 @@ import gigabyte.logic.Messages;
 import gigabyte.logic.commands.exceptions.CommandException;
 import gigabyte.model.Model;
 import gigabyte.model.client.Client;
+import gigabyte.model.gig.exceptions.ClientHasGigsException;
 
 /**
  * Deletes a client identified using its displayed index from the client list.
@@ -41,7 +42,11 @@ public class DeleteClientCommand extends Command {
         }
 
         Client clientToDelete = lastShownList.get(targetIndex.getZeroBased());
-        model.deleteClient(clientToDelete);
+        try {
+            model.deleteClient(clientToDelete);
+        } catch (ClientHasGigsException exception) {
+            throw new CommandException(ClientHasGigsException.MESSAGE, exception);
+        }
         return new CommandResult(String.format(MESSAGE_DELETE_CLIENT_SUCCESS, Messages.format(clientToDelete)));
     }
 

@@ -2,11 +2,13 @@ package gigabyte.storage;
 
 import static gigabyte.testutil.Assert.assertThrows;
 import static gigabyte.testutil.TypicalClients.ALICE;
+import static gigabyte.testutil.TypicalClients.BENSON;
 import static gigabyte.testutil.TypicalClients.HOON;
 import static gigabyte.testutil.TypicalClients.IDA;
 import static gigabyte.testutil.TypicalClients.getTypicalGigabyteData;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertSame;
 
 import java.io.IOException;
 import java.nio.file.Path;
@@ -18,6 +20,12 @@ import org.junit.jupiter.api.io.TempDir;
 import gigabyte.commons.exceptions.DataLoadingException;
 import gigabyte.model.GigabyteData;
 import gigabyte.model.ReadOnlyGigabyteData;
+import gigabyte.model.client.Client;
+import gigabyte.model.gig.Deadline;
+import gigabyte.model.gig.Fee;
+import gigabyte.model.gig.Gig;
+import gigabyte.model.gig.GigStatus;
+import gigabyte.testutil.ClientBuilder;
 
 public class JsonGigabyteDataStorageTest {
     private static final Path TEST_DATA_FOLDER = Paths.get("src", "test", "data", "JsonGigabyteDataStorageTest");
@@ -89,6 +97,28 @@ public class JsonGigabyteDataStorageTest {
     @Test
     public void saveGigabyteData_nullGigabyteData_throwsNullPointerException() {
         assertThrows(NullPointerException.class, () -> saveGigabyteData(null, "SomeFile.json"));
+    }
+
+    @Test
+    public void readAndSave_multipleGigsAndEditedClient_preservesGigsAndLinks() throws Exception {
+        GigabyteData original = new GigabyteData();
+        original.addClient(ALICE);
+        original.addClient(BENSON);
+        original.addGig(new Gig(ALICE, GigStatus.NOT_STARTED, new Deadline("2027-01-31"), new Fee("1250.50")));
+        original.addGig(new Gig(ALICE, GigStatus.IN_PROGRESS, new Deadline("2027-02-28"), new Fee("500")));
+        original.addGig(new Gig(BENSON, GigStatus.COMPLETED, new Deadline("2027-03-01"), new Fee("200")));
+
+        JsonGigabyteDataStorage storage = new JsonGigabyteDataStorage(testFolder.resolve("gigs.json"));
+        storage.saveGigabyteData(original);
+        ReadOnlyGigabyteData restored = storage.readGigabyteData().orElseThrow();
+        assertEquals(original, new GigabyteData(restored));
+        assertSame(restored.getClientList().get(0), restored.getGigList().get(0).getClient());
+        assertSame(restored.getClientList().get(1), restored.getGigList().get(2).getClient());
+
+        Client editedAlice = new ClientBuilder(ALICE).withName("Alice Updated").build();
+        original.setClient(ALICE, editedAlice);
+        storage.saveGigabyteData(original);
+        assertEquals(original, new GigabyteData(storage.readGigabyteData().orElseThrow()));
     }
 
     /**
