@@ -2,6 +2,7 @@ package gigabyte.ui;
 
 import static gigabyte.testutil.TypicalClients.ALICE;
 import static gigabyte.testutil.TypicalClients.BENSON;
+import static gigabyte.testutil.TypicalClients.CARL;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import org.junit.jupiter.api.BeforeAll;
@@ -46,7 +47,7 @@ public class GigListPanelTest {
     public void showGigsFor_clientWithoutGigs_showsEmptyState() {
         GigListPanel panel = createPanel();
 
-        panel.showGigsFor(BENSON);
+        panel.showGigsFor(CARL);
 
         assertEquals("This client has no gigs.", panel.getEmptyState().getText());
     }
