@@ -50,8 +50,16 @@ public class JsonSerializableGigabyteDataTest {
     @Test
     public void toModelType_nullGig_throwsIllegalValueException() {
         JsonSerializableGigabyteData data = new JsonSerializableGigabyteData(List.of(new JsonAdaptedClient(ALICE)),
-                Arrays.asList((JsonAdaptedGig) null));
+                Arrays.asList((JsonAdaptedGig) null), null);
         assertThrows(IllegalValueException.class, JsonAdaptedGig.MISSING_FIELD_MESSAGE, data::toModelType);
+    }
+
+    @Test
+    public void toModelType_nullPaymentObligation_throwsIllegalValueException() {
+        JsonSerializableGigabyteData data = new JsonSerializableGigabyteData(List.of(new JsonAdaptedClient(ALICE)),
+                List.of(), Arrays.asList((JsonAdaptedPaymentObligation) null));
+        assertThrows(IllegalValueException.class, JsonAdaptedPaymentObligation.MISSING_FIELD_MESSAGE,
+                data::toModelType);
     }
 
 }

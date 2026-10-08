@@ -5,6 +5,7 @@ import java.util.function.Predicate;
 import gigabyte.commons.core.GuiSettings;
 import gigabyte.model.client.Client;
 import gigabyte.model.gig.Gig;
+import gigabyte.model.gig.PaymentObligation;
 import javafx.collections.ObservableList;
 
 /**
@@ -80,4 +81,9 @@ public interface Model {
      * Returns an unmodifiable view of all gigs.
      */
     ObservableList<Gig> getGigList();
+
+    /**
+     * Adds a payment obligation linked to an existing gig.
+     */
+    void addPaymentObligation(PaymentObligation obligation);
 }

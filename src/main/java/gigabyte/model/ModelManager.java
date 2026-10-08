@@ -10,6 +10,7 @@ import gigabyte.commons.core.GuiSettings;
 import gigabyte.commons.core.LogsCenter;
 import gigabyte.model.client.Client;
 import gigabyte.model.gig.Gig;
+import gigabyte.model.gig.PaymentObligation;
 import javafx.collections.ObservableList;
 import javafx.collections.transformation.FilteredList;
 
@@ -105,6 +106,12 @@ public class ModelManager implements Model {
     @Override
     public ObservableList<Gig> getGigList() {
         return gigabyteData.getGigList();
+    }
+
+    @Override
+    public void addPaymentObligation(PaymentObligation obligation) {
+        requireNonNull(obligation);
+        gigabyteData.addPaymentObligation(obligation);
     }
 
     //=========== Filtered Client List Accessors =============================================================

@@ -25,6 +25,7 @@ import gigabyte.model.gig.Deadline;
 import gigabyte.model.gig.Fee;
 import gigabyte.model.gig.Gig;
 import gigabyte.model.gig.GigStatus;
+import gigabyte.model.gig.PaymentObligation;
 import gigabyte.testutil.ClientBuilder;
 
 public class JsonGigabyteDataStorageTest {
@@ -97,6 +98,32 @@ public class JsonGigabyteDataStorageTest {
     @Test
     public void saveGigabyteData_nullGigabyteData_throwsNullPointerException() {
         assertThrows(NullPointerException.class, () -> saveGigabyteData(null, "SomeFile.json"));
+    }
+
+    @Test
+    public void readAndSave_paymentsForEqualGigs_preservesExactLinksAndPaidState() throws Exception {
+        GigabyteData original = new GigabyteData();
+        original.addClient(ALICE);
+        Gig gig = new Gig(ALICE, GigStatus.NOT_STARTED, new Deadline("2027-01-31"), new Fee("100"));
+        original.addGig(gig);
+        original.addGig(gig);
+        original.addPaymentObligation(new PaymentObligation(original.getGigList().get(1), new Fee("50.25"),
+                new Deadline("2027-02-28"), false));
+        original.addPaymentObligation(new PaymentObligation(original.getGigList().get(0), new Fee("25"),
+                new Deadline("2027-03-01"), true));
+
+        JsonGigabyteDataStorage storage = new JsonGigabyteDataStorage(testFolder.resolve("payments.json"));
+        storage.saveGigabyteData(original);
+        ReadOnlyGigabyteData restored = storage.readGigabyteData().orElseThrow();
+        assertEquals(original, new GigabyteData(restored));
+        assertSame(restored.getGigList().get(1), restored.getPaymentObligationList().get(0).getGig());
+        assertSame(restored.getGigList().get(0), restored.getPaymentObligationList().get(1).getGig());
+
+        original.setClient(ALICE, new ClientBuilder(ALICE).withName("Alice Updated").build());
+        storage.saveGigabyteData(original);
+        restored = storage.readGigabyteData().orElseThrow();
+        assertEquals(original, new GigabyteData(restored));
+        assertSame(restored.getGigList().get(1), restored.getPaymentObligationList().get(0).getGig());
     }
 
     @Test
