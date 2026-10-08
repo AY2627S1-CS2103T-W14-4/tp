@@ -105,6 +105,21 @@ public class GigabyteDataTest {
     }
 
     @Test
+    public void setClient_withPaymentObligation_relinksObligationAtomically() {
+        gigabyteData.addClient(ALICE);
+        Gig gig = new Gig(ALICE, GigStatus.NOT_STARTED, new Deadline("2026-12-31"), new Fee("100"));
+        gigabyteData.addGig(gig);
+        gigabyteData.addPaymentObligation(new PaymentObligation(gig, new Fee("50"),
+                new Deadline("2026-11-30"), false));
+        Client editedAlice = new ClientBuilder(ALICE).withAddress("Updated address").build();
+
+        gigabyteData.setClient(ALICE, editedAlice);
+
+        assertEquals(editedAlice, gigabyteData.getGigList().get(0).getClient());
+        assertEquals(editedAlice, gigabyteData.getPaymentObligationList().get(0).getGig().getClient());
+    }
+
+    @Test
     public void getClientList_modifyList_throwsUnsupportedOperationException() {
         assertThrows(UnsupportedOperationException.class, () -> gigabyteData.getClientList().remove(0));
     }

@@ -3,6 +3,7 @@ package gigabyte.model;
 import static gigabyte.commons.util.CollectionUtil.requireAllNonNull;
 import static java.util.Objects.requireNonNull;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import gigabyte.commons.util.ToStringBuilder;
@@ -82,7 +83,7 @@ public class GigabyteData implements ReadOnlyGigabyteData {
 
         clients.setClients(replacementClients);
         gigs.setAll(replacementGigs);
-        paymentObligations.setAll(linkPaymentObligations(replacementGigs,
+        paymentObligations.setAll(linkPaymentObligations(newData.getGigList(), replacementGigs,
                 newData.getPaymentObligationList()));
     }
 
@@ -109,15 +110,19 @@ public class GigabyteData implements ReadOnlyGigabyteData {
     public void setClient(Client target, Client editedClient) {
         requireAllNonNull(target, editedClient);
 
-        clients.setClient(target, editedClient);
-
+        List<Gig> replacementGigs = new ArrayList<>(gigs);
         for (int index = 0; index < gigs.size(); index++) {
             Gig gig = gigs.get(index);
             if (gig.getClient().isSameClient(target)) {
-                gigs.set(index, gig.withClient(editedClient));
+                replacementGigs.set(index, gig.withClient(editedClient));
             }
         }
-        relinkPaymentObligations(gigs);
+        List<PaymentObligation> replacementObligations = linkPaymentObligations(gigs, replacementGigs,
+                paymentObligations);
+
+        clients.setClient(target, editedClient);
+        gigs.setAll(replacementGigs);
+        paymentObligations.setAll(replacementObligations);
     }
 
     /**
@@ -184,10 +189,14 @@ public class GigabyteData implements ReadOnlyGigabyteData {
     }
 
     private static List<PaymentObligation> linkPaymentObligations(
-            List<Gig> currentGigs, List<PaymentObligation> obligations) {
-        return obligations.stream().map(obligation -> obligation.withGig(
-                currentGigs.stream().filter(obligation.getGig()::equals)
-                        .findFirst().orElseThrow(GigNotFoundException::new))).toList();
+            List<Gig> oldGigs, List<Gig> newGigs, List<PaymentObligation> obligations) {
+        return obligations.stream().map(obligation -> {
+            int index = oldGigs.indexOf(obligation.getGig());
+            if (index < 0) {
+                throw new GigNotFoundException();
+            }
+            return obligation.withGig(newGigs.get(index));
+        }).toList();
     }
 
     private static List<Gig> linkGigsToClients(
