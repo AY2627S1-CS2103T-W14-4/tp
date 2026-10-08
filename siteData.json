@@ -112,6 +112,7 @@
         "viewing-help-help": "Viewing help: help",
         "adding-a-client-add": "Adding a client: add",
         "listing-all-clients-list": "Listing all clients: list",
+        "creating-a-gig-addgig": "Creating a gig: addgig",
         "editing-a-client-edit": "Editing a client: edit",
         "locating-clients-by-name-find": "Locating clients by name: find",
         "deleting-a-client-delete": "Deleting a client: delete",
