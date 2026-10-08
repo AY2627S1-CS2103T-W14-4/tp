@@ -7,8 +7,10 @@ import static gigabyte.logic.commands.CommandTestUtil.EMAIL_DESC_AMY;
 import static gigabyte.logic.commands.CommandTestUtil.NAME_DESC_AMY;
 import static gigabyte.logic.commands.CommandTestUtil.PHONE_DESC_AMY;
 import static gigabyte.testutil.Assert.assertThrows;
+import static gigabyte.testutil.TypicalClients.ALICE;
 import static gigabyte.testutil.TypicalClients.AMY;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertSame;
 
 import java.io.IOException;
 import java.nio.file.AccessDeniedException;
@@ -23,11 +25,16 @@ import gigabyte.logic.commands.CommandResult;
 import gigabyte.logic.commands.ListClientsCommand;
 import gigabyte.logic.commands.exceptions.CommandException;
 import gigabyte.logic.parser.exceptions.ParseException;
+import gigabyte.model.GigabyteData;
 import gigabyte.model.Model;
 import gigabyte.model.ModelManager;
 import gigabyte.model.ReadOnlyGigabyteData;
 import gigabyte.model.UserPrefs;
 import gigabyte.model.client.Client;
+import gigabyte.model.gig.Deadline;
+import gigabyte.model.gig.Fee;
+import gigabyte.model.gig.Gig;
+import gigabyte.model.gig.GigStatus;
 import gigabyte.storage.JsonGigabyteDataStorage;
 import gigabyte.storage.JsonUserPrefsStorage;
 import gigabyte.storage.StorageManager;
@@ -68,6 +75,30 @@ public class LogicManagerTest {
     public void execute_validCommand_success() throws Exception {
         String listCommand = ListClientsCommand.COMMAND_WORD;
         assertCommandSuccess(listCommand, ListClientsCommand.MESSAGE_SUCCESS, model);
+    }
+
+    @Test
+    public void execute_addGig_persistsAcrossReloadAndSubsequentCommands() throws Exception {
+        model.addClient(ALICE);
+        CommandResult result = logic.execute("addgig 1 s/in_progress d/2027-01-31 f/1250.50");
+        Gig expected = new Gig(ALICE, GigStatus.IN_PROGRESS, new Deadline("2027-01-31"), new Fee("1250.50"));
+        assertEquals(expected, model.getGigList().get(0));
+        assertEquals("New gig added for Alice Pauline: Status: IN_PROGRESS; Deadline: 2027-01-31; "
+                + "Agreed fee: 1250.50", result.getFeedbackToUser());
+
+        logic.execute("list");
+        JsonGigabyteDataStorage storage = new JsonGigabyteDataStorage(temporaryFolder.resolve("gigabyteData.json"));
+        ReadOnlyGigabyteData restored = storage.readGigabyteData().orElseThrow();
+        assertEquals(model.getGigabyteData(), new GigabyteData(restored));
+        assertSame(restored.getClientList().get(0), restored.getGigList().get(0).getClient());
+    }
+
+    @Test
+    public void execute_addGigWithInvalidFields_keepsDataUnchanged() {
+        model.addClient(ALICE);
+        assertParseException("addgig 1 s/NOT_STARTED d/2027-02-29 f/100", Deadline.MESSAGE_CONSTRAINTS);
+        assertParseException("addgig 1 s/NOT_STARTED d/2027-01-31 f/0", Fee.MESSAGE_CONSTRAINTS);
+        assertCommandException("addgig 2 s/NOT_STARTED d/2027-01-31 f/100", MESSAGE_INVALID_CLIENT_DISPLAYED_INDEX);
     }
 
     @Test

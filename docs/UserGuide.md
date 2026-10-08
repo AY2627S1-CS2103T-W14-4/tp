@@ -97,6 +97,25 @@ Shows a list of all clients in the client list.
 
 Format: `list`
 
+### Creating a gig: `addgig`
+
+Creates a gig linked to an existing client and saves it automatically.
+
+Format: `addgig INDEX s/STATUS d/DEADLINE f/FEE`
+
+* `INDEX` is the positive index shown in the current client list, including filtered `find` results.
+* All three fields are required and may appear in any order. Each prefix must appear once.
+* `STATUS` is `NOT_STARTED`, `IN_PROGRESS`, or `COMPLETED` (case-insensitive).
+* `DEADLINE` is a valid calendar date in `yyyy-MM-dd` format.
+* `FEE` is a positive amount with at most two decimal places, without a currency symbol.
+* The confirmation shows the linked client, status, deadline, and agreed fee. The client list stays unchanged.
+* Gigs are retained after restarting the app. Existing data files containing only clients remain supported.
+
+Examples:
+
+* `addgig 1 s/NOT_STARTED d/2027-01-31 f/1250.00`
+* `find Betsy` followed by `addgig 1 s/in_progress d/2027-02-28 f/500.50` creates a gig for the first matching client.
+
 ### Editing a client: `edit`
 
 Edits an existing client in the client list.
@@ -137,6 +156,7 @@ Deletes the specified client from the client list.
 Format: `delete INDEX`
 
 * Deletes the client at the specified `INDEX`.
+* A client with associated gigs cannot be deleted; an error explains this restriction.
 * The index refers to the index number shown in the displayed client list.
 * The index **must be a positive integer** 1, 2, 3, ...
 
@@ -146,7 +166,7 @@ Examples:
 
 ### Clearing all entries: `clear`
 
-Clears all entries from the client list.
+Clears all clients and their associated gigs.
 
 Format: `clear`
 
@@ -196,6 +216,7 @@ _Details coming soon ..._
 Action     | Format, Examples
 -----------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------
 **Add**    | `add n/NAME p/PHONE_NUMBER e/EMAIL a/ADDRESS [t/TAG]... ` <br> e.g., `add n/James Ho p/22224444 e/jamesho@example.com a/123, Clementi Rd, 1234665 t/friend t/colleague`
+**Add gig** | `addgig INDEX s/STATUS d/DEADLINE f/FEE` <br> e.g., `addgig 1 s/NOT_STARTED d/2027-01-31 f/1250.00`
 **Clear**  | `clear`
 **Delete** | `delete INDEX`<br> e.g., `delete 3`
 **Edit**   | `edit INDEX [n/NAME] [p/PHONE_NUMBER] [e/EMAIL] [a/ADDRESS] [t/TAG]... `<br> e.g.,`edit 2 n/James Lee e/jameslee@example.com`
