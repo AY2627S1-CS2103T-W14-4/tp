@@ -9,10 +9,8 @@ import gigabyte.commons.util.ToStringBuilder;
 import gigabyte.model.client.Client;
 import gigabyte.model.client.UniqueClientList;
 import gigabyte.model.gig.Gig;
-import gigabyte.model.gig.PaymentObligation;
 import gigabyte.model.gig.exceptions.ClientHasGigsException;
 import gigabyte.model.gig.exceptions.GigClientNotFoundException;
-import gigabyte.model.gig.exceptions.GigNotFoundException;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 
@@ -25,9 +23,6 @@ public class GigabyteData implements ReadOnlyGigabyteData {
     private final ObservableList<Gig> gigs = FXCollections.observableArrayList();
     private final ObservableList<Gig> unmodifiableGigs =
             FXCollections.unmodifiableObservableList(gigs);
-    private final ObservableList<PaymentObligation> paymentObligations = FXCollections.observableArrayList();
-    private final ObservableList<PaymentObligation> unmodifiablePaymentObligations =
-            FXCollections.unmodifiableObservableList(paymentObligations);
 
     public GigabyteData() {}
 
@@ -55,7 +50,6 @@ public class GigabyteData implements ReadOnlyGigabyteData {
 
         this.clients.setClients(replacementClients);
         this.gigs.setAll(relinkedGigs);
-        relinkPaymentObligations(relinkedGigs);
     }
 
     /**
@@ -67,7 +61,6 @@ public class GigabyteData implements ReadOnlyGigabyteData {
     public void setGigs(List<Gig> gigs) {
         requireAllNonNull(gigs);
         this.gigs.setAll(linkGigsToClients(getClientList(), gigs));
-        relinkPaymentObligations(this.gigs);
     }
 
     /**
@@ -82,8 +75,6 @@ public class GigabyteData implements ReadOnlyGigabyteData {
 
         clients.setClients(replacementClients);
         gigs.setAll(replacementGigs);
-        paymentObligations.setAll(linkPaymentObligations(replacementGigs,
-                newData.getPaymentObligationList()));
     }
 
     //// client-level operations
@@ -117,7 +108,6 @@ public class GigabyteData implements ReadOnlyGigabyteData {
                 gigs.set(index, gig.withClient(editedClient));
             }
         }
-        relinkPaymentObligations(gigs);
     }
 
     /**
@@ -152,14 +142,6 @@ public class GigabyteData implements ReadOnlyGigabyteData {
         gigs.add(gig.withClient(storedClient));
     }
 
-    /** Adds a payment obligation linked to an existing gig. */
-    public void addPaymentObligation(PaymentObligation obligation) {
-        requireNonNull(obligation);
-        Gig storedGig = gigs.stream().filter(obligation.getGig()::equals)
-                .findFirst().orElseThrow(GigNotFoundException::new);
-        paymentObligations.add(obligation.withGig(storedGig));
-    }
-
     //// accessors
 
     @Override
@@ -170,24 +152,6 @@ public class GigabyteData implements ReadOnlyGigabyteData {
     @Override
     public ObservableList<Gig> getGigList() {
         return unmodifiableGigs;
-    }
-
-    @Override
-    public ObservableList<PaymentObligation> getPaymentObligationList() {
-        return unmodifiablePaymentObligations;
-    }
-
-    private void relinkPaymentObligations(List<Gig> currentGigs) {
-        paymentObligations.replaceAll(obligation -> obligation.withGig(
-                currentGigs.stream().filter(obligation.getGig()::equals)
-                        .findFirst().orElseThrow(GigNotFoundException::new)));
-    }
-
-    private static List<PaymentObligation> linkPaymentObligations(
-            List<Gig> currentGigs, List<PaymentObligation> obligations) {
-        return obligations.stream().map(obligation -> obligation.withGig(
-                currentGigs.stream().filter(obligation.getGig()::equals)
-                        .findFirst().orElseThrow(GigNotFoundException::new))).toList();
     }
 
     private static List<Gig> linkGigsToClients(
@@ -218,7 +182,6 @@ public class GigabyteData implements ReadOnlyGigabyteData {
         return new ToStringBuilder(this)
                 .add("clients", clients)
                 .add("gigs", gigs)
-                .add("paymentObligations", paymentObligations)
                 .toString();
     }
 
@@ -232,8 +195,8 @@ public class GigabyteData implements ReadOnlyGigabyteData {
             return false;
         }
 
-        return clients.equals(otherGigabyteData.clients) && gigs.equals(otherGigabyteData.gigs)
-                && paymentObligations.equals(otherGigabyteData.paymentObligations);
+        return clients.equals(otherGigabyteData.clients)
+                && gigs.equals(otherGigabyteData.gigs);
     }
 
     @Override

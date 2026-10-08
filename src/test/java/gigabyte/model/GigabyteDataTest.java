@@ -17,11 +17,6 @@ import org.junit.jupiter.api.Test;
 import gigabyte.model.client.Client;
 import gigabyte.model.client.exceptions.DuplicateClientException;
 import gigabyte.model.gig.Gig;
-import gigabyte.model.gig.Deadline;
-import gigabyte.model.gig.Fee;
-import gigabyte.model.gig.GigStatus;
-import gigabyte.model.gig.PaymentObligation;
-import gigabyte.model.gig.exceptions.GigNotFoundException;
 import gigabyte.testutil.ClientBuilder;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -83,28 +78,6 @@ public class GigabyteDataTest {
     }
 
     @Test
-    public void addPaymentObligation_existingGig_addsObligation() {
-        gigabyteData.addClient(ALICE);
-        Gig gig = new Gig(ALICE, GigStatus.NOT_STARTED, new Deadline("2026-12-31"), new Fee("100"));
-        gigabyteData.addGig(gig);
-        PaymentObligation obligation = new PaymentObligation(gig, new Fee("50"),
-                new Deadline("2026-11-30"), false);
-
-        gigabyteData.addPaymentObligation(obligation);
-
-        assertEquals(List.of(obligation), gigabyteData.getPaymentObligationList());
-    }
-
-    @Test
-    public void addPaymentObligation_missingGig_throwsGigNotFoundException() {
-        PaymentObligation obligation = new PaymentObligation(
-                new Gig(ALICE, GigStatus.NOT_STARTED, new Deadline("2026-12-31"), new Fee("100")),
-                new Fee("50"), new Deadline("2026-11-30"), false);
-
-        assertThrows(GigNotFoundException.class, () -> gigabyteData.addPaymentObligation(obligation));
-    }
-
-    @Test
     public void getClientList_modifyList_throwsUnsupportedOperationException() {
         assertThrows(UnsupportedOperationException.class, () -> gigabyteData.getClientList().remove(0));
     }
@@ -113,8 +86,7 @@ public class GigabyteDataTest {
     public void toStringMethod() {
         String expected = GigabyteData.class.getCanonicalName()
                 + "{clients=" + gigabyteData.getClientList()
-                + ", gigs=" + gigabyteData.getGigList()
-                + ", paymentObligations=" + gigabyteData.getPaymentObligationList() + "}";
+                + ", gigs=" + gigabyteData.getGigList() + "}";
         assertEquals(expected, gigabyteData.toString());
     }
 
