@@ -25,4 +25,11 @@ public class ClientListPanelTest {
 
         assertEquals(ALICE, selected.get());
     }
+
+    @Test
+    public void defaultConstructor_acceptsClientList() {
+        ClientListPanel panel = new ClientListPanel(FXCollections.observableArrayList(ALICE));
+
+        assertEquals(1, panel.getClientListView().getItems().size());
+    }
 }
