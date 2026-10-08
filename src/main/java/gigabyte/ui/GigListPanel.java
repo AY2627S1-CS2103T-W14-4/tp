@@ -15,8 +15,8 @@ public class GigListPanel extends UiPart<Region> {
     private static final String NO_CLIENT = "Select a client to view their gigs.";
     private static final String NO_GIGS = "This client has no gigs.";
     private final FilteredList<Gig> filteredGigs;
-    @javafx.fxml.FXML Label emptyState;
-    @javafx.fxml.FXML ListView<Gig> gigListView;
+    @javafx.fxml.FXML private Label emptyState;
+    @javafx.fxml.FXML private ListView<Gig> gigListView;
 
     /** Creates a gig list panel backed by the given gigs. */
     public GigListPanel(ObservableList<Gig> gigs) {
@@ -37,8 +37,23 @@ public class GigListPanel extends UiPart<Region> {
 
     /** Displays only the gigs belonging to {@code client}. */
     public void showGigsFor(Client client) {
-        filteredGigs.setPredicate(gig -> client != null && gig.getClient().isSameClient(client));
+        filteredGigs.setPredicate(gig -> isGigForClient(gig, client));
         updateEmptyState();
+    }
+
+    /** Returns whether {@code gig} belongs to {@code client}. */
+    static boolean isGigForClient(Gig gig, Client client) {
+        return client != null && gig.getClient().isSameClient(client);
+    }
+
+    /** Returns the gigs currently displayed by this panel. */
+    ListView<Gig> getGigListView() {
+        return gigListView;
+    }
+
+    /** Returns the empty-state label used by this panel. */
+    Label getEmptyState() {
+        return emptyState;
     }
 
     private void updateEmptyState() {
