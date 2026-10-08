@@ -6,6 +6,7 @@ import static gigabyte.testutil.TypicalClients.BENSON;
 import static gigabyte.testutil.TypicalIndexes.INDEX_FIRST_CLIENT;
 import static gigabyte.testutil.TypicalIndexes.INDEX_SECOND_CLIENT;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -77,5 +78,35 @@ public class AddGigCommandTest {
                 new Deadline("2027-02-28"), FEE));
         assertNotEquals(command, new AddGigCommand(INDEX_FIRST_CLIENT, GigStatus.NOT_STARTED, DEADLINE,
                 new Fee("100.00")));
+    }
+
+    @Test
+    public void equals_sameObject_returnsTrue() {
+        AddGigCommand command =
+                new AddGigCommand(INDEX_FIRST_CLIENT, GigStatus.NOT_STARTED, DEADLINE, FEE);
+
+        assertTrue(command.equals(command));
+    }
+
+    @Test
+    public void equals_nullOrDifferentType_returnsFalse() {
+        AddGigCommand command =
+                new AddGigCommand(INDEX_FIRST_CLIENT, GigStatus.NOT_STARTED, DEADLINE, FEE);
+
+        assertFalse(command.equals(null));
+        assertFalse(command.equals("test"));
+    }
+
+    @Test
+    public void toStringMethod() {
+        AddGigCommand command =
+                new AddGigCommand(INDEX_FIRST_CLIENT, GigStatus.NOT_STARTED, DEADLINE, FEE);
+        String expected = AddGigCommand.class.getCanonicalName()
+                + "{clientIndex=" + INDEX_FIRST_CLIENT
+                + ", status=" + GigStatus.NOT_STARTED
+                + ", deadline=" + DEADLINE
+                + ", fee=" + FEE + "}";
+
+        assertEquals(expected, command.toString());
     }
 }
