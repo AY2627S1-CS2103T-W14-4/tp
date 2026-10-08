@@ -1,10 +1,13 @@
 package gigabyte.storage;
 
 import static gigabyte.testutil.Assert.assertThrows;
+import static gigabyte.testutil.TypicalClients.ALICE;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Arrays;
+import java.util.List;
 
 import org.junit.jupiter.api.Test;
 
@@ -42,6 +45,13 @@ public class JsonSerializableGigabyteDataTest {
                 JsonSerializableGigabyteData.class).get();
         assertThrows(IllegalValueException.class, JsonSerializableGigabyteData.MESSAGE_DUPLICATE_CLIENT,
                 dataFromFile::toModelType);
+    }
+
+    @Test
+    public void toModelType_nullGig_throwsIllegalValueException() {
+        JsonSerializableGigabyteData data = new JsonSerializableGigabyteData(List.of(new JsonAdaptedClient(ALICE)),
+                Arrays.asList((JsonAdaptedGig) null));
+        assertThrows(IllegalValueException.class, JsonAdaptedGig.MISSING_FIELD_MESSAGE, data::toModelType);
     }
 
 }
