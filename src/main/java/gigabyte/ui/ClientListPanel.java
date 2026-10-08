@@ -40,6 +40,11 @@ public class ClientListPanel extends UiPart<Region> {
                 -> clientSelectionHandler.accept(newClient));
     }
 
+    /** Returns the underlying client list view. */
+    ListView<Client> getClientListView() {
+        return clientListView;
+    }
+
     /**
      * Custom {@code ListCell} that displays the graphics of a {@code Client} using a {@code ClientCard}.
      */
