@@ -12,11 +12,8 @@ import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 
 /**
- * A list of clients that enforces uniqueness between its elements and does not allow nulls.
- * A client is considered unique by comparing using {@code Client#isSameClient(Client)}. As such, adding and updating of
- * clients uses Client#isSameClient(Client) for equality so as to ensure that the client being added or updated is
- * unique in terms of identity in the UniqueClientList. However, the removal of a client uses Client#equals(Object) so
- * as to ensure that the client with exactly the same fields will be removed.
+ * A list of clients that enforces unique IDs and names between its elements and does not allow nulls.
+ * {@link #contains(Client)} checks the name constraint; relationships should use stable IDs.
  *
  * Supports a minimal set of list operations.
  *
@@ -29,11 +26,17 @@ public class UniqueClientList implements Iterable<Client> {
             FXCollections.unmodifiableObservableList(internalList);
 
     /**
-     * Returns true if the list contains an equivalent client as the given argument.
+     * Returns true if the list contains a client with the same name as the given argument.
      */
     public boolean contains(Client toCheck) {
         requireNonNull(toCheck);
-        return internalList.stream().anyMatch(toCheck::isSameClient);
+        return internalList.stream().anyMatch(toCheck::hasSameName);
+    }
+
+    /** Returns whether a client with the same stable ID is present. */
+    public boolean containsUid(Client toCheck) {
+        requireNonNull(toCheck);
+        return internalList.stream().anyMatch(toCheck::hasSameUid);
     }
 
     /**
@@ -42,7 +45,7 @@ public class UniqueClientList implements Iterable<Client> {
      */
     public void add(Client toAdd) {
         requireNonNull(toAdd);
-        if (contains(toAdd)) {
+        if (contains(toAdd) || containsUid(toAdd)) {
             throw new DuplicateClientException();
         }
         internalList.add(toAdd);
@@ -55,14 +58,20 @@ public class UniqueClientList implements Iterable<Client> {
      */
     public void setClient(Client target, Client editedClient) {
         requireAllNonNull(target, editedClient);
+        if (!target.hasSameUid(editedClient)) {
+            throw new IllegalArgumentException("An edited client must retain its uid.");
+        }
 
-        int index = internalList.indexOf(target);
+        int index = indexOfUid(target);
         if (index == -1) {
             throw new ClientNotFoundException();
         }
 
-        if (!target.isSameClient(editedClient) && contains(editedClient)) {
-            throw new DuplicateClientException();
+        for (int otherIndex = 0; otherIndex < internalList.size(); otherIndex++) {
+            if (otherIndex != index && (editedClient.hasSameName(internalList.get(otherIndex))
+                    || editedClient.hasSameUid(internalList.get(otherIndex)))) {
+                throw new DuplicateClientException();
+            }
         }
 
         internalList.set(index, editedClient);
@@ -74,9 +83,11 @@ public class UniqueClientList implements Iterable<Client> {
      */
     public void remove(Client toRemove) {
         requireNonNull(toRemove);
-        if (!internalList.remove(toRemove)) {
+        int index = indexOfUid(toRemove);
+        if (index < 0) {
             throw new ClientNotFoundException();
         }
+        internalList.remove(index);
     }
 
     public void setClients(UniqueClientList replacement) {
@@ -139,11 +150,20 @@ public class UniqueClientList implements Iterable<Client> {
     private boolean clientsAreUnique(List<Client> clients) {
         for (int i = 0; i < clients.size() - 1; i++) {
             for (int j = i + 1; j < clients.size(); j++) {
-                if (clients.get(i).isSameClient(clients.get(j))) {
+                if (clients.get(i).hasSameName(clients.get(j)) || clients.get(i).hasSameUid(clients.get(j))) {
                     return false;
                 }
             }
         }
         return true;
+    }
+
+    private int indexOfUid(Client target) {
+        for (int index = 0; index < internalList.size(); index++) {
+            if (internalList.get(index).hasSameUid(target)) {
+                return index;
+            }
+        }
+        return -1;
     }
 }

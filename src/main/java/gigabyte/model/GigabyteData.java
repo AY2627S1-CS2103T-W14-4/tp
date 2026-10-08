@@ -4,7 +4,10 @@ import static gigabyte.commons.util.CollectionUtil.requireAllNonNull;
 import static java.util.Objects.requireNonNull;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
+import java.util.UUID;
 
 import gigabyte.commons.util.ToStringBuilder;
 import gigabyte.model.client.Client;
@@ -69,6 +72,7 @@ public class GigabyteData implements ReadOnlyGigabyteData {
      */
     public void setGigs(List<Gig> gigs) {
         requireAllNonNull(gigs);
+        requireUniqueGigUids(gigs);
         List<Gig> replacementGigs = linkGigsToClients(getClientList(), gigs);
         List<PaymentObligation> replacementObligations = linkPaymentObligations(this.gigs, replacementGigs,
                 paymentObligations);
@@ -84,6 +88,7 @@ public class GigabyteData implements ReadOnlyGigabyteData {
         requireNonNull(newData);
 
         List<Client> replacementClients = List.copyOf(newData.getClientList());
+        requireUniqueGigUids(newData.getGigList());
         List<Gig> replacementGigs =
                 linkGigsToClients(replacementClients, newData.getGigList());
 
@@ -119,7 +124,7 @@ public class GigabyteData implements ReadOnlyGigabyteData {
         List<Gig> replacementGigs = new ArrayList<>(gigs);
         for (int index = 0; index < gigs.size(); index++) {
             Gig gig = gigs.get(index);
-            if (gig.getClient().isSameClient(target)) {
+            if (gig.getClient().hasSameUid(target)) {
                 replacementGigs.set(index, gig.withClient(editedClient));
             }
         }
@@ -140,7 +145,7 @@ public class GigabyteData implements ReadOnlyGigabyteData {
         requireNonNull(key);
 
         boolean hasAssociatedGig = gigs.stream()
-                .anyMatch(gig -> gig.getClient().isSameClient(key));
+                .anyMatch(gig -> gig.getClient().hasSameUid(key));
 
         if (hasAssociatedGig) {
             throw new ClientHasGigsException();
@@ -160,7 +165,18 @@ public class GigabyteData implements ReadOnlyGigabyteData {
         requireNonNull(gig);
 
         Client storedClient = findMatchingClient(getClientList(), gig.getClient());
-        gigs.add(gig.withClient(storedClient));
+        Gig storedGig = gig.withClient(storedClient);
+        boolean duplicateUid = false;
+        for (Gig existing : gigs) {
+            if (existing.hasSameUid(storedGig)) {
+                duplicateUid = true;
+                break;
+            }
+        }
+        if (duplicateUid) {
+            storedGig = storedGig.withNewUid();
+        }
+        gigs.add(storedGig);
     }
 
     /** Adds a payment obligation linked to an existing gig. */
@@ -211,6 +227,11 @@ public class GigabyteData implements ReadOnlyGigabyteData {
                 return index;
             }
         }
+        for (int index = 0; index < gigs.size(); index++) {
+            if (gigs.get(index).hasSameUid(target)) {
+                return index;
+            }
+        }
         return gigs.indexOf(target);
     }
 
@@ -226,6 +247,19 @@ public class GigabyteData implements ReadOnlyGigabyteData {
         }
 
         for (int oldIndex = 0; oldIndex < oldGigs.size(); oldIndex++) {
+            for (int newIndex = 0; newIndex < newGigs.size(); newIndex++) {
+                if (!matchedNewGigs[newIndex] && oldGigs.get(oldIndex).hasSameUid(newGigs.get(newIndex))) {
+                    replacementIndexes.set(oldIndex, newIndex);
+                    matchedNewGigs[newIndex] = true;
+                    break;
+                }
+            }
+        }
+
+        for (int oldIndex = 0; oldIndex < oldGigs.size(); oldIndex++) {
+            if (replacementIndexes.get(oldIndex) >= 0) {
+                continue;
+            }
             for (int newIndex = 0; newIndex < newGigs.size(); newIndex++) {
                 if (!matchedNewGigs[newIndex] && oldGigs.get(oldIndex).equals(newGigs.get(newIndex))) {
                     replacementIndexes.set(oldIndex, newIndex);
@@ -267,12 +301,21 @@ public class GigabyteData implements ReadOnlyGigabyteData {
                 .toList();
     }
 
+    private static void requireUniqueGigUids(List<Gig> gigs) {
+        Set<UUID> uids = new HashSet<>();
+        for (Gig gig : gigs) {
+            if (!uids.add(gig.getUid())) {
+                throw new IllegalArgumentException("Gig IDs must be unique.");
+            }
+        }
+    }
+
     private static Client findMatchingClient(
             List<Client> clients, Client client) {
         requireNonNull(client);
 
         return clients.stream()
-                .filter(storedClient -> storedClient.isSameClient(client))
+                .filter(storedClient -> storedClient.hasSameUid(client))
                 .findFirst()
                 .orElseThrow(GigClientNotFoundException::new);
     }

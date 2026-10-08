@@ -6,6 +6,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
+import java.util.UUID;
 
 import gigabyte.commons.util.ToStringBuilder;
 import gigabyte.model.tag.Tag;
@@ -15,6 +16,8 @@ import gigabyte.model.tag.Tag;
  * Guarantees: details are present and not null, field values are validated, immutable.
  */
 public class Client {
+
+    private final UUID uid;
 
     // Identity fields
     private final Name name;
@@ -29,12 +32,35 @@ public class Client {
      * Every field must be present and not null.
      */
     public Client(Name name, Phone phone, Email email, Address address, Set<Tag> tags) {
-        requireAllNonNull(name, phone, email, address, tags);
+        this(UUID.randomUUID(), name, phone, email, address, tags);
+    }
+
+    /**
+     * Constructs a {@code Client} with a stable identifier.
+     */
+    public Client(UUID uid, Name name, Phone phone, Email email, Address address, Set<Tag> tags) {
+        requireAllNonNull(uid, name, phone, email, address, tags);
+        this.uid = uid;
         this.name = name;
         this.phone = phone;
         this.email = email;
         this.address = address;
         this.tags.addAll(tags);
+    }
+
+    /** Returns this client's stable identifier. */
+    public UUID getUid() {
+        return uid;
+    }
+
+    /** Returns whether both clients have the same stable identifier. */
+    public boolean hasSameUid(Client otherClient) {
+        return otherClient != null && uid.equals(otherClient.uid);
+    }
+
+    /** Returns whether both clients have the same display name. */
+    public boolean hasSameName(Client otherClient) {
+        return otherClient != null && name.equals(otherClient.name);
     }
 
     public Name getName() {
@@ -62,22 +88,13 @@ public class Client {
     }
 
     /**
-     * Returns true if both clients have the same name.
-     * This defines a weaker notion of equality between two clients.
+     * Returns true if both clients have the same name. Use {@link #hasSameUid(Client)} for relationships.
      */
     public boolean isSameClient(Client otherClient) {
-        if (otherClient == this) {
-            return true;
-        }
-
-        return otherClient != null
-                && otherClient.getName().equals(getName());
+        return hasSameName(otherClient);
     }
 
-    /**
-     * Returns true if both clients have the same identity and data fields.
-     * This defines a stronger notion of equality between two clients.
-     */
+    /** Returns true if all client details match. Stable identity is compared with {@link #hasSameUid(Client)}. */
     @Override
     public boolean equals(Object other) {
         if (other == this) {

@@ -3,6 +3,7 @@ package gigabyte.model.gig;
 import static gigabyte.commons.util.CollectionUtil.requireAllNonNull;
 
 import java.util.Objects;
+import java.util.UUID;
 
 import gigabyte.commons.util.ToStringBuilder;
 import gigabyte.model.client.Client;
@@ -12,6 +13,7 @@ import gigabyte.model.client.Client;
  * Guarantees: immutable; all fields are present and valid.
  */
 public class Gig {
+    private final UUID uid;
     private final Client client;
     private final GigStatus status;
     private final Deadline deadline;
@@ -21,11 +23,27 @@ public class Gig {
      * Constructs a {@code Gig}.
      */
     public Gig(Client client, GigStatus status, Deadline deadline, Fee agreedFee) {
-        requireAllNonNull(client, status, deadline, agreedFee);
+        this(UUID.randomUUID(), client, status, deadline, agreedFee);
+    }
+
+    /** Constructs a gig with a stable identifier. */
+    public Gig(UUID uid, Client client, GigStatus status, Deadline deadline, Fee agreedFee) {
+        requireAllNonNull(uid, client, status, deadline, agreedFee);
+        this.uid = uid;
         this.client = client;
         this.status = status;
         this.deadline = deadline;
         this.agreedFee = agreedFee;
+    }
+
+    /** Returns this gig's stable identifier. */
+    public UUID getUid() {
+        return uid;
+    }
+
+    /** Returns whether both gigs have the same stable identifier. */
+    public boolean hasSameUid(Gig otherGig) {
+        return otherGig != null && uid.equals(otherGig.uid);
     }
 
     public Client getClient() {
@@ -48,7 +66,12 @@ public class Gig {
      * Returns a copy of this gig linked to {@code replacementClient}.
      */
     public Gig withClient(Client replacementClient) {
-        return new Gig(replacementClient, status, deadline, agreedFee);
+        return new Gig(uid, replacementClient, status, deadline, agreedFee);
+    }
+
+    /** Returns a copy with a new stable identifier. */
+    public Gig withNewUid() {
+        return new Gig(UUID.randomUUID(), client, status, deadline, agreedFee);
     }
 
     @Override

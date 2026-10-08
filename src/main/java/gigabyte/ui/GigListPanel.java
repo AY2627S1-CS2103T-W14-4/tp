@@ -45,7 +45,7 @@ public class GigListPanel extends UiPart<Region> {
 
     /** Returns whether {@code gig} belongs to {@code client}. */
     static boolean isGigForClient(Gig gig, Client client) {
-        return client != null && gig.getClient().isSameClient(client);
+        return client != null && gig.getClient().hasSameUid(client);
     }
 
     /** Returns the gigs currently displayed by this panel. */
