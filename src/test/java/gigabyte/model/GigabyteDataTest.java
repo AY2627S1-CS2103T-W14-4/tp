@@ -36,6 +36,12 @@ public class GigabyteDataTest {
     }
 
     @Test
+    public void readOnlyDataWithoutPaymentObligations_returnsEmptyList() {
+        ReadOnlyGigabyteData data = new GigabyteDataStub(List.of());
+        assertEquals(List.of(), data.getPaymentObligationList());
+    }
+
+    @Test
     public void resetData_null_throwsNullPointerException() {
         assertThrows(NullPointerException.class, () -> gigabyteData.resetData(null));
     }

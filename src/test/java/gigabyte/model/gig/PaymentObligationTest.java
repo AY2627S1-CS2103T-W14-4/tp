@@ -3,6 +3,7 @@ package gigabyte.model.gig;
 import static gigabyte.testutil.Assert.assertThrows;
 import static gigabyte.testutil.TypicalClients.ALICE;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.junit.jupiter.api.Test;
@@ -25,5 +26,28 @@ public class PaymentObligationTest {
         PaymentObligation obligation = new PaymentObligation(GIG, AMOUNT, DUE_DATE, false);
         assertFalse(obligation.isPaid());
         assertTrue(obligation.withPaid(true).isPaid());
+    }
+
+    @Test
+    public void accessorsAndValueMethods_returnExpectedValues() {
+        PaymentObligation obligation = new PaymentObligation(GIG, AMOUNT, DUE_DATE, false);
+        PaymentObligation equivalent = new PaymentObligation(GIG, AMOUNT, DUE_DATE, false);
+
+        assertEquals(GIG, obligation.getGig());
+        assertEquals(AMOUNT, obligation.getAmount());
+        assertEquals(DUE_DATE, obligation.getDueDate());
+        assertTrue(obligation.equals(equivalent));
+        assertEquals(obligation.hashCode(), equivalent.hashCode());
+        assertTrue(obligation.toString().contains("PaymentObligation"));
+        assertFalse(obligation.equals(null));
+    }
+
+    @Test
+    public void withGig_replacesLinkedGig() {
+        Gig replacement = new Gig(ALICE, GigStatus.COMPLETED,
+                new Deadline("2027-01-31"), new Fee("200"));
+        PaymentObligation obligation = new PaymentObligation(GIG, AMOUNT, DUE_DATE, false);
+
+        assertEquals(replacement, obligation.withGig(replacement).getGig());
     }
 }
