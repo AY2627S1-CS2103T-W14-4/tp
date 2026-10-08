@@ -3,14 +3,17 @@ package gigabyte.model;
 import static gigabyte.commons.util.CollectionUtil.requireAllNonNull;
 import static java.util.Objects.requireNonNull;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import gigabyte.commons.util.ToStringBuilder;
 import gigabyte.model.client.Client;
 import gigabyte.model.client.UniqueClientList;
 import gigabyte.model.gig.Gig;
+import gigabyte.model.gig.PaymentObligation;
 import gigabyte.model.gig.exceptions.ClientHasGigsException;
 import gigabyte.model.gig.exceptions.GigClientNotFoundException;
+import gigabyte.model.gig.exceptions.GigNotFoundException;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 
@@ -23,6 +26,9 @@ public class GigabyteData implements ReadOnlyGigabyteData {
     private final ObservableList<Gig> gigs = FXCollections.observableArrayList();
     private final ObservableList<Gig> unmodifiableGigs =
             FXCollections.unmodifiableObservableList(gigs);
+    private final ObservableList<PaymentObligation> paymentObligations = FXCollections.observableArrayList();
+    private final ObservableList<PaymentObligation> unmodifiablePaymentObligations =
+            FXCollections.unmodifiableObservableList(paymentObligations);
 
     public GigabyteData() {}
 
@@ -46,10 +52,13 @@ public class GigabyteData implements ReadOnlyGigabyteData {
         requireAllNonNull(clients);
 
         List<Client> replacementClients = List.copyOf(clients);
-        List<Gig> relinkedGigs = linkGigsToClients(replacementClients, gigs);
+        List<Gig> replacementGigs = linkGigsToClients(replacementClients, gigs);
+        List<PaymentObligation> replacementObligations = linkPaymentObligations(gigs, replacementGigs,
+                paymentObligations);
 
         this.clients.setClients(replacementClients);
-        this.gigs.setAll(relinkedGigs);
+        this.gigs.setAll(replacementGigs);
+        paymentObligations.setAll(replacementObligations);
     }
 
     /**
@@ -60,7 +69,12 @@ public class GigabyteData implements ReadOnlyGigabyteData {
      */
     public void setGigs(List<Gig> gigs) {
         requireAllNonNull(gigs);
-        this.gigs.setAll(linkGigsToClients(getClientList(), gigs));
+        List<Gig> replacementGigs = linkGigsToClients(getClientList(), gigs);
+        List<PaymentObligation> replacementObligations = linkPaymentObligations(this.gigs, replacementGigs,
+                paymentObligations);
+
+        this.gigs.setAll(replacementGigs);
+        paymentObligations.setAll(replacementObligations);
     }
 
     /**
@@ -75,6 +89,8 @@ public class GigabyteData implements ReadOnlyGigabyteData {
 
         clients.setClients(replacementClients);
         gigs.setAll(replacementGigs);
+        paymentObligations.setAll(linkPaymentObligations(newData.getGigList(), replacementGigs,
+                newData.getPaymentObligationList()));
     }
 
     //// client-level operations
@@ -100,14 +116,19 @@ public class GigabyteData implements ReadOnlyGigabyteData {
     public void setClient(Client target, Client editedClient) {
         requireAllNonNull(target, editedClient);
 
-        clients.setClient(target, editedClient);
-
+        List<Gig> replacementGigs = new ArrayList<>(gigs);
         for (int index = 0; index < gigs.size(); index++) {
             Gig gig = gigs.get(index);
             if (gig.getClient().isSameClient(target)) {
-                gigs.set(index, gig.withClient(editedClient));
+                replacementGigs.set(index, gig.withClient(editedClient));
             }
         }
+        List<PaymentObligation> replacementObligations = linkPaymentObligations(gigs, replacementGigs,
+                paymentObligations);
+
+        clients.setClient(target, editedClient);
+        gigs.setAll(replacementGigs);
+        paymentObligations.setAll(replacementObligations);
     }
 
     /**
@@ -142,6 +163,14 @@ public class GigabyteData implements ReadOnlyGigabyteData {
         gigs.add(gig.withClient(storedClient));
     }
 
+    /** Adds a payment obligation linked to an existing gig. */
+    public void addPaymentObligation(PaymentObligation obligation) {
+        requireNonNull(obligation);
+        Gig storedGig = gigs.stream().filter(obligation.getGig()::equals)
+                .findFirst().orElseThrow(GigNotFoundException::new);
+        paymentObligations.add(obligation.withGig(storedGig));
+    }
+
     //// accessors
 
     @Override
@@ -152,6 +181,65 @@ public class GigabyteData implements ReadOnlyGigabyteData {
     @Override
     public ObservableList<Gig> getGigList() {
         return unmodifiableGigs;
+    }
+
+    @Override
+    public ObservableList<PaymentObligation> getPaymentObligationList() {
+        return unmodifiablePaymentObligations;
+    }
+
+    private static List<PaymentObligation> linkPaymentObligations(
+            List<Gig> oldGigs, List<Gig> newGigs, List<PaymentObligation> obligations) {
+        List<Integer> replacementIndexes = matchReplacementGigIndexes(oldGigs, newGigs);
+        return obligations.stream().map(obligation -> {
+            int index = oldGigs.indexOf(obligation.getGig());
+            if (index < 0 || replacementIndexes.get(index) < 0) {
+                throw new GigNotFoundException();
+            }
+            return obligation.withGig(newGigs.get(replacementIndexes.get(index)));
+        }).toList();
+    }
+
+    /**
+     * Matches equal gigs first so reordering does not change obligation ownership. If every remaining old gig has
+     * one remaining new gig, those unmatched entries are treated as edited replacements in relative order.
+     */
+    private static List<Integer> matchReplacementGigIndexes(List<Gig> oldGigs, List<Gig> newGigs) {
+        List<Integer> replacementIndexes = new ArrayList<>();
+        boolean[] matchedNewGigs = new boolean[newGigs.size()];
+        for (int index = 0; index < oldGigs.size(); index++) {
+            replacementIndexes.add(-1);
+        }
+
+        for (int oldIndex = 0; oldIndex < oldGigs.size(); oldIndex++) {
+            for (int newIndex = 0; newIndex < newGigs.size(); newIndex++) {
+                if (!matchedNewGigs[newIndex] && oldGigs.get(oldIndex).equals(newGigs.get(newIndex))) {
+                    replacementIndexes.set(oldIndex, newIndex);
+                    matchedNewGigs[newIndex] = true;
+                    break;
+                }
+            }
+        }
+
+        List<Integer> unmatchedOldIndexes = new ArrayList<>();
+        List<Integer> unmatchedNewIndexes = new ArrayList<>();
+        for (int oldIndex = 0; oldIndex < oldGigs.size(); oldIndex++) {
+            if (replacementIndexes.get(oldIndex) < 0) {
+                unmatchedOldIndexes.add(oldIndex);
+            }
+        }
+        for (int newIndex = 0; newIndex < newGigs.size(); newIndex++) {
+            if (!matchedNewGigs[newIndex]) {
+                unmatchedNewIndexes.add(newIndex);
+            }
+        }
+
+        if (unmatchedOldIndexes.size() == unmatchedNewIndexes.size()) {
+            for (int index = 0; index < unmatchedOldIndexes.size(); index++) {
+                replacementIndexes.set(unmatchedOldIndexes.get(index), unmatchedNewIndexes.get(index));
+            }
+        }
+        return replacementIndexes;
     }
 
     private static List<Gig> linkGigsToClients(
@@ -182,6 +270,7 @@ public class GigabyteData implements ReadOnlyGigabyteData {
         return new ToStringBuilder(this)
                 .add("clients", clients)
                 .add("gigs", gigs)
+                .add("paymentObligations", paymentObligations)
                 .toString();
     }
 
@@ -195,8 +284,8 @@ public class GigabyteData implements ReadOnlyGigabyteData {
             return false;
         }
 
-        return clients.equals(otherGigabyteData.clients)
-                && gigs.equals(otherGigabyteData.gigs);
+        return clients.equals(otherGigabyteData.clients) && gigs.equals(otherGigabyteData.gigs)
+                && paymentObligations.equals(otherGigabyteData.paymentObligations);
     }
 
     @Override
