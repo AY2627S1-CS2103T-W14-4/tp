@@ -14,6 +14,7 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 
 import java.io.IOException;
 import java.nio.file.AccessDeniedException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -21,6 +22,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 import gigabyte.logic.commands.AddClientCommand;
+import gigabyte.logic.commands.AddPaymentCommand;
 import gigabyte.logic.commands.CommandResult;
 import gigabyte.logic.commands.ListClientsCommand;
 import gigabyte.logic.commands.exceptions.CommandException;
@@ -104,6 +106,30 @@ public class LogicManagerTest {
         assertParseException("addgig 1 s/NOT_STARTED d/2027-02-29 f/100", Deadline.MESSAGE_CONSTRAINTS);
         assertParseException("addgig 1 s/NOT_STARTED d/2027-01-31 f/0", Fee.MESSAGE_CONSTRAINTS);
         assertCommandException("addgig 2 s/NOT_STARTED d/2027-01-31 f/100", MESSAGE_INVALID_CLIENT_DISPLAYED_INDEX);
+    }
+
+    @Test
+    public void execute_addPayment_persistsAndInvalidInputKeepsRecordsUnchanged() throws Exception {
+        model.addClient(ALICE);
+        model.addGig(new Gig(ALICE, GigStatus.IN_PROGRESS, new Deadline("2027-01-31"), new Fee("100")));
+        CommandResult result = logic.execute("addpayment 1 1 a/50.25 d/2027-02-28");
+        assertEquals("Recorded unpaid obligation for Alice Pauline, gig 1: Amount: 50.25; Due date: 2027-02-28",
+                result.getFeedbackToUser());
+        GigabyteData before = new GigabyteData(model.getGigabyteData());
+        Path path = temporaryFolder.resolve("gigabyteData.json");
+        String savedData = Files.readString(path);
+
+        assertParseException("addpayment 1 1 a/0 d/2027-02-28", Fee.MESSAGE_CONSTRAINTS);
+        assertParseException("addpayment 1 1 a/50 d/2027-02-29", Deadline.MESSAGE_CONSTRAINTS);
+        assertCommandException("addpayment 2 1 a/50 d/2027-02-28", MESSAGE_INVALID_CLIENT_DISPLAYED_INDEX);
+        assertCommandException("addpayment 1 2 a/50 d/2027-02-28", AddPaymentCommand.MESSAGE_INVALID_GIG_INDEX);
+        assertEquals(before, model.getGigabyteData());
+        assertEquals(savedData, Files.readString(path));
+
+        logic.execute("list");
+        ReadOnlyGigabyteData restored = new JsonGigabyteDataStorage(path).readGigabyteData().orElseThrow();
+        assertEquals(before, new GigabyteData(restored));
+        assertSame(restored.getGigList().get(0), restored.getPaymentObligationList().get(0).getGig());
     }
 
     @Test

@@ -116,6 +116,28 @@ Examples:
 * `addgig 1 s/NOT_STARTED d/2027-01-31 f/1250.00`
 * `find Betsy` followed by `addgig 1 s/in_progress d/2027-02-28 f/500.50` creates a gig for the first matching client.
 
+### Recording a payment obligation: `addpayment`
+
+Records an unpaid payment obligation against an existing gig and saves it automatically.
+
+Format: `addpayment CLIENT_INDEX GIG_INDEX a/AMOUNT d/DUE_DATE`
+
+* `CLIENT_INDEX` is the positive index in the currently displayed client list, including `find` results.
+* Click that client to see their gigs. `GIG_INDEX` is the positive position in that client's gig panel,
+  counted from the top starting at 1. It is not an index in the complete list of all clients' gigs.
+* Both indexes and both fields are required. The `a/` and `d/` fields may appear in either order, once each.
+* `AMOUNT` must be positive with at most two decimal places, without a currency symbol.
+* `DUE_DATE` must be a valid calendar date in `yyyy-MM-dd` format.
+* Multiple obligations may be recorded for the same gig. New obligations start unpaid.
+* Invalid input leaves existing clients, gigs, and obligations unchanged.
+* Obligations survive restarting the app. Older data files without payment obligations remain supported.
+
+Example: `addpayment 1 2 a/500.00 d/2027-01-31` records an obligation for the second gig of the first displayed client.
+
+The confirmation names the client and gig position, amount, and due date. Saved obligations can also be
+inspected in the `paymentObligations` array in `data/addressbook.json`; their `gigIndex` refers to the
+one-based position in that file's complete `gigs` array.
+
 ### Editing a client: `edit`
 
 Edits an existing client in the client list.
@@ -166,7 +188,7 @@ Examples:
 
 ### Clearing all entries: `clear`
 
-Clears all clients and their associated gigs.
+Clears all clients, their gigs, and payment obligations.
 
 Format: `clear`
 
@@ -217,6 +239,7 @@ Action     | Format, Examples
 -----------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------
 **Add**    | `add n/NAME p/PHONE_NUMBER e/EMAIL a/ADDRESS [t/TAG]... ` <br> e.g., `add n/James Ho p/22224444 e/jamesho@example.com a/123, Clementi Rd, 1234665 t/friend t/colleague`
 **Add gig** | `addgig INDEX s/STATUS d/DEADLINE f/FEE` <br> e.g., `addgig 1 s/NOT_STARTED d/2027-01-31 f/1250.00`
+**Add payment** | `addpayment CLIENT_INDEX GIG_INDEX a/AMOUNT d/DUE_DATE` <br> e.g., `addpayment 1 2 a/500.00 d/2027-01-31`
 **Clear**  | `clear`
 **Delete** | `delete INDEX`<br> e.g., `delete 3`
 **Edit**   | `edit INDEX [n/NAME] [p/PHONE_NUMBER] [e/EMAIL] [a/ADDRESS] [t/TAG]... `<br> e.g.,`edit 2 n/James Lee e/jameslee@example.com`
