@@ -39,7 +39,6 @@ MainWindow *-down-> "1" StatusBarFooter
 MainWindow --> "0..1" HelpWindow
 
 ClientListPanel -down-> "*" ClientCard
-ClientListPanel .right.> GigListPanel : selected Client
 
 MainWindow -left-|> UiPart
 

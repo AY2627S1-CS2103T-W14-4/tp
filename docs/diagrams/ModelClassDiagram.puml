@@ -50,12 +50,12 @@ Client *--> Phone
 Client *--> Email
 Client *--> Address
 Client *--> "*" Tag
-Gig --> "1" Client : clientUid
+Gig --> "1" Client : client
 Gig *--> "1" GigTitle
 Gig *--> "1" GigStatus
 Gig *--> "1" Deadline
 Gig *--> "1" Fee : agreed fee
-PaymentObligation --> "1" Gig : gigUid
+PaymentObligation --> "1" Gig : gig
 PaymentObligation *--> "1" Fee : amount
 PaymentObligation *--> "1" Deadline : due date
 

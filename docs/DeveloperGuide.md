@@ -495,6 +495,31 @@ Start this section from a fresh test folder so the sample clients and gigs are p
       Expected: No gig is added. Zero, negative, and non-numeric values produce the command-format error; `999`
       reports that the client index is invalid.
 
+### Help and client commands
+
+1. **Help**
+   1. Input: `help`<br>
+      Expected: The Help window opens and shows the link to the User Guide.
+
+1. **Add a client**
+   1. Input: `add n/Jamie Tan p/81234567 e/jamie@example.com a/10 Clementi Road t/new`<br>
+      Expected: Jamie is added, appears in the displayed client list, and the result shows the supplied details.
+
+1. **Edit a client**
+   1. Input: `find Jamie`, followed by `edit 1 p/87654321 t/priority`.<br>
+      Expected: The only displayed client remains Jamie; the phone changes to `87654321` and `priority` replaces
+      the existing tags.
+
+1. **Find and list clients**
+   1. Input: `find Jamie`<br>
+      Expected: Only clients whose names contain the full word `Jamie` are displayed.
+   1. Input: `list`<br>
+      Expected: The complete client list is displayed again and the result says `Listed all clients.`
+
+1. **Exit**
+   1. Input: `exit`<br>
+      Expected: Gigabyte closes. Relaunching it from the same folder restores the client changes made above.
+
 ### Adding payment obligations
 
 Start this section from a fresh test folder. Alex's sample gigs make `CLIENT_INDEX 1` and `GIG_INDEX 1` valid.
@@ -557,8 +582,8 @@ Start this section from a fresh test folder. Alex's sample gigs make `CLIENT_IND
    1. Relaunch the same JAR from the same folder and select Alex.<br>
       Expected: `Persistence check` is still Alex's third gig with the same status, deadline, and fee.
    1. Close the app and open `data/addressbook.json` in a text editor.<br>
-      Expected: The `paymentObligations` array contains an unpaid `450.00` obligation linked by `gigUid` to the
-      persisted gig.
+      Expected: The `paymentObligations` array contains an unpaid obligation with `"amountCents" : 45000`, linked by
+      `gigUid` to the persisted gig.
 
 1. **Missing data file**
    1. Close the app and rename `data/addressbook.json` to `addressbook.backup.json`, then relaunch.<br>
