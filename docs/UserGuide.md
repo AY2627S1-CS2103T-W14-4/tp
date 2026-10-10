@@ -101,20 +101,25 @@ Format: `list`
 
 Creates a gig linked to an existing client and saves it automatically.
 
-Format: `addgig INDEX s/STATUS d/DEADLINE f/FEE`
+Format: `addgig INDEX t/TITLE s/STATUS d/DEADLINE f/FEE`
 
 * `INDEX` is the positive index shown in the current client list, including filtered `find` results.
-* All three fields are required and may appear in any order. Each prefix must appear once.
+* All four fields are required and may appear in any order. Each prefix must appear exactly once.
+* `TITLE` is a short description containing 1–100 characters after leading and trailing whitespace is removed.
+  Internal spaces and common punctuation are allowed. Titles do not need to be unique.
 * `STATUS` is `NOT_STARTED`, `IN_PROGRESS`, or `COMPLETED` (case-insensitive).
 * `DEADLINE` is a valid calendar date in `yyyy-MM-dd` format.
 * `FEE` is a positive amount with at most two decimal places, without a currency symbol.
-* The confirmation shows the linked client, status, deadline, and agreed fee. The client list stays unchanged.
-* Gigs are retained after restarting the app. Existing data files containing only clients remain supported.
+* The confirmation shows the linked client, title, status, deadline, and agreed fee. The client list stays unchanged.
+* Gigs are retained after restarting the app. Older saved gigs without a title load as `Untitled gig`; the fallback
+  title is written to the data file the next time Gigabyte saves.
 
 Examples:
 
-* `addgig 1 s/NOT_STARTED d/2027-01-31 f/1250.00`
-* `find Betsy` followed by `addgig 1 s/in_progress d/2027-02-28 f/500.50` creates a gig for the first matching client.
+* `addgig 1 t/Website redesign s/NOT_STARTED d/2027-01-31 f/1250.00`
+* `find Betsy` followed by
+  `addgig 1 t/Product photography s/in_progress d/2027-02-28 f/500.50`
+  creates a titled gig for the first matching client.
 
 ### Recording a payment obligation: `addpayment`
 
@@ -205,10 +210,11 @@ Gigabyte automatically saves data after every command. You do not need to save m
 
 Gigabyte data is saved automatically as a JSON file `[JAR file location]/data/addressbook.json`. Advanced users are welcome to update data directly by editing that data file.
 
-Client records are stored in the `clients` array with stable `uid` values. Gigs refer to clients by `clientUid`,
-and payment obligations refer to gigs by `gigUid`. Fees and payment amounts are stored as integer cents. Older
-files using `persons`, client names, decimal fee strings, and `gigIndex` references are still loaded; Gigabyte writes
-the current format the next time it saves.
+Client records are stored in the `clients` array with stable `uid` values. Gigs refer to clients by `clientUid`, store
+their titles as plain text, and are referenced by payment obligations using `gigUid`. Fees and payment amounts are
+stored as integer cents. Older files using `persons`, client names, title-less gigs, decimal fee strings, and
+`gigIndex` references are still loaded; title-less gigs receive the title `Untitled gig`, and Gigabyte writes the
+current format the next time it saves.
 
 <box type="warning" seamless>
 
@@ -242,7 +248,7 @@ _Details coming soon ..._
 Action     | Format, Examples
 -----------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------
 **Add**    | `add n/NAME p/PHONE_NUMBER e/EMAIL a/ADDRESS [t/TAG]... ` <br> e.g., `add n/James Ho p/22224444 e/jamesho@example.com a/123, Clementi Rd, 1234665 t/friend t/colleague`
-**Add gig** | `addgig INDEX s/STATUS d/DEADLINE f/FEE` <br> e.g., `addgig 1 s/NOT_STARTED d/2027-01-31 f/1250.00`
+**Add gig** | `addgig INDEX t/TITLE s/STATUS d/DEADLINE f/FEE` <br> e.g., `addgig 1 t/Website redesign s/NOT_STARTED d/2027-01-31 f/1250.00`
 **Add payment** | `addpayment CLIENT_INDEX GIG_INDEX a/AMOUNT d/DUE_DATE` <br> e.g., `addpayment 1 2 a/500.00 d/2027-01-31`
 **Clear**  | `clear`
 **Delete** | `delete INDEX`<br> e.g., `delete 3`

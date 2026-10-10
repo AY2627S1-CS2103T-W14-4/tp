@@ -28,8 +28,9 @@ public class GigListPanel extends UiPart<Region> {
             @Override protected void updateItem(Gig gig, boolean empty) {
                 super.updateItem(gig, empty);
                 setText(empty || gig == null ? null : String.format(
-                        "Status: %s    Deadline: %s    Fee: $%s",
-                        gig.getStatus(), gig.getDeadline(), gig.getAgreedFee()));
+                        "%s%nStatus: %s    Deadline: %s    Fee: $%s",
+                        gig.getTitle(), gig.getStatus(), gig.getDeadline(), gig.getAgreedFee()));
+                setWrapText(true);
             }
         });
         updateEmptyState();
