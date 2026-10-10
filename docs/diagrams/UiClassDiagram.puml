@@ -13,6 +13,7 @@ Class HelpWindow
 Class ResultDisplay
 Class ClientListPanel
 Class ClientCard
+Class GigListPanel
 Class StatusBarFooter
 Class CommandBox
 }
@@ -33,21 +34,25 @@ UiManager -down-> "1" MainWindow
 MainWindow *-down->  "1" CommandBox
 MainWindow *-down-> "1" ResultDisplay
 MainWindow *-down-> "1" ClientListPanel
+MainWindow *-down-> "1" GigListPanel
 MainWindow *-down-> "1" StatusBarFooter
 MainWindow --> "0..1" HelpWindow
 
 ClientListPanel -down-> "*" ClientCard
+ClientListPanel .right.> GigListPanel : selected Client
 
 MainWindow -left-|> UiPart
 
 ResultDisplay --|> UiPart
 CommandBox --|> UiPart
 ClientListPanel --|> UiPart
+GigListPanel --|> UiPart
 ClientCard --|> UiPart
 StatusBarFooter --|> UiPart
 HelpWindow --|> UiPart
 
 ClientCard ..> Model
+GigListPanel ..> Model
 UiManager -right-> Logic
 MainWindow -left-> Logic
 
