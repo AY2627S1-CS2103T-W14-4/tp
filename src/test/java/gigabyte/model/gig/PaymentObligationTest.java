@@ -9,7 +9,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import org.junit.jupiter.api.Test;
 
 public class PaymentObligationTest {
-    private static final Gig GIG = new Gig(ALICE, GigStatus.IN_PROGRESS,
+    private static final Gig GIG = new Gig(ALICE, new GigTitle("Website redesign"), GigStatus.IN_PROGRESS,
             new Deadline("2026-12-31"), new Fee("100"));
     private static final Fee AMOUNT = new Fee("50");
     private static final Deadline DUE_DATE = new Deadline("2026-11-30");
@@ -46,7 +46,7 @@ public class PaymentObligationTest {
 
     @Test
     public void withGig_replacesLinkedGig() {
-        Gig replacement = new Gig(ALICE, GigStatus.COMPLETED,
+        Gig replacement = new Gig(ALICE, new GigTitle("Website redesign"), GigStatus.COMPLETED,
                 new Deadline("2027-01-31"), new Fee("200"));
         PaymentObligation obligation = new PaymentObligation(GIG, AMOUNT, DUE_DATE, false);
 

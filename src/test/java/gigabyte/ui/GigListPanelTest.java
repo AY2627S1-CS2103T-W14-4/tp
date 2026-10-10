@@ -12,12 +12,13 @@ import gigabyte.model.gig.Deadline;
 import gigabyte.model.gig.Fee;
 import gigabyte.model.gig.Gig;
 import gigabyte.model.gig.GigStatus;
+import gigabyte.model.gig.GigTitle;
 import javafx.collections.FXCollections;
 
 public class GigListPanelTest {
-    private static final Gig ALICE_GIG = new Gig(ALICE, GigStatus.IN_PROGRESS,
+    private static final Gig ALICE_GIG = new Gig(ALICE, new GigTitle("Website redesign"), GigStatus.IN_PROGRESS,
             new Deadline("2026-12-31"), new Fee("100"));
-    private static final Gig BENSON_GIG = new Gig(BENSON, GigStatus.COMPLETED,
+    private static final Gig BENSON_GIG = new Gig(BENSON, new GigTitle("Logo design"), GigStatus.COMPLETED,
             new Deadline("2027-01-31"), new Fee("200"));
 
     @BeforeAll

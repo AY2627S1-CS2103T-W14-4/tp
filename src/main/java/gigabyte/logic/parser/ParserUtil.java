@@ -16,6 +16,7 @@ import gigabyte.model.client.Phone;
 import gigabyte.model.gig.Deadline;
 import gigabyte.model.gig.Fee;
 import gigabyte.model.gig.GigStatus;
+import gigabyte.model.gig.GigTitle;
 import gigabyte.model.tag.Tag;
 
 /**
@@ -135,6 +136,17 @@ public class ParserUtil {
         } catch (IllegalArgumentException exception) {
             throw new ParseException(GigStatus.MESSAGE_CONSTRAINTS, exception);
         }
+    }
+
+    /**
+     * Parses a gig title, removing surrounding whitespace.
+     */
+    public static GigTitle parseGigTitle(String title) throws ParseException {
+        requireNonNull(title);
+        if (!GigTitle.isValidTitle(title)) {
+            throw new ParseException(GigTitle.MESSAGE_CONSTRAINTS);
+        }
+        return new GigTitle(title);
     }
 
     /**

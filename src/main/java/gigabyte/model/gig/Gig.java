@@ -15,6 +15,7 @@ import gigabyte.model.client.Client;
 public class Gig {
     private final UUID uid;
     private final Client client;
+    private final GigTitle title;
     private final GigStatus status;
     private final Deadline deadline;
     private final Fee agreedFee;
@@ -22,15 +23,16 @@ public class Gig {
     /**
      * Constructs a {@code Gig}.
      */
-    public Gig(Client client, GigStatus status, Deadline deadline, Fee agreedFee) {
-        this(UUID.randomUUID(), client, status, deadline, agreedFee);
+    public Gig(Client client, GigTitle title, GigStatus status, Deadline deadline, Fee agreedFee) {
+        this(UUID.randomUUID(), client, title, status, deadline, agreedFee);
     }
 
     /** Constructs a gig with a stable identifier. */
-    public Gig(UUID uid, Client client, GigStatus status, Deadline deadline, Fee agreedFee) {
-        requireAllNonNull(uid, client, status, deadline, agreedFee);
+    public Gig(UUID uid, Client client, GigTitle title, GigStatus status, Deadline deadline, Fee agreedFee) {
+        requireAllNonNull(uid, client, title, status, deadline, agreedFee);
         this.uid = uid;
         this.client = client;
+        this.title = title;
         this.status = status;
         this.deadline = deadline;
         this.agreedFee = agreedFee;
@@ -50,6 +52,10 @@ public class Gig {
         return client;
     }
 
+    public GigTitle getTitle() {
+        return title;
+    }
+
     public GigStatus getStatus() {
         return status;
     }
@@ -66,12 +72,12 @@ public class Gig {
      * Returns a copy of this gig linked to {@code replacementClient}.
      */
     public Gig withClient(Client replacementClient) {
-        return new Gig(uid, replacementClient, status, deadline, agreedFee);
+        return new Gig(uid, replacementClient, title, status, deadline, agreedFee);
     }
 
     /** Returns a copy with a new stable identifier. */
     public Gig withNewUid() {
-        return new Gig(UUID.randomUUID(), client, status, deadline, agreedFee);
+        return new Gig(UUID.randomUUID(), client, title, status, deadline, agreedFee);
     }
 
     @Override
@@ -85,6 +91,7 @@ public class Gig {
         }
 
         return client.equals(otherGig.client)
+                && title.equals(otherGig.title)
                 && status == otherGig.status
                 && deadline.equals(otherGig.deadline)
                 && agreedFee.equals(otherGig.agreedFee);
@@ -92,13 +99,14 @@ public class Gig {
 
     @Override
     public int hashCode() {
-        return Objects.hash(client, status, deadline, agreedFee);
+        return Objects.hash(client, title, status, deadline, agreedFee);
     }
 
     @Override
     public String toString() {
         return new ToStringBuilder(this)
                 .add("client", client)
+                .add("title", title)
                 .add("status", status)
                 .add("deadline", deadline)
                 .add("agreedFee", agreedFee)

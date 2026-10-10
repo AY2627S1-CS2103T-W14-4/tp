@@ -9,8 +9,10 @@ import static gigabyte.testutil.TypicalClients.getTypicalGigabyteData;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
@@ -25,11 +27,14 @@ import gigabyte.model.gig.Deadline;
 import gigabyte.model.gig.Fee;
 import gigabyte.model.gig.Gig;
 import gigabyte.model.gig.GigStatus;
+import gigabyte.model.gig.GigTitle;
 import gigabyte.model.gig.PaymentObligation;
 import gigabyte.testutil.ClientBuilder;
 
 public class JsonGigabyteDataStorageTest {
     private static final Path TEST_DATA_FOLDER = Paths.get("src", "test", "data", "JsonGigabyteDataStorageTest");
+    private static final GigTitle WEBSITE_TITLE = new GigTitle("Website redesign");
+    private static final GigTitle LOGO_TITLE = new GigTitle("Logo design");
 
     @TempDir
     public Path testFolder;
@@ -104,7 +109,8 @@ public class JsonGigabyteDataStorageTest {
     public void readAndSave_paymentsForEqualGigs_preservesExactLinksAndPaidState() throws Exception {
         GigabyteData original = new GigabyteData();
         original.addClient(ALICE);
-        Gig gig = new Gig(ALICE, GigStatus.NOT_STARTED, new Deadline("2027-01-31"), new Fee("100"));
+        Gig gig = new Gig(ALICE, WEBSITE_TITLE, GigStatus.NOT_STARTED,
+                new Deadline("2027-01-31"), new Fee("100"));
         original.addGig(gig);
         original.addGig(gig);
         original.addPaymentObligation(new PaymentObligation(original.getGigList().get(1), new Fee("50.25"),
@@ -131,9 +137,12 @@ public class JsonGigabyteDataStorageTest {
         GigabyteData original = new GigabyteData();
         original.addClient(ALICE);
         original.addClient(BENSON);
-        original.addGig(new Gig(ALICE, GigStatus.NOT_STARTED, new Deadline("2027-01-31"), new Fee("1250.50")));
-        original.addGig(new Gig(ALICE, GigStatus.IN_PROGRESS, new Deadline("2027-02-28"), new Fee("500")));
-        original.addGig(new Gig(BENSON, GigStatus.COMPLETED, new Deadline("2027-03-01"), new Fee("200")));
+        original.addGig(new Gig(ALICE, WEBSITE_TITLE, GigStatus.NOT_STARTED,
+                new Deadline("2027-01-31"), new Fee("1250.50")));
+        original.addGig(new Gig(ALICE, WEBSITE_TITLE, GigStatus.IN_PROGRESS,
+                new Deadline("2027-02-28"), new Fee("500")));
+        original.addGig(new Gig(BENSON, LOGO_TITLE, GigStatus.COMPLETED,
+                new Deadline("2027-03-01"), new Fee("200")));
 
         JsonGigabyteDataStorage storage = new JsonGigabyteDataStorage(testFolder.resolve("gigs.json"));
         storage.saveGigabyteData(original);
@@ -146,6 +155,19 @@ public class JsonGigabyteDataStorageTest {
         original.setClient(ALICE, editedAlice);
         storage.saveGigabyteData(original);
         assertEquals(original, new GigabyteData(storage.readGigabyteData().orElseThrow()));
+    }
+
+    @Test
+    public void readLegacyGigWithoutTitle_thenSave_writesUntitledFallback() throws Exception {
+        ReadOnlyGigabyteData legacyData = readGigabyteData("legacyGigsWithoutTitlesGigabyteData.json")
+                .orElseThrow();
+        assertEquals(1, legacyData.getGigList().size());
+        assertEquals(GigTitle.UNTITLED, legacyData.getGigList().get(0).getTitle());
+
+        Path migratedFile = testFolder.resolve("migrated.json");
+        new JsonGigabyteDataStorage(migratedFile).saveGigabyteData(legacyData);
+
+        assertTrue(Files.readString(migratedFile).contains("\"title\" : \"Untitled gig\""));
     }
 
     /**

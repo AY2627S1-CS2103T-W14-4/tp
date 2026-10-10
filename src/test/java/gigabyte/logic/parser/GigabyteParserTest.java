@@ -28,6 +28,7 @@ import gigabyte.model.client.ClientNameContainsKeywordsPredicate;
 import gigabyte.model.gig.Deadline;
 import gigabyte.model.gig.Fee;
 import gigabyte.model.gig.GigStatus;
+import gigabyte.model.gig.GigTitle;
 import gigabyte.testutil.ClientBuilder;
 import gigabyte.testutil.ClientUtil;
 import gigabyte.testutil.EditClientDescriptorBuilder;
@@ -45,8 +46,9 @@ public class GigabyteParserTest {
 
     @Test
     public void parseCommand_addGig() throws Exception {
-        assertEquals(new AddGigCommand(INDEX_FIRST_CLIENT, GigStatus.NOT_STARTED, new Deadline("2027-01-31"),
-                new Fee("1250.00")), parser.parseCommand("addgig 1 s/NOT_STARTED d/2027-01-31 f/1250.00"));
+        assertEquals(new AddGigCommand(INDEX_FIRST_CLIENT, new GigTitle("Website redesign"),
+                GigStatus.NOT_STARTED, new Deadline("2027-01-31"), new Fee("1250.00")),
+                parser.parseCommand("addgig 1 t/Website redesign s/NOT_STARTED d/2027-01-31 f/1250.00"));
     }
 
     @Test

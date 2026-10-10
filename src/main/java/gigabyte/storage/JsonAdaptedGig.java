@@ -13,6 +13,7 @@ import gigabyte.model.gig.Deadline;
 import gigabyte.model.gig.Fee;
 import gigabyte.model.gig.Gig;
 import gigabyte.model.gig.GigStatus;
+import gigabyte.model.gig.GigTitle;
 import gigabyte.model.gig.exceptions.GigClientNotFoundException;
 
 /** Stores a gig's fields and stable references in JSON. */
@@ -25,6 +26,7 @@ class JsonAdaptedGig {
     private final String clientUid;
     @JsonProperty(value = "clientName", access = JsonProperty.Access.WRITE_ONLY)
     private final String clientName;
+    private final String title;
     private final String status;
     private final String deadline;
     private final BigInteger feeCents;
@@ -34,12 +36,13 @@ class JsonAdaptedGig {
     /** Creates an adapted gig from either the new ID-based format or the legacy name-based format. */
     @JsonCreator
     public JsonAdaptedGig(@JsonProperty("uid") String uid, @JsonProperty("clientUid") String clientUid,
-            @JsonProperty("clientName") String clientName, @JsonProperty("status") String status,
-            @JsonProperty("deadline") String deadline, @JsonProperty("feeCents") BigInteger feeCents,
-            @JsonProperty("fee") String legacyFee) {
+            @JsonProperty("clientName") String clientName, @JsonProperty("title") String title,
+            @JsonProperty("status") String status, @JsonProperty("deadline") String deadline,
+            @JsonProperty("feeCents") BigInteger feeCents, @JsonProperty("fee") String legacyFee) {
         this.uid = uid;
         this.clientUid = clientUid;
         this.clientName = clientName;
+        this.title = title;
         this.status = status;
         this.deadline = deadline;
         this.feeCents = feeCents;
@@ -48,13 +51,18 @@ class JsonAdaptedGig {
 
     /** Retains the previous adapter constructor for legacy data and tests. */
     public JsonAdaptedGig(String clientName, String status, String deadline, String fee) {
-        this(null, null, clientName, status, deadline, null, fee);
+        this(null, null, clientName, null, status, deadline, null, fee);
+    }
+
+    /** Creates a name-linked adapted gig with an explicit title. */
+    public JsonAdaptedGig(String clientName, String title, String status, String deadline, String fee) {
+        this(null, null, clientName, title, status, deadline, null, fee);
     }
 
     /** Copies {@code gig} for serialization. */
     public JsonAdaptedGig(Gig gig) {
-        this(gig.getUid().toString(), gig.getClient().getUid().toString(), null, gig.getStatus().name(),
-                gig.getDeadline().toString(), gig.getAgreedFee().getCents(), null);
+        this(gig.getUid().toString(), gig.getClient().getUid().toString(), null, gig.getTitle().toString(),
+                gig.getStatus().name(), gig.getDeadline().toString(), gig.getAgreedFee().getCents(), null);
     }
 
     /** Restores a gig linked to an existing canonical client. */
@@ -100,6 +108,16 @@ class JsonAdaptedGig {
             throw new IllegalValueException(Deadline.MESSAGE_CONSTRAINTS);
         }
 
+        GigTitle gigTitle;
+        if (title == null) {
+            gigTitle = GigTitle.UNTITLED;
+        } else {
+            if (!GigTitle.isValidTitle(title)) {
+                throw new IllegalValueException(GigTitle.MESSAGE_CONSTRAINTS);
+            }
+            gigTitle = new GigTitle(title);
+        }
+
         Fee fee;
         if (feeCents != null) {
             if (feeCents.signum() <= 0) {
@@ -112,6 +130,6 @@ class JsonAdaptedGig {
             }
             fee = new Fee(legacyFee);
         }
-        return new Gig(modelUid, client, gigStatus, new Deadline(deadline), fee);
+        return new Gig(modelUid, client, gigTitle, gigStatus, new Deadline(deadline), fee);
     }
 }
