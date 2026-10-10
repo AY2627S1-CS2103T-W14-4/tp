@@ -4,6 +4,7 @@ import static gigabyte.testutil.TypicalClients.ALICE;
 import static gigabyte.testutil.TypicalClients.BENSON;
 import static gigabyte.testutil.TypicalClients.CARL;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.junit.jupiter.api.BeforeAll;
@@ -17,6 +18,7 @@ import gigabyte.model.gig.GigTitle;
 import javafx.collections.FXCollections;
 import javafx.scene.Scene;
 import javafx.scene.control.ListCell;
+import javafx.scene.control.ScrollBar;
 
 public class GigListPanelTest {
     private static final Gig ALICE_GIG = new Gig(ALICE, new GigTitle("Website redesign"), GigStatus.IN_PROGRESS,
@@ -82,6 +84,25 @@ public class GigListPanelTest {
         assertTrue(text.contains("Deadline: " + ALICE_GIG.getDeadline()));
         assertTrue(text.contains("Fee: $" + ALICE_GIG.getAgreedFee()));
         assertTrue(cell.isWrapText());
+    }
+
+    @Test
+    public void gigCell_narrowPanelWith100CharacterTitle_wrapsWithoutHorizontalOverflow() {
+        Gig longTitleGig = new Gig(ALICE, new GigTitle("W".repeat(100)), GigStatus.IN_PROGRESS,
+                new Deadline("2026-12-31"), new Fee("100"));
+        GigListPanel panel = new GigListPanel(FXCollections.observableArrayList(longTitleGig));
+        panel.showGigsFor(ALICE);
+        new Scene(panel.getRoot(), 340, 300);
+        panel.getRoot().applyCss();
+        panel.getRoot().layout();
+
+        @SuppressWarnings("unchecked")
+        ListCell<Gig> cell = (ListCell<Gig>) panel.getGigListView().lookup(".list-cell");
+        ScrollBar horizontalScrollBar = (ScrollBar) panel.getGigListView().lookup(".scroll-bar:horizontal");
+
+        assertTrue(cell.getWidth() <= panel.getGigListView().getWidth());
+        assertTrue(cell.getHeight() > 50);
+        assertFalse(horizontalScrollBar.isVisible());
     }
 
     private GigListPanel createPanel() {

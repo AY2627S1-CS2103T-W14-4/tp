@@ -24,14 +24,18 @@ public class GigListPanel extends UiPart<Region> {
         super("GigListPanel.fxml", new BorderPane());
         filteredGigs = new FilteredList<>(gigs, gig -> false);
         gigListView.setItems(filteredGigs);
-        gigListView.setCellFactory(view -> new ListCell<>() {
-            @Override protected void updateItem(Gig gig, boolean empty) {
-                super.updateItem(gig, empty);
-                setText(empty || gig == null ? null : String.format(
-                        "%s%nStatus: %s    Deadline: %s    Fee: $%s",
-                        gig.getTitle(), gig.getStatus(), gig.getDeadline(), gig.getAgreedFee()));
-                setWrapText(true);
-            }
+        gigListView.setCellFactory(view -> {
+            ListCell<Gig> cell = new ListCell<>() {
+                @Override protected void updateItem(Gig gig, boolean empty) {
+                    super.updateItem(gig, empty);
+                    setText(empty || gig == null ? null : String.format(
+                            "%s%nStatus: %s    Deadline: %s    Fee: $%s",
+                            gig.getTitle(), gig.getStatus(), gig.getDeadline(), gig.getAgreedFee()));
+                    setWrapText(true);
+                }
+            };
+            cell.prefWidthProperty().bind(view.widthProperty().subtract(20));
+            return cell;
         });
         updateEmptyState();
         filteredGigs.addListener((javafx.collections.ListChangeListener<Gig>) change -> updateEmptyState());

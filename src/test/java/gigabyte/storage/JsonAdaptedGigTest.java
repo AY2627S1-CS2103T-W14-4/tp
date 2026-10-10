@@ -38,6 +38,9 @@ public class JsonAdaptedGigTest {
     @Test
     public void toModelType_invalidPresentTitle_throwsIllegalValueException() {
         assertThrows(IllegalValueException.class, GigTitle.MESSAGE_CONSTRAINTS, () ->
+                new JsonAdaptedGig(ALICE.getName().fullName, null, "NOT_STARTED", "2027-01-31", "100")
+                        .toModelType(List.of(ALICE)));
+        assertThrows(IllegalValueException.class, GigTitle.MESSAGE_CONSTRAINTS, () ->
                 new JsonAdaptedGig(ALICE.getName().fullName, "   ", "NOT_STARTED", "2027-01-31", "100")
                         .toModelType(List.of(ALICE)));
         assertThrows(IllegalValueException.class, GigTitle.MESSAGE_CONSTRAINTS, () ->

@@ -75,6 +75,11 @@ public class JsonGigabyteDataStorageTest {
     }
 
     @Test
+    public void readGigabyteData_explicitNullGigTitle_throwsDataLoadingException() {
+        assertThrows(DataLoadingException.class, () -> readGigabyteData("invalidNullTitleGigabyteData.json"));
+    }
+
+    @Test
     public void readAndSaveGigabyteData_allInOrder_success() throws Exception {
         Path filePath = testFolder.resolve("TempGigabyteData.json");
         GigabyteData original = getTypicalGigabyteData();
