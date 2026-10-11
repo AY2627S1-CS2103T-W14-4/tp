@@ -507,8 +507,8 @@ Start this section from a fresh test folder so the sample clients and gigs are p
 
 1. **Edit a client**
    1. Input: `find Jamie`, followed by `edit 1 p/87654321 t/priority`.<br>
-      Expected: The only displayed client remains Jamie; the phone changes to `87654321` and `priority` replaces
-      the existing tags.
+      Expected: The complete client list is displayed again. Jamie's phone changes to `87654321`, and `priority`
+      replaces the existing tags.
 
 1. **Find and list clients**
    1. Input: `find Jamie`<br>

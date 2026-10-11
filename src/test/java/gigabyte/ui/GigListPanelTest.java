@@ -19,6 +19,7 @@ import javafx.collections.FXCollections;
 import javafx.scene.Scene;
 import javafx.scene.control.ListCell;
 import javafx.scene.control.ScrollBar;
+import javafx.scene.paint.Color;
 
 public class GigListPanelTest {
     private static final Gig ALICE_GIG = new Gig(ALICE, new GigTitle("Website redesign"), GigStatus.IN_PROGRESS,
@@ -84,6 +85,21 @@ public class GigListPanelTest {
         assertTrue(text.contains("Deadline: " + ALICE_GIG.getDeadline()));
         assertTrue(text.contains("Fee: $" + ALICE_GIG.getAgreedFee()));
         assertTrue(cell.isWrapText());
+    }
+
+    @Test
+    public void gigCell_renderedWithDarkTheme_usesReadableTextColour() {
+        GigListPanel panel = createPanel();
+        panel.showGigsFor(ALICE);
+        Scene scene = new Scene(panel.getRoot(), 500, 300);
+        scene.getStylesheets().add(getClass().getResource("/view/DarkTheme.css").toExternalForm());
+        panel.getRoot().applyCss();
+        panel.getRoot().layout();
+
+        @SuppressWarnings("unchecked")
+        ListCell<Gig> cell = (ListCell<Gig>) panel.getGigListView().lookup(".list-cell");
+
+        assertEquals(Color.WHITE, cell.getTextFill());
     }
 
     @Test

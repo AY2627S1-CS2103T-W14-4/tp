@@ -34,6 +34,7 @@ public class GigListPanel extends UiPart<Region> {
                     setWrapText(true);
                 }
             };
+            cell.getStyleClass().add("gig-list-cell");
             cell.prefWidthProperty().bind(view.widthProperty().subtract(20));
             return cell;
         });
