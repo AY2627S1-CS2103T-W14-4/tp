@@ -71,7 +71,11 @@ The **API** of this component is specified in [`Ui.java`](https://github.com/AY2
 
 <puml src="diagrams/UiClassDiagram.puml" alt="Structure of the UI Component"/>
 
-The UI consists of a `MainWindow` and its parts, such as `CommandBox`, `ResultDisplay`, `ClientListPanel`, and `StatusBarFooter`. All of these, including `MainWindow`, inherit from the abstract `UiPart` class, which captures common behavior among classes that represent visible GUI parts.
+The UI consists of a `MainWindow` and its parts, such as `CommandBox`, `ResultDisplay`, `ClientListPanel`,
+`GigListPanel`, and `StatusBarFooter`. All of these, including `MainWindow`, inherit from the abstract `UiPart`
+class, which captures common behavior among classes that represent visible GUI parts. Selecting a client in
+`ClientListPanel` passes that client to `GigListPanel`, which filters the observable gig list by the client's stable
+identifier and renders each gig's title, status, deadline, and fee.
 
 The `UI` component uses the JavaFX UI framework. The layouts of these UI parts are defined in matching `.fxml` files in `src/main/resources/view`. For example, [`MainWindow.fxml`](https://github.com/AY2627S1-CS2103T-W14-4/tp/tree/master/src/main/resources/view/MainWindow.fxml) specifies the layout of [`MainWindow`](https://github.com/AY2627S1-CS2103T-W14-4/tp/tree/master/src/main/java/gigabyte/ui/MainWindow.java).
 
@@ -81,6 +85,7 @@ The `UI` component,
 * listens for changes to `Model` data so that the UI can be updated with the modified data.
 * keeps a reference to the `Logic` component, because the `UI` relies on the `Logic` to execute commands.
 * depends on some classes in the `Model` component because it displays `Client` objects from the model.
+* displays `Gig` objects for the selected client without changing the client filter used by commands.
 
 ### Logic component
 
@@ -115,6 +120,9 @@ Here are the other classes in `Logic` (omitted from the class diagram above) tha
 How the parsing works:
 * When called upon to parse a user command, the `GigabyteParser` class creates an `XYZCommandParser` (`XYZ` is a placeholder for the specific command name, e.g., `AddClientCommandParser`). The parser uses the other classes shown above to parse the user command and create an `XYZCommand` object (e.g., `AddClientCommand`). The `GigabyteParser` returns that object as a `Command` object.
 * All `XYZCommandParser` classes, such as `AddClientCommandParser` and `DeleteClientCommandParser`, implement the `Parser` interface so they can be treated similarly where appropriate, for example during testing.
+* `AddGigCommandParser` parses one displayed client index plus `t/`, `s/`, `d/`, and `f/` fields.
+  `AddPaymentCommandParser` parses displayed client and per-client gig indexes plus `a/` and `d/` fields. Both reject
+  missing or repeated single-valued prefixes before their commands update the model.
 
 ### Model component
 **API** : [`Model.java`](https://github.com/AY2627S1-CS2103T-W14-4/tp/tree/master/src/main/java/gigabyte/model/Model.java)
@@ -124,8 +132,11 @@ How the parsing works:
 
 The `Model` component,
 
-* stores the Gigabyte data, i.e., all `Client` objects (which are contained in a `UniqueClientList` object).
+* stores all `Client`, `Gig`, and `PaymentObligation` objects. Clients are contained in a `UniqueClientList`; gigs and
+  payment obligations are exposed as unmodifiable observable lists.
 * stores the `Client` objects selected by the current filter, such as search results, in a separate _filtered_ list. It exposes this list as an unmodifiable `ObservableList<Client>` that the UI can observe and bind to, so the UI updates when the list changes.
+* uses stable UUIDs to preserve links from each gig to its client and from each payment obligation to its gig. Client
+  edits replace linked immutable objects while retaining those identifiers and links.
 * stores a `UserPrefs` object that represents the user’s preferences (currently, just the GUI settings). This is exposed to the outside as a `ReadOnlyUserPrefs` object.
 * does not depend on any of the other three components (as the `Model` represents data entities of the domain, they should make sense on their own without depending on other components)
 
@@ -148,6 +159,12 @@ The `Storage` component,
 * can save both Gigabyte data and user preference data in JSON format, and read them back into corresponding objects.
 * is implemented by `StorageManager`, which delegates the actual JSON file access to `JsonGigabyteDataStorage` and `JsonUserPrefsStorage` (one class per data file).
 * depends on some classes in the `Model` component (because the `Storage` component's job is to save/retrieve objects that belong to the `Model`)
+* serializes clients, gigs, and payment obligations through `JsonAdaptedClient`, `JsonAdaptedGig`, and
+  `JsonAdaptedPaymentObligation`. Gigs store `clientUid`; payment obligations store `gigUid`; monetary values are
+  stored as integer cents.
+* migrates supported older representations when loading, including name-linked gigs, index-linked payment
+  obligations, decimal fee strings, and title-less gigs. A title-less gig receives `Untitled gig`, which is written in
+  the current format on the next successful save.
 
 ### Common classes
 
@@ -158,6 +175,17 @@ Classes used by multiple components are in the `gigabyte.commons` package.
 ## **Implementation**
 
 This section describes some noteworthy details on how certain features are implemented.
+
+### Stable client, gig, and payment links
+
+Each `Client` and `Gig` has an immutable UUID. A `Gig` holds the canonical `Client` object from `GigabyteData`, while a
+`PaymentObligation` holds the canonical `Gig` object. The JSON format persists these relationships as `clientUid` and
+`gigUid`, avoiding ambiguous links when clients or gigs have equal display fields.
+
+When a client is edited, `GigabyteData#setClient` rebuilds that client's immutable gigs with `Gig#withClient` and then
+relinks payment obligations to the replacement gig objects. `Gig#withClient` preserves the gig UUID and title, so
+editing contact details does not break payment links or discard gig information. When loading legacy data, storage
+resolves older name- and index-based links once and the next successful save writes the stable-ID representation.
 
 ### \[Proposed\] Undo/redo feature
 
@@ -270,13 +298,13 @@ _{Explain here how the data archiving feature will be implemented}_
 
 **Target user profile**:
 
-* has a need to manage a significant number of contacts
+* is a freelancer who needs to manage multiple clients, gigs, deadlines, fees, and expected payments
 * prefers desktop apps over other types of applications
 * can type fast
 * prefers typing to mouse interactions
 * is reasonably comfortable using CLI apps
 
-**Value proposition**: Manage contacts faster than with a typical mouse-driven GUI application.
+**Value proposition**: Track client work and expected payments quickly through a command-driven desktop application.
 
 
 ### User stories
@@ -303,6 +331,48 @@ Priorities: High (must have) - `* * *`, Medium (nice to have) - `* *`, Low (unli
 ### Use cases
 
 For all use cases below, the **System** is the `Gigabyte` and the **Actor** is the `freelancer`, unless specified otherwise.
+
+**Use case: Create a gig for a displayed client**
+
+**Preconditions:** The client already exists and is visible in the current client list.
+
+**MSS**
+
+1. Freelancer identifies the client's displayed index.
+2. Freelancer enters `addgig` with a title, initial status, deadline, and agreed fee.
+3. Gigabyte validates the index and all four fields.
+4. Gigabyte creates the gig, links it to the client, saves the data, and confirms the new gig details.
+
+    Use case ends.
+
+**Extensions**
+
+* 1a. The required client is not visible because the client list is filtered.
+  * 1a1. Freelancer runs `list` or a suitable `find` command and resumes at step 1 using the newly displayed index.
+* 3a. The client index is invalid.
+  * 3a1. Gigabyte reports that the client index is invalid without creating a gig.
+* 3b. The title, status, deadline, or fee is invalid.
+  * 3b1. Gigabyte explains the relevant constraint without creating a gig.
+
+**Use case: Record a payment obligation**
+
+**Preconditions:** The client and gig already exist.
+
+**MSS**
+
+1. Freelancer identifies the client's displayed index and the gig's position within that client's gig list.
+2. Freelancer enters `addpayment` with both indexes, an amount, and a due date.
+3. Gigabyte validates the indexes, amount, and due date.
+4. Gigabyte records the obligation as unpaid, links it to the gig, saves the data, and confirms the amount and due date.
+
+    Use case ends.
+
+**Extensions**
+
+* 3a. Either index is invalid.
+  * 3a1. Gigabyte reports whether the client index or per-client gig index is invalid without recording an obligation.
+* 3b. The amount or due date is invalid.
+  * 3b1. Gigabyte explains the relevant constraint without recording an obligation.
 
 **Use case: Record and settle a payment obligation**
 
@@ -361,49 +431,180 @@ Given below are instructions to test the app manually.
 
 <box type="info" seamless>
 
-**Note:** These instructions only provide a starting point for testers to work on;
-testers are expected to do more *exploratory* testing.
+**Preparation:** Build the release candidate with `gradlew shadowJar` (macOS/Linux: `./gradlew shadowJar`) and copy
+`build/libs/gigabyte.jar` into an otherwise empty test folder. Unless a test says otherwise, launch it from that folder
+with `java -jar gigabyte.jar`. Back up `data/addressbook.json` before any test that changes or corrupts it.
 </box>
 
-### Launch and shutdown
+### Launch, sample data, and empty states
 
-1. Initial launch
+1. **Fresh launch with sample data**
+   1. Ensure the test folder has no `data` directory or `preferences.json`, then launch the JAR.<br>
+      Expected: Six sample clients appear. The Gigs panel says `Select a client to view their gigs.`
+   1. Select `Alex Yeoh`.<br>
+      Expected: The Gigs panel shows `Portfolio website redesign` and `Product launch photography`, including each
+      gig's status, deadline, and fee.
+   1. Select `Charlotte Oliveiro`.<br>
+      Expected: The Gigs panel says `This client has no gigs.`
 
-   1. Download the JAR file and copy it into an empty folder.
+1. **Empty client list**
+   1. Input: `clear`<br>
+      Expected: The client list becomes empty, all gigs disappear, and the result display says
+      `Address book has been cleared!`.
 
-   1. Double-click the JAR file.<br>
-      Expected: The GUI opens with a set of sample contacts. The window size may not be optimal.
+1. **Window preferences**
+   1. Resize and move the window, close it, then relaunch the JAR.<br>
+      Expected: The most recent window size and position are restored.
 
-1. Saving window preferences
+### Adding gigs
 
-   1. Resize the window to an optimal size. Move the window to a different location. Close the window.
+Start this section from a fresh test folder so the sample clients and gigs are present.
 
-   1. Relaunch the app by double-clicking the JAR file.<br>
-       Expected: The most recent window size and location are retained.
+1. **Valid gig**
+   1. Input: `list`<br>
+      Expected: All six sample clients are displayed.
+   1. Input: `addgig 1 t/Conference landing page s/IN_PROGRESS d/2027-06-30 f/1800.50`<br>
+      Expected: The result names `Alex Yeoh` and repeats the normalized title, status, deadline, and fee.
+   1. Select `Alex Yeoh`.<br>
+      Expected: `Conference landing page` appears after Alex's two sample gigs with status `IN_PROGRESS`, deadline
+      `2027-06-30`, and fee `$1800.50`.
 
-1. _{ more test cases … }_
+1. **Title validation**
+   1. Input: `addgig 1 t/    s/NOT_STARTED d/2027-06-30 f/100`<br>
+      Expected: No gig is added and the result explains that a title needs a non-whitespace character.
+   1. Input: `addgig 1 t/` followed by a 101-character title, then
+      ` s/NOT_STARTED d/2027-06-30 f/100`.<br>
+      Expected: No gig is added and the result explains the 100-character maximum.
+   1. Input: `addgig 1 t/  Short title  s/NOT_STARTED d/2027-06-30 f/100`<br>
+      Expected: The gig is added with the displayed title `Short title`; surrounding whitespace is removed.
 
-### Deleting a client
+1. **Invalid status, date, and fee**
+   1. Input: `addgig 1 t/Invalid status s/WAITING d/2027-06-30 f/100`<br>
+      Expected: No gig is added; the result lists `NOT_STARTED`, `IN_PROGRESS`, and `COMPLETED` as valid statuses.
+   1. Input: `addgig 1 t/Invalid date s/NOT_STARTED d/2027-02-29 f/100`<br>
+      Expected: No gig is added; the result requires a valid `yyyy-MM-dd` calendar date.
+   1. Try the same command with each fee: `f/0`, `f/-10`, `f/abc`, and `f/10.999`.<br>
+      Expected: No gig is added in every case; the result requires a positive number with at most two decimal places.
 
-1. Deleting a client while all clients are being shown
+1. **Repeated prefix**
+   1. Input: `addgig 1 t/First t/Second s/NOT_STARTED d/2027-06-30 f/100`<br>
+      Expected: No gig is added; the result reports multiple values for `t/`.
 
-   1. Prerequisites: List all clients using the `list` command, with multiple clients in the list.
+1. **Invalid client indexes**
+   1. Repeat a valid `addgig` command using client indexes `0`, `-1`, `abc`, and `999`.<br>
+      Expected: No gig is added. Zero, negative, and non-numeric values produce the command-format error; `999`
+      reports that the client index is invalid.
 
-   1. Test case: `delete 1`<br>
-      Expected: The first contact is deleted from the list. The status message shows the deleted contact's details.
+### Help and client commands
 
-   1. Test case: `delete 0`<br>
-      Expected: No client is deleted. The status message shows error details.
+1. **Help**
+   1. Input: `help`<br>
+      Expected: The Help window opens and shows the link to the User Guide.
 
-   1. Other incorrect delete commands to try: `delete`, `delete x`, `...` (where x is larger than the list size)<br>
-      Expected: Similar to previous.
+1. **Add a client**
+   1. Input: `add n/Jamie Tan p/81234567 e/jamie@example.com a/10 Clementi Road t/new`<br>
+      Expected: Jamie is added, appears in the displayed client list, and the result shows the supplied details.
 
-1. _{ more test cases … }_
+1. **Edit a client**
+   1. Input: `find Jamie`, followed by `edit 1 p/87654321 t/priority`.<br>
+      Expected: The complete client list is displayed again. Jamie's phone changes to `87654321`, and `priority`
+      replaces the existing tags.
 
-### Saving data
+1. **Find and list clients**
+   1. Input: `find Jamie`<br>
+      Expected: Only clients whose names contain the full word `Jamie` are displayed.
+   1. Input: `list`<br>
+      Expected: The complete client list is displayed again and the result says `Listed all clients.`
 
-1. Dealing with missing/corrupted data files
+1. **Exit**
+   1. Input: `exit`<br>
+      Expected: Gigabyte closes. Relaunching it from the same folder restores the client changes made above.
 
-   1. _{Explain how to simulate missing or corrupted data files and state the expected behavior.}_
+### Adding payment obligations
 
-1. _{ more test cases … }_
+Start this section from a fresh test folder. Alex's sample gigs make `CLIENT_INDEX 1` and `GIG_INDEX 1` valid.
+
+1. **Valid payment obligation**
+   1. Input: `addpayment 1 1 a/500.00 d/2027-07-15`<br>
+      Expected: The result says an unpaid obligation was recorded for `Alex Yeoh`, gig 1, with amount `500.00` and
+      due date `2027-07-15`.
+
+1. **Invalid amount and date**
+   1. Repeat the command with each amount: `a/0`, `a/-10`, `a/abc`, and `a/10.999`.<br>
+      Expected: No obligation is recorded in every case; the result requires a positive number with at most two
+      decimal places.
+   1. Input: `addpayment 1 1 a/500 d/15-07-2027`<br>
+      Expected: No obligation is recorded; the result requires a valid `yyyy-MM-dd` calendar date.
+
+1. **Repeated prefix**
+   1. Input: `addpayment 1 1 a/500 a/600 d/2027-07-15`<br>
+      Expected: No obligation is recorded; the result reports multiple values for `a/`.
+
+1. **Invalid client and gig indexes**
+   1. Repeat a valid command with each client index: `0`, `-1`, `abc`, and `999`.<br>
+      Expected: No obligation is recorded. The first three produce the command-format error; `999` reports an invalid
+      client index.
+   1. Repeat a valid command with each gig index: `0`, `-1`, `abc`, and `999`.<br>
+      Expected: No obligation is recorded. The first three produce the command-format error; `999` reports that the
+      gig index is invalid for this client.
+
+### Commands after filtering clients
+
+1. **Adding a gig after `find`**
+   1. Input: `find Bernice`<br>
+      Expected: Only `Bernice Yu` is displayed and is numbered 1.
+   1. Input: `addgig 1 t/Filtered client gig s/NOT_STARTED d/2027-08-01 f/250`<br>
+      Expected: The gig is created for Bernice, not for the client who was number 1 in the full list. The filtered
+      client list remains visible.
+   1. Select Bernice.<br>
+      Expected: The new gig appears with Bernice's existing `Brand identity refresh` gig.
+
+1. **Adding a payment after `find`**
+   1. Input: `find Bernice`, followed by `addpayment 1 1 a/125 d/2027-08-15`.<br>
+      Expected: The result confirms an unpaid obligation for Bernice's first gig.
+   1. Input: `list`<br>
+      Expected: The full six-client list is restored; subsequent client indexes use this full list.
+
+### Deleting a client with gigs
+
+1. Input: `list`, followed by `delete 1`.<br>
+   Expected: Alex is not deleted and the result says `Client cannot be deleted while it has associated gigs`.
+1. Input: `find Charlotte`, followed by `delete 1`.<br>
+   Expected: Charlotte, who has no gigs in the sample data, is deleted and the result shows her details.
+
+### Persistence and data-file recovery
+
+1. **Restart after adding data**
+   1. In a fresh test folder, input
+      `addgig 1 t/Persistence check s/NOT_STARTED d/2027-09-01 f/900`, then
+      `addpayment 1 3 a/450 d/2027-09-15`, then `exit`.<br>
+      Expected: Both commands succeed before the app exits.
+   1. Relaunch the same JAR from the same folder and select Alex.<br>
+      Expected: `Persistence check` is still Alex's third gig with the same status, deadline, and fee.
+   1. Close the app and open `data/addressbook.json` in a text editor.<br>
+      Expected: The `paymentObligations` array contains an unpaid obligation with `"amountCents" : 45000`, linked by
+      `gigUid` to the persisted gig.
+
+1. **Missing data file**
+   1. Close the app and rename `data/addressbook.json` to `addressbook.backup.json`, then relaunch.<br>
+      Expected: Gigabyte starts with the six sample clients and their sample gigs. The backup file is unchanged.
+
+1. **Corrupted data file**
+   1. Close the app, back up `data/addressbook.json`, replace its contents with `{not valid json`, and relaunch.<br>
+      Expected: Gigabyte starts with an empty client list because the existing file could not be read.
+   1. Input: `list`.<br>
+      Expected: The command succeeds with the empty list and overwrites the corrupted file with valid empty data.
+
+### Complete end-to-end workflow
+
+1. Start from a fresh test folder and input `find Alex`.<br>
+   Expected: Alex is the only displayed client and is numbered 1.
+1. Input: `addgig 1 t/End-to-end website s/IN_PROGRESS d/2027-10-01 f/2000`.<br>
+   Expected: A titled gig is created for Alex while the filtered list remains visible.
+1. Select Alex and note that the new gig is third, then input `addpayment 1 3 a/1000 d/2027-10-15`.<br>
+   Expected: An unpaid obligation is recorded for Alex's third gig.
+1. Input `exit`, relaunch from the same folder, input `find Alex`, and select Alex.<br>
+   Expected: `End-to-end website` is still present with its status, deadline, and fee unchanged.
+1. Close the app and inspect `data/addressbook.json`.<br>
+   Expected: The gig has a stable `uid` and Alex's `clientUid`; the payment obligation refers to that gig's `uid`
+   using `gigUid`.

@@ -37,6 +37,7 @@ import gigabyte.model.gig.Deadline;
 import gigabyte.model.gig.Fee;
 import gigabyte.model.gig.Gig;
 import gigabyte.model.gig.GigStatus;
+import gigabyte.model.gig.GigTitle;
 import gigabyte.storage.JsonGigabyteDataStorage;
 import gigabyte.storage.JsonUserPrefsStorage;
 import gigabyte.storage.StorageManager;
@@ -87,11 +88,13 @@ public class LogicManagerTest {
     @Test
     public void execute_addGig_persistsAcrossReloadAndSubsequentCommands() throws Exception {
         model.addClient(ALICE);
-        CommandResult result = logic.execute("addgig 1 s/in_progress d/2027-01-31 f/1250.50");
-        Gig expected = new Gig(ALICE, GigStatus.IN_PROGRESS, new Deadline("2027-01-31"), new Fee("1250.50"));
+        CommandResult result = logic.execute(
+                "addgig 1 t/Website redesign s/in_progress d/2027-01-31 f/1250.50");
+        Gig expected = new Gig(ALICE, new GigTitle("Website redesign"), GigStatus.IN_PROGRESS,
+                new Deadline("2027-01-31"), new Fee("1250.50"));
         assertEquals(expected, model.getGigList().get(0));
-        assertEquals("New gig added for Alice Pauline: Status: IN_PROGRESS; Deadline: 2027-01-31; "
-                + "Agreed fee: 1250.50", result.getFeedbackToUser());
+        assertEquals("New gig added for Alice Pauline: Title: Website redesign; Status: IN_PROGRESS; "
+                + "Deadline: 2027-01-31; Agreed fee: 1250.50", result.getFeedbackToUser());
 
         logic.execute("list");
         JsonGigabyteDataStorage storage = new JsonGigabyteDataStorage(temporaryFolder.resolve("gigabyteData.json"));
@@ -103,15 +106,19 @@ public class LogicManagerTest {
     @Test
     public void execute_addGigWithInvalidFields_keepsDataUnchanged() {
         model.addClient(ALICE);
-        assertParseException("addgig 1 s/NOT_STARTED d/2027-02-29 f/100", Deadline.MESSAGE_CONSTRAINTS);
-        assertParseException("addgig 1 s/NOT_STARTED d/2027-01-31 f/0", Fee.MESSAGE_CONSTRAINTS);
-        assertCommandException("addgig 2 s/NOT_STARTED d/2027-01-31 f/100", MESSAGE_INVALID_CLIENT_DISPLAYED_INDEX);
+        assertParseException("addgig 1 t/Website redesign s/NOT_STARTED d/2027-02-29 f/100",
+                Deadline.MESSAGE_CONSTRAINTS);
+        assertParseException("addgig 1 t/Website redesign s/NOT_STARTED d/2027-01-31 f/0",
+                Fee.MESSAGE_CONSTRAINTS);
+        assertCommandException("addgig 2 t/Website redesign s/NOT_STARTED d/2027-01-31 f/100",
+                MESSAGE_INVALID_CLIENT_DISPLAYED_INDEX);
     }
 
     @Test
     public void execute_addPayment_persistsAndInvalidInputKeepsRecordsUnchanged() throws Exception {
         model.addClient(ALICE);
-        model.addGig(new Gig(ALICE, GigStatus.IN_PROGRESS, new Deadline("2027-01-31"), new Fee("100")));
+        model.addGig(new Gig(ALICE, new GigTitle("Website redesign"), GigStatus.IN_PROGRESS,
+                new Deadline("2027-01-31"), new Fee("100")));
         CommandResult result = logic.execute("addpayment 1 1 a/50.25 d/2027-02-28");
         assertEquals("Recorded unpaid obligation for Alice Pauline, gig 1: Amount: 50.25; Due date: 2027-02-28",
                 result.getFeedbackToUser());

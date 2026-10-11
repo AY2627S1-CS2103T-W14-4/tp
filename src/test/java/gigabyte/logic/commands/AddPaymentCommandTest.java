@@ -26,6 +26,7 @@ import gigabyte.model.gig.Deadline;
 import gigabyte.model.gig.Fee;
 import gigabyte.model.gig.Gig;
 import gigabyte.model.gig.GigStatus;
+import gigabyte.model.gig.GigTitle;
 import gigabyte.model.gig.PaymentObligation;
 
 public class AddPaymentCommandTest {
@@ -138,6 +139,6 @@ public class AddPaymentCommandTest {
     }
 
     private Gig createGig(Client client, String fee) {
-        return new Gig(client, GigStatus.NOT_STARTED, DUE_DATE, new Fee(fee));
+        return new Gig(client, new GigTitle("Website redesign"), GigStatus.NOT_STARTED, DUE_DATE, new Fee(fee));
     }
 }

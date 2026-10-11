@@ -11,6 +11,11 @@ import gigabyte.model.client.Client;
 import gigabyte.model.client.Email;
 import gigabyte.model.client.Name;
 import gigabyte.model.client.Phone;
+import gigabyte.model.gig.Deadline;
+import gigabyte.model.gig.Fee;
+import gigabyte.model.gig.Gig;
+import gigabyte.model.gig.GigStatus;
+import gigabyte.model.gig.GigTitle;
 import gigabyte.model.tag.Tag;
 
 /**
@@ -42,9 +47,16 @@ public class SampleDataUtil {
 
     public static ReadOnlyGigabyteData getSampleGigabyteData() {
         GigabyteData sampleGigabyteData = new GigabyteData();
-        for (Client sampleClient : getSampleClients()) {
+        Client[] sampleClients = getSampleClients();
+        for (Client sampleClient : sampleClients) {
             sampleGigabyteData.addClient(sampleClient);
         }
+        sampleGigabyteData.addGig(new Gig(sampleClients[0], new GigTitle("Portfolio website redesign"),
+                GigStatus.IN_PROGRESS, new Deadline("2027-01-31"), new Fee("2500.00")));
+        sampleGigabyteData.addGig(new Gig(sampleClients[0], new GigTitle("Product launch photography"),
+                GigStatus.NOT_STARTED, new Deadline("2027-03-15"), new Fee("1200.00")));
+        sampleGigabyteData.addGig(new Gig(sampleClients[1], new GigTitle("Brand identity refresh"),
+                GigStatus.COMPLETED, new Deadline("2026-11-30"), new Fee("1800.00")));
         return sampleGigabyteData;
     }
 

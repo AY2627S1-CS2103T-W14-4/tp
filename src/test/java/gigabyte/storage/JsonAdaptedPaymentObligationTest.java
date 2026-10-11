@@ -14,16 +14,17 @@ import gigabyte.model.gig.Deadline;
 import gigabyte.model.gig.Fee;
 import gigabyte.model.gig.Gig;
 import gigabyte.model.gig.GigStatus;
+import gigabyte.model.gig.GigTitle;
 import gigabyte.model.gig.PaymentObligation;
 import gigabyte.model.gig.exceptions.GigNotFoundException;
 
 public class JsonAdaptedPaymentObligationTest {
-    private static final Gig GIG = new Gig(ALICE, GigStatus.IN_PROGRESS,
+    private static final Gig GIG = new Gig(ALICE, new GigTitle("Website redesign"), GigStatus.IN_PROGRESS,
             new Deadline("2027-01-31"), new Fee("100"));
 
     @Test
     public void toModelType_validFields_preservesExactGigAndPaymentState() throws Exception {
-        Gig equalGig = new Gig(ALICE, GIG.getStatus(), GIG.getDeadline(), GIG.getAgreedFee());
+        Gig equalGig = new Gig(ALICE, GIG.getTitle(), GIG.getStatus(), GIG.getDeadline(), GIG.getAgreedFee());
         List<Gig> gigs = List.of(GIG, equalGig);
         for (boolean isPaid : new boolean[] {false, true}) {
             PaymentObligation original = new PaymentObligation(equalGig, new Fee("50.25"),
