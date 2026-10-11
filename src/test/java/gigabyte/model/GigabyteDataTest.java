@@ -22,6 +22,7 @@ import gigabyte.model.gig.Deadline;
 import gigabyte.model.gig.Fee;
 import gigabyte.model.gig.Gig;
 import gigabyte.model.gig.GigStatus;
+import gigabyte.model.gig.GigTitle;
 import gigabyte.model.gig.PaymentObligation;
 import gigabyte.model.gig.exceptions.GigNotFoundException;
 import gigabyte.testutil.ClientBuilder;
@@ -29,6 +30,8 @@ import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 
 public class GigabyteDataTest {
+    private static final GigTitle TITLE = new GigTitle("Website redesign");
+    private static final GigTitle OTHER_TITLE = new GigTitle("Logo design");
 
     private final GigabyteData gigabyteData = new GigabyteData();
 
@@ -93,7 +96,7 @@ public class GigabyteDataTest {
     @Test
     public void addPaymentObligation_existingGig_addsObligation() {
         gigabyteData.addClient(ALICE);
-        Gig gig = new Gig(ALICE, GigStatus.NOT_STARTED, new Deadline("2026-12-31"), new Fee("100"));
+        Gig gig = new Gig(ALICE, TITLE, GigStatus.NOT_STARTED, new Deadline("2026-12-31"), new Fee("100"));
         gigabyteData.addGig(gig);
         PaymentObligation obligation = new PaymentObligation(gig, new Fee("50"),
                 new Deadline("2026-11-30"), false);
@@ -106,7 +109,7 @@ public class GigabyteDataTest {
     @Test
     public void addPaymentObligation_missingGig_throwsGigNotFoundException() {
         PaymentObligation obligation = new PaymentObligation(
-                new Gig(ALICE, GigStatus.NOT_STARTED, new Deadline("2026-12-31"), new Fee("100")),
+                new Gig(ALICE, TITLE, GigStatus.NOT_STARTED, new Deadline("2026-12-31"), new Fee("100")),
                 new Fee("50"), new Deadline("2026-11-30"), false);
 
         assertThrows(GigNotFoundException.class, () -> gigabyteData.addPaymentObligation(obligation));
@@ -115,7 +118,7 @@ public class GigabyteDataTest {
     @Test
     public void setClient_withPaymentObligation_relinksObligationAtomically() {
         gigabyteData.addClient(ALICE);
-        Gig gig = new Gig(ALICE, GigStatus.NOT_STARTED, new Deadline("2026-12-31"), new Fee("100"));
+        Gig gig = new Gig(ALICE, TITLE, GigStatus.NOT_STARTED, new Deadline("2026-12-31"), new Fee("100"));
         gigabyteData.addGig(gig);
         gigabyteData.addPaymentObligation(new PaymentObligation(gig, new Fee("50"),
                 new Deadline("2026-11-30"), false));
@@ -124,13 +127,15 @@ public class GigabyteDataTest {
         gigabyteData.setClient(ALICE, editedAlice);
 
         assertEquals(editedAlice, gigabyteData.getGigList().get(0).getClient());
+        assertEquals(TITLE, gigabyteData.getGigList().get(0).getTitle());
         assertEquals(editedAlice, gigabyteData.getPaymentObligationList().get(0).getGig().getClient());
+        assertEquals(TITLE, gigabyteData.getPaymentObligationList().get(0).getGig().getTitle());
     }
 
     @Test
     public void setClients_withPaymentObligation_relinksObligationAtomically() {
         gigabyteData.addClient(ALICE);
-        Gig gig = new Gig(ALICE, GigStatus.NOT_STARTED, new Deadline("2026-12-31"), new Fee("100"));
+        Gig gig = new Gig(ALICE, TITLE, GigStatus.NOT_STARTED, new Deadline("2026-12-31"), new Fee("100"));
         gigabyteData.addGig(gig);
         gigabyteData.addPaymentObligation(new PaymentObligation(gig, new Fee("50"),
                 new Deadline("2026-11-30"), false));
@@ -146,11 +151,11 @@ public class GigabyteDataTest {
     @Test
     public void setGigs_withPaymentObligation_relinksObligationAtomically() {
         gigabyteData.addClient(ALICE);
-        Gig gig = new Gig(ALICE, GigStatus.NOT_STARTED, new Deadline("2026-12-31"), new Fee("100"));
+        Gig gig = new Gig(ALICE, TITLE, GigStatus.NOT_STARTED, new Deadline("2026-12-31"), new Fee("100"));
         gigabyteData.addGig(gig);
         gigabyteData.addPaymentObligation(new PaymentObligation(gig, new Fee("50"),
                 new Deadline("2026-11-30"), false));
-        Gig replacementGig = new Gig(ALICE, GigStatus.COMPLETED,
+        Gig replacementGig = new Gig(ALICE, TITLE, GigStatus.COMPLETED,
                 new Deadline("2026-12-31"), new Fee("100"));
 
         gigabyteData.setGigs(List.of(replacementGig));
@@ -163,7 +168,7 @@ public class GigabyteDataTest {
     @Test
     public void setGigs_withoutLinkedGig_throwsAndLeavesDataUnchanged() {
         gigabyteData.addClient(ALICE);
-        Gig gig = new Gig(ALICE, GigStatus.NOT_STARTED, new Deadline("2026-12-31"), new Fee("100"));
+        Gig gig = new Gig(ALICE, TITLE, GigStatus.NOT_STARTED, new Deadline("2026-12-31"), new Fee("100"));
         gigabyteData.addGig(gig);
         gigabyteData.addPaymentObligation(new PaymentObligation(gig, new Fee("50"),
                 new Deadline("2026-11-30"), false));
@@ -179,9 +184,9 @@ public class GigabyteDataTest {
     public void setGigs_reorderedGigs_preservesObligationLink() {
         gigabyteData.addClient(ALICE);
         gigabyteData.addClient(BENSON);
-        Gig aliceGig = new Gig(ALICE, GigStatus.NOT_STARTED,
+        Gig aliceGig = new Gig(ALICE, TITLE, GigStatus.NOT_STARTED,
                 new Deadline("2026-12-31"), new Fee("100"));
-        Gig bensonGig = new Gig(BENSON, GigStatus.IN_PROGRESS,
+        Gig bensonGig = new Gig(BENSON, OTHER_TITLE, GigStatus.IN_PROGRESS,
                 new Deadline("2027-01-31"), new Fee("200"));
         gigabyteData.addGig(aliceGig);
         gigabyteData.addGig(bensonGig);
@@ -198,9 +203,9 @@ public class GigabyteDataTest {
     public void setGigs_unlinkedGigRemoved_preservesObligationLink() {
         gigabyteData.addClient(ALICE);
         gigabyteData.addClient(BENSON);
-        Gig aliceGig = new Gig(ALICE, GigStatus.NOT_STARTED,
+        Gig aliceGig = new Gig(ALICE, TITLE, GigStatus.NOT_STARTED,
                 new Deadline("2026-12-31"), new Fee("100"));
-        Gig bensonGig = new Gig(BENSON, GigStatus.IN_PROGRESS,
+        Gig bensonGig = new Gig(BENSON, OTHER_TITLE, GigStatus.IN_PROGRESS,
                 new Deadline("2027-01-31"), new Fee("200"));
         gigabyteData.addGig(aliceGig);
         gigabyteData.addGig(bensonGig);

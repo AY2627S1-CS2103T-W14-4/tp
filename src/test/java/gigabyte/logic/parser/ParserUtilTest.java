@@ -16,6 +16,7 @@ import gigabyte.model.client.Address;
 import gigabyte.model.client.Email;
 import gigabyte.model.client.Name;
 import gigabyte.model.client.Phone;
+import gigabyte.model.gig.GigTitle;
 import gigabyte.model.tag.Tag;
 
 public class ParserUtilTest {
@@ -31,6 +32,7 @@ public class ParserUtilTest {
     private static final String VALID_EMAIL = "rachel@example.com";
     private static final String VALID_TAG_1 = "friend";
     private static final String VALID_TAG_2 = "neighbour";
+    private static final String VALID_GIG_TITLE = "Website redesign — phase 2!";
 
     private static final String WHITESPACE = " \t\r\n";
 
@@ -190,5 +192,24 @@ public class ParserUtilTest {
         Set<Tag> expectedTagSet = Set.of(new Tag(VALID_TAG_1), new Tag(VALID_TAG_2));
 
         assertEquals(expectedTagSet, actualTagSet);
+    }
+
+    @Test
+    public void parseGigTitle_null_throwsNullPointerException() {
+        assertThrows(NullPointerException.class, () -> ParserUtil.parseGigTitle(null));
+    }
+
+    @Test
+    public void parseGigTitle_invalidValue_throwsParseException() {
+        assertThrows(ParseException.class, GigTitle.MESSAGE_CONSTRAINTS, () ->
+                ParserUtil.parseGigTitle("   "));
+        assertThrows(ParseException.class, GigTitle.MESSAGE_CONSTRAINTS, () ->
+                ParserUtil.parseGigTitle("a".repeat(101)));
+    }
+
+    @Test
+    public void parseGigTitle_validValue_returnsNormalizedTitle() throws Exception {
+        assertEquals(new GigTitle(VALID_GIG_TITLE),
+                ParserUtil.parseGigTitle(WHITESPACE + VALID_GIG_TITLE + WHITESPACE));
     }
 }

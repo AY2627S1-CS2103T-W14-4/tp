@@ -35,6 +35,10 @@
 
    * `delete 3` : Deletes the 3rd client shown in the current list.
 
+   * `addgig 1 t/Website redesign s/IN_PROGRESS d/2027-01-31 f/1250.00` : Adds a titled gig for the first displayed client.
+
+   * `addpayment 1 1 a/500.00 d/2027-02-15` : Records an unpaid obligation for that client's first gig.
+
    * `clear` : Deletes all clients.
 
    * `exit` : Exits the app.
@@ -97,24 +101,59 @@ Shows a list of all clients in the client list.
 
 Format: `list`
 
+### Understanding indexes and filtered results
+
+Gigabyte uses one-based indexes: the first displayed item is `1`, the second is `2`, and so on. Zero, negative
+numbers, decimals, text, and indexes larger than the displayed list are invalid.
+
+* A **client index** always refers to the numbered client in the list currently shown on the left. Commands such as
+  `addgig`, `addpayment`, `edit`, and `delete` use this displayed list.
+* `find` replaces the displayed client list with its matching results. A later command therefore uses the numbers in
+  those results, not the numbers from the earlier full list. Run `list` to restore the full client list.
+* A **gig index** is the gig's one-based position among the chosen client's gigs. It is not an index into all gigs in
+  Gigabyte. Selecting that client in the UI lets you confirm the order shown in the **Gigs** panel, but clicking the
+  client is not required before running `addpayment`.
+* The currently implemented payment command does not take a payment index: the two indexes in `addpayment` are the
+  client index and that client's gig index, in that order.
+
+Example: after `find Bernice`, `addgig 1 ...` targets the first client in the filtered results. After `list`, the same
+client might have a different index.
+
 ### Creating a gig: `addgig`
 
 Creates a gig linked to an existing client and saves it automatically.
 
-Format: `addgig INDEX s/STATUS d/DEADLINE f/FEE`
+Format: `addgig INDEX t/TITLE s/STATUS d/DEADLINE f/FEE`
 
 * `INDEX` is the positive index shown in the current client list, including filtered `find` results.
-* All three fields are required and may appear in any order. Each prefix must appear once.
+* All four fields are required and may appear in any order. Each prefix must appear exactly once.
+* `TITLE` is a short description containing 1–100 characters after leading and trailing whitespace is removed.
+  Internal spaces and common punctuation are allowed. Titles do not need to be unique.
 * `STATUS` is `NOT_STARTED`, `IN_PROGRESS`, or `COMPLETED` (case-insensitive).
 * `DEADLINE` is a valid calendar date in `yyyy-MM-dd` format.
 * `FEE` is a positive amount with at most two decimal places, without a currency symbol.
-* The confirmation shows the linked client, status, deadline, and agreed fee. The client list stays unchanged.
-* Gigs are retained after restarting the app. Existing data files containing only clients remain supported.
+* The confirmation shows the linked client, title, status, deadline, and agreed fee. The displayed client list stays
+  unchanged, including when it is filtered.
+* Gigs are retained after restarting the app. Older saved gigs without a title load as `Untitled gig`; the fallback
+  title is written to the data file the next time Gigabyte saves.
 
-Examples:
+Successful examples:
 
-* `addgig 1 s/NOT_STARTED d/2027-01-31 f/1250.00`
-* `find Betsy` followed by `addgig 1 s/in_progress d/2027-02-28 f/500.50` creates a gig for the first matching client.
+* `addgig 1 t/Website redesign s/NOT_STARTED d/2027-01-31 f/1250.00`
+* `find Bernice` followed by
+  `addgig 1 t/Product photography s/in_progress d/2027-02-28 f/500.50`
+  creates a titled gig for the first matching client.
+
+Unsuccessful examples:
+
+Command | Why it is rejected
+--------|-------------------
+`addgig 1 t/ s/NOT_STARTED d/2027-01-31 f/1250.00` | The title is blank after surrounding whitespace is removed.
+`addgig 1 t/Website redesign s/WAITING d/2027-01-31 f/1250.00` | `WAITING` is not a supported status.
+`addgig 1 t/Website redesign s/NOT_STARTED d/2027-02-29 f/1250.00` | 2027 is not a leap year, so the date is invalid.
+`addgig 1 t/Website redesign s/NOT_STARTED d/2027-01-31 f/0` | Fees must be greater than zero.
+`addgig 1 t/Website redesign t/Second title s/NOT_STARTED d/2027-01-31 f/1250.00` | The single-valued `t/` prefix is repeated.
+`addgig 0 t/Website redesign s/NOT_STARTED d/2027-01-31 f/1250.00` | Client indexes start at 1.
 
 ### Recording a payment obligation: `addpayment`
 
@@ -123,8 +162,8 @@ Records an unpaid payment obligation against an existing gig and saves it automa
 Format: `addpayment CLIENT_INDEX GIG_INDEX a/AMOUNT d/DUE_DATE`
 
 * `CLIENT_INDEX` is the positive index in the currently displayed client list, including `find` results.
-* Click that client to see their gigs. `GIG_INDEX` is the positive position in that client's gig panel,
-  counted from the top starting at 1. It is not an index in the complete list of all clients' gigs.
+* `GIG_INDEX` is the positive position in that client's gig list, counted from the top starting at 1. Click the
+  client to inspect the same order in the **Gigs** panel. It is not an index in the complete list of all clients' gigs.
 * Both indexes and both fields are required. The `a/` and `d/` fields may appear in either order, once each.
 * `AMOUNT` must be positive with at most two decimal places, without a currency symbol.
 * `DUE_DATE` must be a valid calendar date in `yyyy-MM-dd` format.
@@ -132,7 +171,22 @@ Format: `addpayment CLIENT_INDEX GIG_INDEX a/AMOUNT d/DUE_DATE`
 * Invalid input leaves existing clients, gigs, and obligations unchanged.
 * Obligations survive restarting the app. Older data files without payment obligations remain supported.
 
-Example: `addpayment 1 2 a/500.00 d/2027-01-31` records an obligation for the second gig of the first displayed client.
+Successful examples:
+
+* `addpayment 1 2 a/500.00 d/2027-01-31` records an obligation for the second gig of the first displayed client.
+* `find Alex` followed by `addpayment 1 1 d/2027-02-15 a/250` records an obligation for the first gig belonging to
+  the first matching client. The prefixed fields may appear in either order.
+
+Unsuccessful examples:
+
+Command | Why it is rejected
+--------|-------------------
+`addpayment 0 1 a/500.00 d/2027-01-31` | Client indexes start at 1.
+`addpayment 1 0 a/500.00 d/2027-01-31` | Gig indexes start at 1.
+`addpayment 1 99 a/500.00 d/2027-01-31` | The selected client does not have a gig at position 99.
+`addpayment 1 1 a/-10 d/2027-01-31` | Amounts must be positive numbers.
+`addpayment 1 1 a/500.00 d/31-01-2027` | Dates must use `yyyy-MM-dd`.
+`addpayment 1 1 a/500.00 a/600.00 d/2027-01-31` | The single-valued `a/` prefix is repeated.
 
 The confirmation names the client and gig position, amount, and due date. Saved obligations can also be
 inspected in the `paymentObligations` array in `data/addressbook.json`; each obligation refers to its gig by `gigUid`.
@@ -182,8 +236,8 @@ Format: `delete INDEX`
 * The index **must be a positive integer** 1, 2, 3, ...
 
 Examples:
-* `list` followed by `delete 2` deletes the 2nd client in the client list.
-* `find Betsy` followed by `delete 1` deletes the 1st client in the results of the `find` command.
+* `list` followed by `delete 3` deletes the 3rd sample client, who has no associated gigs.
+* `find David` followed by `delete 1` deletes the 1st client in the results of the `find` command.
 
 ### Clearing all entries: `clear`
 
@@ -199,16 +253,18 @@ Format: `exit`
 
 ### Saving the data
 
-Gigabyte automatically saves data after every command. You do not need to save manually.
+Gigabyte automatically saves data after every successfully executed command. You do not need to save manually.
+Client, gig, and payment-obligation data is restored when you next launch the app from the same home folder.
 
 ### Editing the data file
 
 Gigabyte data is saved automatically as a JSON file `[JAR file location]/data/addressbook.json`. Advanced users are welcome to update data directly by editing that data file.
 
-Client records are stored in the `clients` array with stable `uid` values. Gigs refer to clients by `clientUid`,
-and payment obligations refer to gigs by `gigUid`. Fees and payment amounts are stored as integer cents. Older
-files using `persons`, client names, decimal fee strings, and `gigIndex` references are still loaded; Gigabyte writes
-the current format the next time it saves.
+Client records are stored in the `clients` array with stable `uid` values. Gigs refer to clients by `clientUid`, store
+their titles as plain text, and are referenced by payment obligations using `gigUid`. Fees and payment amounts are
+stored as integer cents. Older files using `persons`, client names, title-less gigs, decimal fee strings, and
+`gigIndex` references are still loaded; title-less gigs receive the title `Untitled gig`, and Gigabyte writes the
+current format the next time it saves.
 
 <box type="warning" seamless>
 
@@ -242,11 +298,12 @@ _Details coming soon ..._
 Action     | Format, Examples
 -----------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------
 **Add**    | `add n/NAME p/PHONE_NUMBER e/EMAIL a/ADDRESS [t/TAG]... ` <br> e.g., `add n/James Ho p/22224444 e/jamesho@example.com a/123, Clementi Rd, 1234665 t/friend t/colleague`
-**Add gig** | `addgig INDEX s/STATUS d/DEADLINE f/FEE` <br> e.g., `addgig 1 s/NOT_STARTED d/2027-01-31 f/1250.00`
+**Add gig** | `addgig INDEX t/TITLE s/STATUS d/DEADLINE f/FEE` <br> e.g., `addgig 1 t/Website redesign s/NOT_STARTED d/2027-01-31 f/1250.00`
 **Add payment** | `addpayment CLIENT_INDEX GIG_INDEX a/AMOUNT d/DUE_DATE` <br> e.g., `addpayment 1 2 a/500.00 d/2027-01-31`
 **Clear**  | `clear`
 **Delete** | `delete INDEX`<br> e.g., `delete 3`
 **Edit**   | `edit INDEX [n/NAME] [p/PHONE_NUMBER] [e/EMAIL] [a/ADDRESS] [t/TAG]... `<br> e.g.,`edit 2 n/James Lee e/jameslee@example.com`
+**Exit**   | `exit`
 **Find**   | `find KEYWORD [MORE_KEYWORDS]`<br> e.g., `find James Jake`
 **List**   | `list`
 **Help**   | `help`
