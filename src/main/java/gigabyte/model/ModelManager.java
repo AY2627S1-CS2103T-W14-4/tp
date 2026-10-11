@@ -109,6 +109,11 @@ public class ModelManager implements Model {
     }
 
     @Override
+    public ObservableList<PaymentObligation> getPaymentObligationList() {
+        return gigabyteData.getPaymentObligationList();
+    }
+
+    @Override
     public void addPaymentObligation(PaymentObligation obligation) {
         requireNonNull(obligation);
         gigabyteData.addPaymentObligation(obligation);

@@ -1,6 +1,8 @@
 package gigabyte.ui;
 
+import java.awt.Point;
 import java.nio.file.Path;
+import java.util.List;
 import java.util.logging.Logger;
 
 import gigabyte.commons.core.GuiSettings;
@@ -9,13 +11,16 @@ import gigabyte.logic.Logic;
 import gigabyte.logic.commands.CommandResult;
 import gigabyte.logic.commands.exceptions.CommandException;
 import gigabyte.logic.parser.exceptions.ParseException;
+import javafx.application.Platform;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
+import javafx.geometry.Rectangle2D;
 import javafx.scene.control.MenuItem;
 import javafx.scene.control.TextInputControl;
 import javafx.scene.input.KeyCombination;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.StackPane;
+import javafx.stage.Screen;
 import javafx.stage.Stage;
 
 /**
@@ -35,6 +40,7 @@ public class MainWindow extends UiPart<Stage> {
     // Independent Ui parts residing in this Ui container
     private ClientListPanel clientListPanel;
     private GigListPanel gigListPanel;
+    private PaymentObligationListPanel paymentObligationListPanel;
     private ResultDisplay resultDisplay;
     private HelpWindow helpWindow;
 
@@ -49,6 +55,9 @@ public class MainWindow extends UiPart<Stage> {
 
     @FXML
     private StackPane gigListPanelPlaceholder;
+
+    @FXML
+    private StackPane paymentObligationListPanelPlaceholder;
 
     @FXML
     private StackPane resultDisplayPlaceholder;
@@ -118,10 +127,24 @@ public class MainWindow extends UiPart<Stage> {
      * Fills up all the placeholders of this window.
      */
     void fillInnerParts() {
-        gigListPanel = new GigListPanel(logic.getGigList());
-        clientListPanel = new ClientListPanel(logic.getFilteredClientList(), gigListPanel::showGigsFor);
+        CommandBox commandBox = new CommandBox(this::executeCommand);
+        commandBoxPlaceholder.getChildren().add(commandBox.getRoot());
+        Runnable requestCommandBoxFocus = () -> Platform.runLater(() ->
+                commandBox.getRoot().lookup("#commandTextField").requestFocus());
+
+        paymentObligationListPanel = new PaymentObligationListPanel(logic.getPaymentObligationList());
+        gigListPanel = new GigListPanel(logic.getGigList(), gig -> {
+            paymentObligationListPanel.showPaymentsFor(gig);
+            requestCommandBoxFocus.run();
+        });
+        clientListPanel = new ClientListPanel(logic.getFilteredClientList(), client -> {
+            gigListPanel.showGigsFor(client);
+            paymentObligationListPanel.showPaymentsFor(null);
+            requestCommandBoxFocus.run();
+        });
         clientListPanelPlaceholder.getChildren().add(clientListPanel.getRoot());
         gigListPanelPlaceholder.getChildren().add(gigListPanel.getRoot());
+        paymentObligationListPanelPlaceholder.getChildren().add(paymentObligationListPanel.getRoot());
 
         resultDisplay = new ResultDisplay();
         resultDisplayPlaceholder.getChildren().add(resultDisplay.getRoot());
@@ -129,20 +152,52 @@ public class MainWindow extends UiPart<Stage> {
         StatusBarFooter statusBarFooter = new StatusBarFooter(dataFilePath);
         statusbarPlaceholder.getChildren().add(statusBarFooter.getRoot());
 
-        CommandBox commandBox = new CommandBox(this::executeCommand);
-        commandBoxPlaceholder.getChildren().add(commandBox.getRoot());
     }
 
     /**
      * Sets the default size based on {@code guiSettings}.
      */
     private void setWindowDefaultSize(GuiSettings guiSettings) {
-        primaryStage.setHeight(guiSettings.getWindowHeight());
-        primaryStage.setWidth(guiSettings.getWindowWidth());
-        if (guiSettings.getWindowCoordinates() != null) {
-            primaryStage.setX(guiSettings.getWindowCoordinates().getX());
-            primaryStage.setY(guiSettings.getWindowCoordinates().getY());
+        Rectangle2D visualBounds = getTargetVisualBounds(guiSettings);
+        double windowHeight = clampWindowDimension(
+                guiSettings.getWindowHeight(), primaryStage.getMinHeight(), visualBounds.getHeight());
+        double windowWidth = clampWindowDimension(
+                guiSettings.getWindowWidth(), primaryStage.getMinWidth(), visualBounds.getWidth());
+        primaryStage.setHeight(windowHeight);
+        primaryStage.setWidth(windowWidth);
+
+        Point windowCoordinates = guiSettings.getWindowCoordinates();
+        if (windowCoordinates != null) {
+            primaryStage.setX(clampWindowCoordinate(windowCoordinates.getX(),
+                    visualBounds.getMinX(), visualBounds.getMaxX() - windowWidth));
+            primaryStage.setY(clampWindowCoordinate(windowCoordinates.getY(),
+                    visualBounds.getMinY(), visualBounds.getMaxY() - windowHeight));
         }
+    }
+
+    /** Returns a visual screen area that contains the saved window position, or the primary screen area. */
+    private Rectangle2D getTargetVisualBounds(GuiSettings guiSettings) {
+        Point windowCoordinates = guiSettings.getWindowCoordinates();
+        if (windowCoordinates != null) {
+            List<Screen> matchingScreens = Screen.getScreensForRectangle(
+                    windowCoordinates.getX(), windowCoordinates.getY(), 1, 1);
+            if (!matchingScreens.isEmpty()) {
+                return matchingScreens.get(0).getVisualBounds();
+            }
+        }
+        return Screen.getPrimary().getVisualBounds();
+    }
+
+    /** Clamps a requested window dimension between the supported minimum and available screen dimension. */
+    static double clampWindowDimension(double requestedSize, double minimumSize, double availableSize) {
+        return Math.max(minimumSize, Math.min(requestedSize, availableSize));
+    }
+
+    /** Clamps a saved window coordinate within the available screen-axis range. */
+    private static double clampWindowCoordinate(double requestedCoordinate,
+                                                double minimumCoordinate,
+                                                double maximumCoordinate) {
+        return Math.max(minimumCoordinate, Math.min(requestedCoordinate, maximumCoordinate));
     }
 
     /**
@@ -175,6 +230,14 @@ public class MainWindow extends UiPart<Stage> {
 
     public ClientListPanel getClientListPanel() {
         return clientListPanel;
+    }
+
+    GigListPanel getGigListPanel() {
+        return gigListPanel;
+    }
+
+    PaymentObligationListPanel getPaymentObligationListPanel() {
+        return paymentObligationListPanel;
     }
 
     /**

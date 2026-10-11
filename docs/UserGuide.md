@@ -119,6 +119,23 @@ numbers, decimals, text, and indexes larger than the displayed list are invalid.
 Example: after `find Bernice`, `addgig 1 ...` targets the first client in the filtered results. After `list`, the same
 client might have a different index.
 
+### Viewing gigs and payment obligations
+
+Select a client in the client list to show only that client's gigs in the **Gigs** panel. Select a gig to show only
+its payment obligations in the **Payment obligations** panel beneath the gig list. Payment obligations are numbered
+from 1 and ordered by due date, earliest first. Obligations with the same due date retain the order in which they were
+recorded. These displayed payment indexes restart from 1 for each selected gig; `addpayment` does not use them.
+
+Each payment row shows its amount, due date, and current display state:
+
+* `PAID`: the obligation has been marked as paid.
+* `OUTSTANDING`: the obligation is unpaid and is due today or later.
+* `OVERDUE`: the obligation is unpaid and its due date is before the current local date.
+
+Paid, outstanding, and overdue rows use distinct colors. `OVERDUE` is calculated for display only and does not change
+the saved paid status. If there is no selection or no data for the selection, the panels explain whether to select a
+client, select a gig, or that the selected gig has no payment obligations.
+
 ### Creating a gig: `addgig`
 
 Creates a gig linked to an existing client and saves it automatically.
@@ -188,8 +205,8 @@ Command | Why it is rejected
 `addpayment 1 1 a/500.00 d/31-01-2027` | Dates must use `yyyy-MM-dd`.
 `addpayment 1 1 a/500.00 a/600.00 d/2027-01-31` | The single-valued `a/` prefix is repeated.
 
-The confirmation names the client and gig position, amount, and due date. Saved obligations can also be
-inspected in the `paymentObligations` array in `data/addressbook.json`; each obligation refers to its gig by `gigUid`.
+The confirmation names the client and gig position, amount, and due date. To see the saved obligation, select the
+client and gig in the application; the **Payment obligations** panel refreshes immediately.
 
 ### Editing a client: `edit`
 
@@ -288,8 +305,7 @@ _Details coming soon ..._
 
 ## Known issues
 
-1. **When using multiple screens**, if you move the application to a secondary screen, and later switch to using only the primary screen, the GUI will open off-screen. The remedy is to delete the `preferences.json` file created by the application before running the application again.
-2. **If you minimize the Help Window** and then run the `help` command (or use the `Help` menu, or the keyboard shortcut `F1`) again, the original Help Window will remain minimized, and no new Help Window will appear. The remedy is to manually restore the minimized Help Window.
+1. **If you minimize the Help Window** and then run the `help` command (or use the `Help` menu, or the keyboard shortcut `F1`) again, the original Help Window will remain minimized, and no new Help Window will appear. The remedy is to manually restore the minimized Help Window.
 
 --------------------------------------------------------------------------------------------------------------------
 

@@ -124,6 +124,26 @@
     -fx-text-fill: white;
 }
 
+.payment-list-cell {
+    -fx-padding: 8px;
+    -fx-text-fill: white;
+}
+
+.payment-list-cell.payment-paid:filled {
+    -fx-background-color: #2f3b36;
+    -fx-text-fill: #aeb8b2;
+}
+
+.payment-list-cell.payment-outstanding:filled {
+    -fx-background-color: #34495e;
+    -fx-text-fill: white;
+}
+
+.payment-list-cell.payment-overdue:filled {
+    -fx-background-color: #5a2a2a;
+    -fx-text-fill: #ffb3b3;
+}
+
 .cell_big_label {
     -fx-font-family: "Segoe UI Semibold";
     -fx-font-size: 16px;

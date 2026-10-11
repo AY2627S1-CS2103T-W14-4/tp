@@ -6,6 +6,7 @@ import gigabyte.logic.commands.exceptions.CommandException;
 import gigabyte.logic.parser.exceptions.ParseException;
 import gigabyte.model.client.Client;
 import gigabyte.model.gig.Gig;
+import gigabyte.model.gig.PaymentObligation;
 import javafx.collections.ObservableList;
 
 /**
@@ -25,6 +26,9 @@ public interface Logic {
     ObservableList<Client> getFilteredClientList();
 
     ObservableList<Gig> getGigList();
+
+    /** Returns an unmodifiable view of all payment obligations. */
+    ObservableList<PaymentObligation> getPaymentObligationList();
 
     /**
      * Returns the user prefs' GUI settings.
