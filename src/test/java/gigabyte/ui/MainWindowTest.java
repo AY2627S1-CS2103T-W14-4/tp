@@ -92,6 +92,12 @@ public class MainWindowTest {
                 window.getGigListPanel().getGigListView().getSelectionModel().select(0);
                 assertEquals(List.of(BENSON_PAYMENT),
                         window.getPaymentObligationListPanel().getPaymentListView().getItems());
+                enterCommand(window, "list");
+                assertEquals(List.of(BENSON_GIG), window.getGigListPanel().getGigListView().getItems());
+                assertEquals(BENSON_GIG, window.getGigListPanel().getGigListView()
+                        .getSelectionModel().getSelectedItem());
+                assertEquals(List.of(BENSON_PAYMENT),
+                        window.getPaymentObligationListPanel().getPaymentListView().getItems());
                 enterCommand(window, "gigs s/INVALID");
                 assertEquals(BENSON_GIG, window.getGigListPanel().getGigListView()
                         .getSelectionModel().getSelectedItem());
