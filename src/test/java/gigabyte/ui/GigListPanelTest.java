@@ -8,6 +8,9 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.List;
+import java.util.concurrent.FutureTask;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.junit.jupiter.api.BeforeAll;
@@ -18,11 +21,15 @@ import gigabyte.model.gig.Fee;
 import gigabyte.model.gig.Gig;
 import gigabyte.model.gig.GigStatus;
 import gigabyte.model.gig.GigTitle;
+import javafx.application.Platform;
 import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
+import javafx.geometry.Orientation;
 import javafx.scene.Scene;
 import javafx.scene.control.ListCell;
 import javafx.scene.control.ScrollBar;
 import javafx.scene.paint.Color;
+import javafx.stage.Stage;
 
 public class GigListPanelTest {
     private static final Gig ALICE_GIG = new Gig(ALICE, new GigTitle("Website redesign"), GigStatus.IN_PROGRESS,
@@ -98,6 +105,84 @@ public class GigListPanelTest {
     }
 
     @Test
+    public void showGigsWithStatus_multipleClients_filtersInOriginalOrderAndTracksNewGigs() {
+        Gig matchingGig = new Gig(BENSON, new GigTitle("Branding"), GigStatus.IN_PROGRESS,
+                new Deadline("2027-02-28"), new Fee("300"));
+        ObservableList<Gig> gigs = FXCollections.observableArrayList(ALICE_GIG, BENSON_GIG, matchingGig);
+        GigListPanel panel = new GigListPanel(gigs);
+
+        panel.showGigsWithStatus(GigStatus.IN_PROGRESS);
+        assertEquals(List.of(ALICE_GIG, matchingGig), panel.getGigListView().getItems());
+        assertEquals("", panel.getEmptyState().getText());
+
+        gigs.remove(ALICE_GIG);
+        assertEquals(List.of(matchingGig), panel.getGigListView().getItems());
+        gigs.remove(matchingGig);
+        assertEquals("No gigs with status IN_PROGRESS.", panel.getEmptyState().getText());
+        gigs.add(ALICE_GIG);
+        assertEquals(List.of(ALICE_GIG), panel.getGigListView().getItems());
+        assertEquals("", panel.getEmptyState().getText());
+    }
+
+    @Test
+    public void showGigsWithStatus_previousSelection_clearsSelectionAndAllowsReturnToClientView() {
+        GigListPanel panel = createPanel();
+        panel.showGigsFor(ALICE);
+        panel.getGigListView().getSelectionModel().select(0);
+
+        panel.showGigsWithStatus(GigStatus.NOT_STARTED);
+        assertNull(panel.getGigListView().getSelectionModel().getSelectedItem());
+        assertEquals(0, panel.getGigListView().getItems().size());
+        assertEquals("No gigs with status NOT_STARTED.", panel.getEmptyState().getText());
+
+        panel.showGigsFor(ALICE);
+        assertEquals(List.of(ALICE_GIG), panel.getGigListView().getItems());
+        panel.showGigsWithStatus(GigStatus.COMPLETED);
+        assertEquals(List.of(BENSON_GIG), panel.getGigListView().getItems());
+        panel.showGigsFor(null);
+        assertEquals("Select a client to view their gigs.", panel.getEmptyState().getText());
+    }
+
+    @Test
+    public void showGigsWithStatus_manyMatches_keepsCompleteDetailsAndVerticalScrolling() throws Exception {
+        FutureTask<Void> test = new FutureTask<>(() -> {
+            ObservableList<Gig> gigs = FXCollections.observableArrayList();
+            for (int i = 0; i < 30; i++) {
+                gigs.add(new Gig(i % 2 == 0 ? ALICE : BENSON, new GigTitle("Website " + i),
+                        GigStatus.IN_PROGRESS, new Deadline("2027-01-31"), new Fee("100")));
+            }
+            GigListPanel panel = new GigListPanel(gigs);
+            panel.showGigsWithStatus(GigStatus.IN_PROGRESS);
+            Stage stage = new Stage();
+            Scene scene = new Scene(panel.getRoot(), 340, 300);
+            scene.getStylesheets().add(getClass().getResource("/view/DarkTheme.css").toExternalForm());
+            stage.setScene(scene);
+            try {
+                stage.show();
+                panel.getRoot().applyCss();
+                panel.getRoot().layout();
+
+                assertEquals(gigs, panel.getGigListView().getItems());
+                @SuppressWarnings("unchecked")
+                ListCell<Gig> cell = (ListCell<Gig>) panel.getGigListView().lookup(".list-cell");
+                assertTrue(cell.getText().contains("Client: " + cell.getItem().getClient().getName()));
+                assertTrue(cell.isWrapText());
+                assertTrue(cell.getWidth() <= panel.getGigListView().getWidth());
+                var scrollBars = panel.getGigListView().lookupAll(".scroll-bar");
+                assertFalse(scrollBars.stream().anyMatch(node -> node instanceof ScrollBar bar
+                        && bar.getOrientation() == Orientation.HORIZONTAL && bar.isVisible()));
+                assertTrue(scrollBars.stream().anyMatch(node -> node instanceof ScrollBar bar
+                        && bar.getOrientation() == Orientation.VERTICAL && bar.isVisible()));
+            } finally {
+                stage.hide();
+            }
+            return null;
+        });
+        Platform.runLater(test);
+        test.get(10, TimeUnit.SECONDS);
+    }
+
+    @Test
     public void gigCell_renderedItem_showsTitleFirstAndWrapsCompleteSummary() {
         GigListPanel panel = createPanel();
         panel.showGigsFor(ALICE);
@@ -111,6 +196,7 @@ public class GigListPanelTest {
 
         assertTrue(text.startsWith(ALICE_GIG.getTitle().toString()));
         assertTrue(text.contains("Status: " + ALICE_GIG.getStatus()));
+        assertTrue(text.contains("Client: " + ALICE_GIG.getClient().getName()));
         assertTrue(text.contains("Deadline: " + ALICE_GIG.getDeadline()));
         assertTrue(text.contains("Fee: $" + ALICE_GIG.getAgreedFee()));
         assertTrue(cell.isWrapText());

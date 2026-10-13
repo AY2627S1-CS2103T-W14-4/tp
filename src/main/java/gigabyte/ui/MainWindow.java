@@ -258,6 +258,13 @@ public class MainWindow extends UiPart<Stage> {
             logger.info("Result: " + commandResult.getFeedbackToUser());
             resultDisplay.setFeedbackToUser(commandResult.getFeedbackToUser());
 
+            if (commandResult.getGigStatusFilter() != null) {
+                // Clear the selection so clicking the same client restores their gigs too.
+                clientListPanel.getClientListView().getSelectionModel().clearSelection();
+                gigListPanel.showGigsWithStatus(commandResult.getGigStatusFilter());
+                paymentObligationListPanel.showPaymentsFor(null);
+            }
+
             if (commandResult.isShowHelp()) {
                 handleHelp();
             }

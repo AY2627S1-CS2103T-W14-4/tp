@@ -7,18 +7,23 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.nio.file.Path;
+import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 import gigabyte.commons.core.GuiSettings;
 import gigabyte.logic.Logic;
+import gigabyte.logic.LogicManager;
 import gigabyte.logic.commands.CommandResult;
 import gigabyte.logic.commands.exceptions.CommandException;
 import gigabyte.logic.parser.exceptions.ParseException;
+import gigabyte.model.Model;
+import gigabyte.model.ModelManager;
 import gigabyte.model.client.Client;
 import gigabyte.model.gig.Deadline;
 import gigabyte.model.gig.Fee;
@@ -26,9 +31,13 @@ import gigabyte.model.gig.Gig;
 import gigabyte.model.gig.GigStatus;
 import gigabyte.model.gig.GigTitle;
 import gigabyte.model.gig.PaymentObligation;
+import gigabyte.storage.JsonGigabyteDataStorage;
+import gigabyte.storage.JsonUserPrefsStorage;
+import gigabyte.storage.StorageManager;
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
+import javafx.event.ActionEvent;
 import javafx.geometry.Rectangle2D;
 import javafx.scene.control.TextField;
 import javafx.stage.Screen;
@@ -44,9 +53,70 @@ public class MainWindowTest {
     private static final PaymentObligation BENSON_PAYMENT = new PaymentObligation(
             BENSON_GIG, new Fee("600"), new Deadline("2027-04-15"), false);
 
+    @TempDir
+    public Path temporaryFolder;
+
     @BeforeAll
     public static void setUpJavaFx() {
         JavaFxTestUtil.startToolkit();
+    }
+
+    @Test
+    public void filterGigsCommand_switchesViewsClearsPaymentsAndPreservesClientWorkflow() throws Exception {
+        Model model = new ModelManager();
+        model.addClient(ALICE);
+        model.addClient(BENSON);
+        model.addGig(ALICE_GIG);
+        model.addGig(BENSON_GIG);
+        model.addPaymentObligation(ALICE_PAYMENT);
+        model.addPaymentObligation(BENSON_PAYMENT);
+        Logic logic = new LogicManager(model, new StorageManager(
+                new JsonGigabyteDataStorage(temporaryFolder.resolve("data.json")),
+                new JsonUserPrefsStorage(temporaryFolder.resolve("preferences.json"))));
+        MainWindow window = callOnJavaFxThread(() -> {
+            MainWindow mainWindow = new MainWindow(new Stage(), logic, temporaryFolder.resolve("data.json"));
+            mainWindow.fillInnerParts();
+            return mainWindow;
+        });
+
+        try {
+            callOnJavaFxThread(() -> {
+                window.getClientListPanel().getClientListView().getSelectionModel().select(0);
+                window.getGigListPanel().getGigListView().getSelectionModel().select(0);
+                enterCommand(window, "gigs s/NOT_STARTED");
+                assertEquals(List.of(BENSON_GIG), window.getGigListPanel().getGigListView().getItems());
+                assertNull(window.getClientListPanel().getClientListView().getSelectionModel().getSelectedItem());
+                assertEquals(0, window.getPaymentObligationListPanel().getPaymentListView().getItems().size());
+                assertEquals(model.getFilteredClientList(), window.getClientListPanel().getClientListView().getItems());
+
+                window.getGigListPanel().getGigListView().getSelectionModel().select(0);
+                assertEquals(List.of(BENSON_PAYMENT),
+                        window.getPaymentObligationListPanel().getPaymentListView().getItems());
+                enterCommand(window, "gigs s/INVALID");
+                assertEquals(BENSON_GIG, window.getGigListPanel().getGigListView()
+                        .getSelectionModel().getSelectedItem());
+                assertEquals(List.of(BENSON_PAYMENT),
+                        window.getPaymentObligationListPanel().getPaymentListView().getItems());
+
+                enterCommand(window, "gigs s/COMPLETED");
+                assertEquals("No gigs with status COMPLETED.", window.getGigListPanel().getEmptyState().getText());
+                assertEquals(0, window.getPaymentObligationListPanel().getPaymentListView().getItems().size());
+                window.getClientListPanel().getClientListView().getSelectionModel().select(0);
+                assertEquals(List.of(ALICE_GIG), window.getGigListPanel().getGigListView().getItems());
+                return null;
+            });
+        } finally {
+            callOnJavaFxThread(() -> {
+                window.getPrimaryStage().hide();
+                return null;
+            });
+        }
+    }
+
+    private static void enterCommand(MainWindow window, String command) {
+        TextField textField = (TextField) window.getRoot().getScene().lookup("#commandTextField");
+        textField.setText(command);
+        textField.fireEvent(new ActionEvent());
     }
 
     @Test
