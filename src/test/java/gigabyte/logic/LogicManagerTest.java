@@ -91,6 +91,23 @@ public class LogicManagerTest {
     }
 
     @Test
+    public void execute_filterGigs_invalidInputPreservesRecordsAndSavedFile() throws Exception {
+        model.addClient(ALICE);
+        model.addGig(new Gig(ALICE, new GigTitle("Website"), GigStatus.IN_PROGRESS,
+                new Deadline("2027-01-31"), new Fee("100")));
+        logic.execute("addpayment 1 1 a/50 d/2027-02-28");
+        GigabyteData before = new GigabyteData(model.getGigabyteData());
+        Path path = temporaryFolder.resolve("gigabyteData.json");
+        String savedData = Files.readString(path);
+
+        assertEquals(GigStatus.IN_PROGRESS, logic.execute("gigs s/in_progress").getGigStatusFilter());
+        assertEquals(before, model.getGigabyteData());
+        assertEquals(savedData, Files.readString(path));
+        assertParseException("gigs s/WAITING", GigStatus.MESSAGE_CONSTRAINTS);
+        assertEquals(savedData, Files.readString(path));
+    }
+
+    @Test
     public void execute_addGig_persistsAcrossReloadAndSubsequentCommands() throws Exception {
         model.addClient(ALICE);
         CommandResult result = logic.execute(

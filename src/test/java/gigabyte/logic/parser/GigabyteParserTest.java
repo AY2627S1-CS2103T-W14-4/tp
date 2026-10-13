@@ -19,6 +19,7 @@ import gigabyte.logic.commands.ClearClientsCommand;
 import gigabyte.logic.commands.DeleteClientCommand;
 import gigabyte.logic.commands.EditClientCommand;
 import gigabyte.logic.commands.ExitCommand;
+import gigabyte.logic.commands.FilterGigsCommand;
 import gigabyte.logic.commands.FindClientCommand;
 import gigabyte.logic.commands.HelpCommand;
 import gigabyte.logic.commands.ListClientsCommand;
@@ -36,6 +37,11 @@ import gigabyte.testutil.EditClientDescriptorBuilder;
 public class GigabyteParserTest {
 
     private final GigabyteParser parser = new GigabyteParser();
+
+    @Test
+    public void parseCommand_filterGigs() throws Exception {
+        assertEquals(new FilterGigsCommand(GigStatus.IN_PROGRESS), parser.parseCommand("gigs s/in_progress"));
+    }
 
     @Test
     public void parseCommand_add() throws Exception {

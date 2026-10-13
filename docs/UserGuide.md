@@ -136,6 +136,22 @@ Paid, outstanding, and overdue rows use distinct colors. `OVERDUE` is calculated
 the saved paid status. If there is no selection or no data for the selection, the panels explain whether to select a
 client, select a gig, or that the selected gig has no payment obligations.
 
+### Filtering gigs by status: `gigs`
+
+Format: `gigs s/STATUS`
+
+Shows matching gigs across **all clients**, even when `find` has narrowed the client list. Each row shows the title,
+client name, status, deadline, and agreed fee. Results keep the order in which gigs were recorded and scroll vertically.
+
+* `STATUS` is `NOT_STARTED`, `IN_PROGRESS`, or `COMPLETED`, ignoring case and surrounding whitespace.
+* Supply exactly one `s/` argument. Missing, unsupported, repeated, or extra arguments are rejected.
+* No matches displays `No gigs with status STATUS.`. Filtering does not modify stored records or the client list.
+* Running `gigs` clears client/gig selections and the payment panel. Select a result to view its payments, or select
+  a client to return to that client's gigs. `addpayment` still uses that client's gig order, not this status view.
+
+Examples: `gigs s/IN_PROGRESS`, `gigs s/completed`. Invalid examples: `gigs`, `gigs s/WAITING`,
+`gigs s/IN_PROGRESS s/COMPLETED`.
+
 ### Creating a gig: `addgig`
 
 Creates a gig linked to an existing client and saves it automatically.
@@ -321,5 +337,6 @@ Action     | Format, Examples
 **Edit**   | `edit INDEX [n/NAME] [p/PHONE_NUMBER] [e/EMAIL] [a/ADDRESS] [t/TAG]... `<br> e.g.,`edit 2 n/James Lee e/jameslee@example.com`
 **Exit**   | `exit`
 **Find**   | `find KEYWORD [MORE_KEYWORDS]`<br> e.g., `find James Jake`
+**Filter gigs** | `gigs s/STATUS`<br> e.g., `gigs s/IN_PROGRESS`
 **List**   | `list`
 **Help**   | `help`

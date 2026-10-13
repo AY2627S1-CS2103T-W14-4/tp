@@ -5,6 +5,7 @@ import static java.util.Objects.requireNonNull;
 import java.util.Objects;
 
 import gigabyte.commons.util.ToStringBuilder;
+import gigabyte.model.gig.GigStatus;
 
 /**
  * Represents the result of a command execution.
@@ -19,13 +20,28 @@ public class CommandResult {
     /** The application should exit. */
     private final boolean exit;
 
+    /** Status to display across all clients, or null when the gig view should remain unchanged. */
+    private final GigStatus gigStatusFilter;
+
     /**
      * Constructs a {@code CommandResult} with the specified fields.
      */
     public CommandResult(String feedbackToUser, boolean showHelp, boolean exit) {
+        this(feedbackToUser, showHelp, exit, null);
+    }
+
+    private CommandResult(String feedbackToUser, boolean showHelp, boolean exit, GigStatus gigStatusFilter) {
         this.feedbackToUser = requireNonNull(feedbackToUser);
         this.showHelp = showHelp;
         this.exit = exit;
+        this.gigStatusFilter = gigStatusFilter;
+    }
+
+    /**
+     * Constructs a result requesting a gig-status view across all clients.
+     */
+    public CommandResult(String feedbackToUser, GigStatus gigStatusFilter) {
+        this(feedbackToUser, false, false, requireNonNull(gigStatusFilter));
     }
 
     /**
@@ -48,6 +64,10 @@ public class CommandResult {
         return exit;
     }
 
+    public GigStatus getGigStatusFilter() {
+        return gigStatusFilter;
+    }
+
     @Override
     public boolean equals(Object other) {
         if (other == this) {
@@ -61,12 +81,13 @@ public class CommandResult {
 
         return feedbackToUser.equals(otherCommandResult.feedbackToUser)
                 && showHelp == otherCommandResult.showHelp
-                && exit == otherCommandResult.exit;
+                && exit == otherCommandResult.exit
+                && gigStatusFilter == otherCommandResult.gigStatusFilter;
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(feedbackToUser, showHelp, exit);
+        return Objects.hash(feedbackToUser, showHelp, exit, gigStatusFilter);
     }
 
     @Override
@@ -75,6 +96,7 @@ public class CommandResult {
                 .add("feedbackToUser", feedbackToUser)
                 .add("showHelp", showHelp)
                 .add("exit", exit)
+                .add("gigStatusFilter", gigStatusFilter)
                 .toString();
     }
 

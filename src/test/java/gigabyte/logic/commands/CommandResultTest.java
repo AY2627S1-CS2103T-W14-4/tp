@@ -3,11 +3,28 @@ package gigabyte.logic.commands;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.junit.jupiter.api.Test;
 
+import gigabyte.model.gig.GigStatus;
+
 public class CommandResultTest {
+    @Test
+    public void gigStatusFilter_includedInResultIdentity() {
+        CommandResult result = new CommandResult("feedback", GigStatus.IN_PROGRESS);
+        CommandResult same = new CommandResult("feedback", GigStatus.IN_PROGRESS);
+        assertEquals(GigStatus.IN_PROGRESS, result.getGigStatusFilter());
+        assertNull(new CommandResult("feedback").getGigStatusFilter());
+        assertEquals(result, same);
+        assertEquals(result.hashCode(), same.hashCode());
+        assertNotEquals(result, new CommandResult("feedback", GigStatus.COMPLETED));
+        assertNotEquals(result, new CommandResult("feedback"));
+        assertThrows(NullPointerException.class, () -> new CommandResult("feedback", (GigStatus) null));
+    }
+
     @Test
     public void equals() {
         CommandResult commandResult = new CommandResult("feedback");
@@ -57,7 +74,7 @@ public class CommandResultTest {
         CommandResult commandResult = new CommandResult("feedback");
         String expected = CommandResult.class.getCanonicalName() + "{feedbackToUser="
                 + commandResult.getFeedbackToUser() + ", showHelp=" + commandResult.isShowHelp()
-                + ", exit=" + commandResult.isExit() + "}";
+                + ", exit=" + commandResult.isExit() + ", gigStatusFilter=null}";
         assertEquals(expected, commandResult.toString());
     }
 }
