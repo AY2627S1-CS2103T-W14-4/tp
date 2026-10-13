@@ -195,10 +195,9 @@ public class MainWindow extends UiPart<Stage> {
     }
 
     /** Clamps a requested window dimension between the supported minimum and available screen dimension. */
-    static double clampWindowDimension(double requestedSize,
-        double minimumSize, double availableSize) {
-    double effectiveMinimum = Math.min(minimumSize, availableSize);
-    return Math.max(effectiveMinimum, Math.min(requestedSize, availableSize));
+    static double clampWindowDimension(double requestedSize, double minimumSize, double availableSize) {
+        double effectiveMinimum = Math.min(minimumSize, availableSize);
+        return Math.max(effectiveMinimum, Math.min(requestedSize, availableSize));
     }
 
     /** Clamps a saved window coordinate within the available screen-axis range. */
