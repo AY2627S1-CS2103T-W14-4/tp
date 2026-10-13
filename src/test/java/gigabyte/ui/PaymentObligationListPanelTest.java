@@ -2,6 +2,7 @@ package gigabyte.ui;
 
 import static gigabyte.testutil.TypicalClients.ALICE;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -25,8 +26,10 @@ import gigabyte.model.gig.GigTitle;
 import gigabyte.model.gig.PaymentObligation;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
+import javafx.geometry.Orientation;
 import javafx.scene.Scene;
 import javafx.scene.control.ListCell;
+import javafx.scene.control.ScrollBar;
 
 public class PaymentObligationListPanelTest {
     private static final Clock TEST_CLOCK = Clock.fixed(Instant.parse("2026-10-11T04:00:00Z"),
@@ -154,6 +157,32 @@ public class PaymentObligationListPanelTest {
         assertTrue(renderCells(panel).get(0).getText().contains("OVERDUE"));
     }
 
+    @Test
+    public void paymentCell_narrowPanel_wrapsWithoutHorizontalScrolling() {
+        PaymentObligation payment = createPayment(FIRST_GIG, "500", "2099-02-28", false);
+        PaymentObligationListPanel panel = createPanel(FXCollections.observableArrayList(payment));
+        panel.showPaymentsFor(FIRST_GIG);
+    
+        new Scene(panel.getRoot(), 340, 300);
+        List<ListCell<PaymentObligation>> cells = renderCells(panel);
+    
+        assertEquals(1, cells.size());
+        ListCell<PaymentObligation> cell = cells.get(0);
+        assertTrue(cell.isWrapText());
+        assertTrue(cell.getWidth() <= panel.getPaymentListView().getWidth());
+        assertTrue(cell.getText().contains("Amount: $500.00"));
+        assertTrue(cell.getText().contains("Due: 2099-02-28"));
+        assertTrue(cell.getText().contains("OUTSTANDING"));
+    
+        boolean hasVisibleHorizontalScrollBar = panel.getPaymentListView()
+                .lookupAll(".scroll-bar").stream()
+                .anyMatch(node -> node instanceof ScrollBar scrollBar
+                        && scrollBar.getOrientation() == Orientation.HORIZONTAL
+                        && scrollBar.isVisible());
+    
+        assertFalse(hasVisibleHorizontalScrollBar);
+    }
+    
     private PaymentObligationListPanel createPanel(ObservableList<PaymentObligation> payments) {
         return new PaymentObligationListPanel(payments, TEST_CLOCK);
     }
