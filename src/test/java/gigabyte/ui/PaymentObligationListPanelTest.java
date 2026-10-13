@@ -162,10 +162,10 @@ public class PaymentObligationListPanelTest {
         PaymentObligation payment = createPayment(FIRST_GIG, "500", "2099-02-28", false);
         PaymentObligationListPanel panel = createPanel(FXCollections.observableArrayList(payment));
         panel.showPaymentsFor(FIRST_GIG);
-    
+
         new Scene(panel.getRoot(), 340, 300);
         List<ListCell<PaymentObligation>> cells = renderCells(panel);
-    
+
         assertEquals(1, cells.size());
         ListCell<PaymentObligation> cell = cells.get(0);
         assertTrue(cell.isWrapText());
@@ -173,16 +173,16 @@ public class PaymentObligationListPanelTest {
         assertTrue(cell.getText().contains("Amount: $500.00"));
         assertTrue(cell.getText().contains("Due: 2099-02-28"));
         assertTrue(cell.getText().contains("OUTSTANDING"));
-    
+
         boolean hasVisibleHorizontalScrollBar = panel.getPaymentListView()
                 .lookupAll(".scroll-bar").stream()
                 .anyMatch(node -> node instanceof ScrollBar scrollBar
                         && scrollBar.getOrientation() == Orientation.HORIZONTAL
                         && scrollBar.isVisible());
-    
+
         assertFalse(hasVisibleHorizontalScrollBar);
     }
-    
+
     private PaymentObligationListPanel createPanel(ObservableList<PaymentObligation> payments) {
         return new PaymentObligationListPanel(payments, TEST_CLOCK);
     }
