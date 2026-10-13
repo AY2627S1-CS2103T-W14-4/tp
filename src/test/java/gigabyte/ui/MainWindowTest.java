@@ -62,7 +62,7 @@ public class MainWindowTest {
             callOnJavaFxThread(() -> {
                 mainWindow.getClientListPanel().getClientListView().requestFocus();
                 assertTrue(mainWindow.getClientListPanel().getClientListView().isFocused());
-    
+
                 mainWindow.getClientListPanel().getClientListView().getSelectionModel().select(0);
                 assertEquals(1, mainWindow.getGigListPanel().getGigListView().getItems().size());
                 return null;
@@ -72,10 +72,10 @@ public class MainWindowTest {
                 TextField commandTextField = (TextField) mainWindow.getRoot().getScene()
                         .lookup("#commandTextField");
                 assertTrue(commandTextField.isFocused());
-    
+
                 mainWindow.getGigListPanel().getGigListView().requestFocus();
                 assertTrue(mainWindow.getGigListPanel().getGigListView().isFocused());
-    
+
                 mainWindow.getGigListPanel().getGigListView().getSelectionModel().select(0);
                 assertEquals(1, mainWindow.getPaymentObligationListPanel()
                         .getPaymentListView().getItems().size());
