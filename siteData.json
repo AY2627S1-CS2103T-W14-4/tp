@@ -121,6 +121,7 @@
         "listing-all-clients-list": "Listing all clients: list",
         "understanding-indexes-and-filtered-results": "Understanding indexes and filtered results",
         "viewing-gigs-and-payment-obligations": "Viewing gigs and payment obligations",
+        "filtering-gigs-by-status-gigs": "Filtering gigs by status: gigs",
         "creating-a-gig-addgig": "Creating a gig: addgig",
         "recording-a-payment-obligation-addpayment": "Recording a payment obligation: addpayment",
         "editing-a-client-edit": "Editing a client: edit",
