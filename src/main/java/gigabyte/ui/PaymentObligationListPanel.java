@@ -119,7 +119,7 @@ public class PaymentObligationListPanel extends UiPart<Region> {
                     setText(null);
                     return;
                 }
-
+    
                 String displayState = getDisplayState(payment);
                 setText(String.format("%d. Amount: $%s    Due: %s    %s",
                         getIndex() + 1, payment.getAmount(), payment.getDueDate(), displayState));
@@ -128,6 +128,7 @@ public class PaymentObligationListPanel extends UiPart<Region> {
         };
         cell.getStyleClass().add("payment-list-cell");
         cell.setWrapText(true);
+        cell.prefWidthProperty().bind(paymentListView.widthProperty().subtract(20));
         return cell;
     }
 
