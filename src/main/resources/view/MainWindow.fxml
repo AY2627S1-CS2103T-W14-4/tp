@@ -13,7 +13,7 @@
 <?import javafx.scene.layout.HBox?>
 
 <fx:root type="javafx.stage.Stage" xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1"
-         title="Gigabyte" minWidth="700" minHeight="600" onCloseRequest="#handleExit">
+         title="Gigabyte" minWidth="700" minHeight="450" onCloseRequest="#handleExit">
   <icons>
     <Image url="@/images/gigabyte_32.png" />
   </icons>
@@ -55,7 +55,10 @@
           <StackPane fx:id="clientListPanelPlaceholder" VBox.vgrow="ALWAYS"/>
         </VBox>
         <VBox styleClass="pane-with-border" minWidth="340" prefWidth="500" HBox.hgrow="ALWAYS">
-          <StackPane fx:id="gigListPanelPlaceholder" VBox.vgrow="ALWAYS"/>
+          <SplitPane dividerPositions="0.5" orientation="VERTICAL" VBox.vgrow="ALWAYS">
+            <StackPane fx:id="gigListPanelPlaceholder" />
+            <StackPane fx:id="paymentObligationListPanelPlaceholder" />
+          </SplitPane>
         </VBox>
         </HBox>
 

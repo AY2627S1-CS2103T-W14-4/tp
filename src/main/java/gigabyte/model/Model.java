@@ -83,6 +83,11 @@ public interface Model {
     ObservableList<Gig> getGigList();
 
     /**
+     * Returns an unmodifiable view of all payment obligations.
+     */
+    ObservableList<PaymentObligation> getPaymentObligationList();
+
+    /**
      * Adds a payment obligation linked to an existing gig.
      */
     void addPaymentObligation(PaymentObligation obligation);

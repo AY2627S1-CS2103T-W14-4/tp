@@ -11,7 +11,7 @@ public final class JavaFxTestUtil {
     /** Starts the JavaFX toolkit if it has not already been started. */
     public static synchronized void startToolkit() {
         if (!started) {
-            Platform.startup(() -> { });
+            Platform.startup(() -> Platform.setImplicitExit(false));
             started = true;
         }
     }

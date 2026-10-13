@@ -5,7 +5,10 @@ import static gigabyte.testutil.TypicalClients.BENSON;
 import static gigabyte.testutil.TypicalClients.CARL;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -66,6 +69,32 @@ public class GigListPanelTest {
         panel.showGigsFor(null);
 
         assertEquals("Select a client to view their gigs.", panel.getEmptyState().getText());
+    }
+
+    @Test
+    public void selectingGig_selectedGig_invokesSelectionHandler() {
+        AtomicReference<Gig> selectedGig = new AtomicReference<>();
+        GigListPanel panel = new GigListPanel(
+                FXCollections.observableArrayList(ALICE_GIG, BENSON_GIG), selectedGig::set);
+        panel.showGigsFor(ALICE);
+
+        panel.getGigListView().getSelectionModel().select(0);
+
+        assertEquals(ALICE_GIG, selectedGig.get());
+    }
+
+    @Test
+    public void showGigsFor_anotherClient_clearsPreviousGigSelection() {
+        AtomicReference<Gig> selectedGig = new AtomicReference<>();
+        GigListPanel panel = new GigListPanel(
+                FXCollections.observableArrayList(ALICE_GIG, BENSON_GIG), selectedGig::set);
+        panel.showGigsFor(ALICE);
+        panel.getGigListView().getSelectionModel().select(0);
+
+        panel.showGigsFor(BENSON);
+
+        assertNull(panel.getGigListView().getSelectionModel().getSelectedItem());
+        assertNull(selectedGig.get());
     }
 
     @Test

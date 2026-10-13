@@ -1,5 +1,7 @@
 package gigabyte.ui;
 
+import java.util.function.Consumer;
+
 import gigabyte.model.client.Client;
 import gigabyte.model.gig.Gig;
 import javafx.collections.ObservableList;
@@ -21,6 +23,11 @@ public class GigListPanel extends UiPart<Region> {
 
     /** Creates a gig list panel backed by the given gigs. */
     public GigListPanel(ObservableList<Gig> gigs) {
+        this(gigs, gig -> { });
+    }
+
+    /** Creates a gig list panel backed by the given gigs and gig-selection handler. */
+    public GigListPanel(ObservableList<Gig> gigs, Consumer<Gig> gigSelectionHandler) {
         super("GigListPanel.fxml", new BorderPane());
         filteredGigs = new FilteredList<>(gigs, gig -> false);
         gigListView.setItems(filteredGigs);
@@ -38,12 +45,15 @@ public class GigListPanel extends UiPart<Region> {
             cell.prefWidthProperty().bind(view.widthProperty().subtract(20));
             return cell;
         });
+        gigListView.getSelectionModel().selectedItemProperty().addListener((observable, oldGig, newGig) ->
+                gigSelectionHandler.accept(newGig));
         updateEmptyState();
         filteredGigs.addListener((javafx.collections.ListChangeListener<Gig>) change -> updateEmptyState());
     }
 
     /** Displays only the gigs belonging to {@code client}. */
     public void showGigsFor(Client client) {
+        gigListView.getSelectionModel().clearSelection();
         selectedClient = client;
         filteredGigs.setPredicate(gig -> isGigForClient(gig, client));
         updateEmptyState();

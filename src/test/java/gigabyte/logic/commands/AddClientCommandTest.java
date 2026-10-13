@@ -156,6 +156,11 @@ public class AddClientCommandTest {
         }
 
         @Override
+        public ObservableList<PaymentObligation> getPaymentObligationList() {
+            throw new AssertionError("This method should not be called.");
+        }
+
+        @Override
         public void addPaymentObligation(PaymentObligation obligation) {
             throw new AssertionError("This method should not be called.");
         }

@@ -440,12 +440,17 @@ with `java -jar gigabyte.jar`. Back up `data/addressbook.json` before any test t
 
 1. **Fresh launch with sample data**
    1. Ensure the test folder has no `data` directory or `preferences.json`, then launch the JAR.<br>
-      Expected: Six sample clients appear. The Gigs panel says `Select a client to view their gigs.`
+      Expected: Six sample clients appear. The Gigs panel says `Select a client to view their gigs.`, and the
+      Payment obligations panel says `Select a gig to view its payment obligations.`
    1. Select `Alex Yeoh`.<br>
       Expected: The Gigs panel shows `Portfolio website redesign` and `Product launch photography`, including each
-      gig's status, deadline, and fee.
+      gig's status, deadline, and fee. The Payment obligations panel still says
+      `Select a gig to view its payment obligations.`
+   1. Select `Portfolio website redesign`.<br>
+      Expected: The Payment obligations panel says `This gig has no payment obligations.`
    1. Select `Charlotte Oliveiro`.<br>
-      Expected: The Gigs panel says `This client has no gigs.`
+      Expected: The Gigs panel says `This client has no gigs.`, the previous gig selection is cleared, and the
+      Payment obligations panel says `Select a gig to view its payment obligations.`
 
 1. **Empty client list**
    1. Input: `clear`<br>
@@ -525,19 +530,22 @@ Start this section from a fresh test folder so the sample clients and gigs are p
 Start this section from a fresh test folder. Alex's sample gigs make `CLIENT_INDEX 1` and `GIG_INDEX 1` valid.
 
 1. **Valid payment obligation**
-   1. Input: `addpayment 1 1 a/500.00 d/2027-07-15`<br>
+   1. Select `Alex Yeoh`, then select `Portfolio website redesign`.<br>
+      Expected: The Payment obligations panel says `This gig has no payment obligations.`
+   1. Input: `addpayment 1 1 a/500.00 d/2099-07-15`<br>
       Expected: The result says an unpaid obligation was recorded for `Alex Yeoh`, gig 1, with amount `500.00` and
-      due date `2027-07-15`.
+      due date `2099-07-15`. Without reselecting the gig, the panel immediately shows
+      `1. Amount: $500.00`, `Due: 2099-07-15`, and `OUTSTANDING`.
 
 1. **Invalid amount and date**
-   1. Repeat the command with each amount: `a/0`, `a/-10`, `a/abc`, and `a/10.999`.<br>
+   1. Repeat `addpayment 1 1 a/AMOUNT d/2099-07-15`, replacing `AMOUNT` with `0`, `-10`, `abc`, and `10.999`.<br>
       Expected: No obligation is recorded in every case; the result requires a positive number with at most two
       decimal places.
-   1. Input: `addpayment 1 1 a/500 d/15-07-2027`<br>
+   1. Input: `addpayment 1 1 a/500 d/15-07-2099`<br>
       Expected: No obligation is recorded; the result requires a valid `yyyy-MM-dd` calendar date.
 
 1. **Repeated prefix**
-   1. Input: `addpayment 1 1 a/500 a/600 d/2027-07-15`<br>
+   1. Input: `addpayment 1 1 a/500 a/600 d/2099-07-15`<br>
       Expected: No obligation is recorded; the result reports multiple values for `a/`.
 
 1. **Invalid client and gig indexes**
@@ -547,6 +555,69 @@ Start this section from a fresh test folder. Alex's sample gigs make `CLIENT_IND
    1. Repeat a valid command with each gig index: `0`, `-1`, `abc`, and `999`.<br>
       Expected: No obligation is recorded. The first three produce the command-format error; `999` reports that the
       gig index is invalid for this client.
+
+### Viewing payment obligations
+
+Start each test in this section from a fresh test folder unless the test says otherwise.
+
+1. **Filtering, ordering, displayed indexes, and visual states**
+   1. Input these commands in order:<br>
+      `addpayment 1 1 a/300 d/2099-03-01`<br>
+      `addpayment 1 1 a/200 d/2099-02-01`<br>
+      `addpayment 1 1 a/250 d/2099-02-01`<br>
+      `addpayment 1 1 a/100 d/2020-01-01`<br>
+      `addpayment 1 2 a/900 d/2099-01-01`<br>
+      Expected: All five commands succeed.
+   1. Select `Alex Yeoh`, then select `Portfolio website redesign`.<br>
+      Expected: Exactly four payments appear. Their displayed indexes restart from 1 and their amounts are ordered
+      `$100.00`, `$200.00`, `$250.00`, `$300.00`. The two obligations due on `2099-02-01` retain the order in which
+      they were recorded. The `$100.00` row is `OVERDUE` and visually distinct from the three `OUTSTANDING` rows.
+   1. Select `Product launch photography`.<br>
+      Expected: Only `1. Amount: $900.00`, due `2099-01-01`, appears; none of the first gig's payments remain visible.
+   1. Select `Bernice Yu`.<br>
+      Expected: Alex's gig and payment selections are cleared. Only Bernice's gig is shown, and the Payment
+      obligations panel says `Select a gig to view its payment obligations.`
+   1. Select `Brand identity refresh`.<br>
+      Expected: The Payment obligations panel says `This gig has no payment obligations.`
+
+1. **Paid-row appearance using controlled test data**
+   1. Input these commands:<br>
+      `addpayment 1 1 a/700 d/2099-04-01`<br>
+      `addpayment 1 1 a/710 d/2099-05-01`<br>
+      `addpayment 1 1 a/720 d/2020-05-01`<br>
+      Then input `exit`.<br>
+      Expected: All three obligations are recorded and Gigabyte closes.
+   1. Back up `data/addressbook.json`. In the `paymentObligations` array, find the entry whose `amountCents` is
+      `70000`, change only its `paid` value from `false` to `true`, save the file, and relaunch the JAR.<br>
+      Expected: Gigabyte loads normally.
+   1. Select `Alex Yeoh`, then select `Portfolio website redesign`.<br>
+      Expected: The `$700.00` row shows `PAID`. Its muted paid styling is visibly different from the blue outstanding
+      `$710.00` row and the red overdue `$720.00` row. Its stored due date remains unchanged.
+
+1. **Field-identical gigs remain separate**
+   1. Input the following command twice:<br>
+      `addgig 1 t/Identical gig s/NOT_STARTED d/2099-06-01 f/100`<br>
+      Expected: Two separate, otherwise identical gigs are added for Alex as gigs 3 and 4.
+   1. Input `addpayment 1 3 a/111 d/2099-06-15`, followed by
+      `addpayment 1 4 a/222 d/2099-06-15`.<br>
+      Expected: Both commands succeed.
+   1. Select `Alex Yeoh`, then select the first `Identical gig` (gig 3).<br>
+      Expected: Only the `$111.00` payment appears.
+   1. Select the second `Identical gig` (gig 4).<br>
+      Expected: Only the `$222.00` payment appears, confirming that field-identical gigs keep separate payments.
+
+1. **Keyboard focus after selection**
+   1. Select a client, then immediately type `list` without clicking the command box.<br>
+      Expected: `list` appears in the command box and pressing Enter runs it.
+   1. Select a client and one of its gigs, then immediately type `list` without clicking the command box.<br>
+      Expected: `list` again appears in the command box and pressing Enter runs it.
+
+1. **Usability at the supported scaled viewport**
+   1. Set the display resolution to 1280×720 and display scaling to 150%, then launch the JAR.<br>
+      Expected: The window fits within the usable screen area. Clients remain on the left; the Gigs and Payment
+      obligations panels are stacked on the right. The command box, result display, and status bar remain reachable.
+   1. Select Alex, select a gig, and resize the vertical divider between the Gigs and Payment obligations panels.<br>
+      Expected: Both panels remain usable, and payment rows can be reached by scrolling when necessary.
 
 ### Commands after filtering clients
 
@@ -579,11 +650,10 @@ Start this section from a fresh test folder. Alex's sample gigs make `CLIENT_IND
       `addgig 1 t/Persistence check s/NOT_STARTED d/2027-09-01 f/900`, then
       `addpayment 1 3 a/450 d/2027-09-15`, then `exit`.<br>
       Expected: Both commands succeed before the app exits.
-   1. Relaunch the same JAR from the same folder and select Alex.<br>
-      Expected: `Persistence check` is still Alex's third gig with the same status, deadline, and fee.
-   1. Close the app and open `data/addressbook.json` in a text editor.<br>
-      Expected: The `paymentObligations` array contains an unpaid obligation with `"amountCents" : 45000`, linked by
-      `gigUid` to the persisted gig.
+   1. Relaunch the same JAR from the same folder, select Alex, then select `Persistence check`.<br>
+      Expected: `Persistence check` is still Alex's third gig with the same status, deadline, and fee. Its Payment
+      obligations panel shows `1. Amount: $450.00`, due `2027-09-15`, with the appropriate unpaid display state for
+      the current local date.
 
 1. **Missing data file**
    1. Close the app and rename `data/addressbook.json` to `addressbook.backup.json`, then relaunch.<br>
@@ -601,10 +671,12 @@ Start this section from a fresh test folder. Alex's sample gigs make `CLIENT_IND
    Expected: Alex is the only displayed client and is numbered 1.
 1. Input: `addgig 1 t/End-to-end website s/IN_PROGRESS d/2027-10-01 f/2000`.<br>
    Expected: A titled gig is created for Alex while the filtered list remains visible.
-1. Select Alex and note that the new gig is third, then input `addpayment 1 3 a/1000 d/2027-10-15`.<br>
-   Expected: An unpaid obligation is recorded for Alex's third gig.
+1. Select Alex, select `End-to-end website`, note that it is the third gig, then input
+   `addpayment 1 3 a/1000 d/2027-10-15`.<br>
+   Expected: An unpaid obligation is recorded for Alex's third gig and immediately appears in its Payment
+   obligations panel.
 1. Input `exit`, relaunch from the same folder, input `find Alex`, and select Alex.<br>
    Expected: `End-to-end website` is still present with its status, deadline, and fee unchanged.
-1. Close the app and inspect `data/addressbook.json`.<br>
-   Expected: The gig has a stable `uid` and Alex's `clientUid`; the payment obligation refers to that gig's `uid`
-   using `gigUid`.
+1. Select `End-to-end website`.<br>
+   Expected: Its Payment obligations panel shows `1. Amount: $1000.00`, due `2027-10-15`, with the appropriate unpaid
+   display state for the current local date. No payment from another gig is shown.

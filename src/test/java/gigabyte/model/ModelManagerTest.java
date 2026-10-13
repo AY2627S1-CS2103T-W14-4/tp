@@ -21,6 +21,7 @@ import gigabyte.model.gig.Fee;
 import gigabyte.model.gig.Gig;
 import gigabyte.model.gig.GigStatus;
 import gigabyte.model.gig.GigTitle;
+import gigabyte.model.gig.PaymentObligation;
 import gigabyte.model.gig.exceptions.ClientHasGigsException;
 import gigabyte.model.gig.exceptions.GigClientNotFoundException;
 import gigabyte.testutil.ClientBuilder;
@@ -154,6 +155,20 @@ public class ModelManagerTest {
     public void getGigList_modifyList_throwsUnsupportedOperationException() {
         assertThrows(UnsupportedOperationException.class, () ->
                 modelManager.getGigList().add(createGig(ALICE)));
+    }
+
+    @Test
+    public void getPaymentObligationList_addedPayment_returnsLiveUnmodifiableList() {
+        modelManager.addClient(ALICE);
+        modelManager.addGig(createGig(ALICE));
+        List<PaymentObligation> displayedPayments = modelManager.getPaymentObligationList();
+        PaymentObligation payment = new PaymentObligation(modelManager.getGigList().get(0),
+                new Fee("500"), new Deadline("2027-02-28"), false);
+
+        modelManager.addPaymentObligation(payment);
+
+        assertEquals(List.of(payment), displayedPayments);
+        assertThrows(UnsupportedOperationException.class, () -> displayedPayments.remove(0));
     }
 
     @Test
