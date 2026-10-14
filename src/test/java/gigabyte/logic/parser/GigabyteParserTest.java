@@ -12,6 +12,7 @@ import java.util.stream.Collectors;
 
 import org.junit.jupiter.api.Test;
 
+import gigabyte.commons.core.index.Index;
 import gigabyte.logic.commands.AddClientCommand;
 import gigabyte.logic.commands.AddGigCommand;
 import gigabyte.logic.commands.AddPaymentCommand;
@@ -23,6 +24,7 @@ import gigabyte.logic.commands.FilterGigsCommand;
 import gigabyte.logic.commands.FindClientCommand;
 import gigabyte.logic.commands.HelpCommand;
 import gigabyte.logic.commands.ListClientsCommand;
+import gigabyte.logic.commands.MarkPaymentPaidCommand;
 import gigabyte.logic.parser.exceptions.ParseException;
 import gigabyte.model.client.Client;
 import gigabyte.model.client.ClientNameContainsKeywordsPredicate;
@@ -61,6 +63,12 @@ public class GigabyteParserTest {
     public void parseCommand_addPayment() throws Exception {
         assertEquals(new AddPaymentCommand(INDEX_FIRST_CLIENT, INDEX_FIRST_CLIENT, new Fee("50.00"),
                 new Deadline("2027-01-31")), parser.parseCommand("addpayment 1 1 a/50.00 d/2027-01-31"));
+    }
+
+    @Test
+    public void parseCommand_markPaymentPaid() throws Exception {
+        assertEquals(new MarkPaymentPaidCommand(INDEX_FIRST_CLIENT, INDEX_FIRST_CLIENT,
+                Index.fromOneBased(3)), parser.parseCommand("markpaid 1 1 3"));
     }
 
     @Test

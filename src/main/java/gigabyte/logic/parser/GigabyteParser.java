@@ -20,6 +20,7 @@ import gigabyte.logic.commands.FilterGigsCommand;
 import gigabyte.logic.commands.FindClientCommand;
 import gigabyte.logic.commands.HelpCommand;
 import gigabyte.logic.commands.ListClientsCommand;
+import gigabyte.logic.commands.MarkPaymentPaidCommand;
 import gigabyte.logic.parser.exceptions.ParseException;
 
 /**
@@ -58,6 +59,7 @@ public class GigabyteParser {
             case AddClientCommand.COMMAND_WORD -> new AddClientCommandParser().parse(arguments);
             case AddGigCommand.COMMAND_WORD -> new AddGigCommandParser().parse(arguments);
             case AddPaymentCommand.COMMAND_WORD -> new AddPaymentCommandParser().parse(arguments);
+            case MarkPaymentPaidCommand.COMMAND_WORD -> new MarkPaymentPaidCommandParser().parse(arguments);
             case EditClientCommand.COMMAND_WORD -> new EditClientCommandParser().parse(arguments);
             case DeleteClientCommand.COMMAND_WORD -> new DeleteClientCommandParser().parse(arguments);
             case ClearClientsCommand.COMMAND_WORD -> new ClearClientsCommand();
