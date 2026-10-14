@@ -136,6 +136,21 @@ Paid, outstanding, and overdue rows use distinct colors. `OVERDUE` is calculated
 the saved paid status. If there is no selection or no data for the selection, the panels explain whether to select a
 client, select a gig, or that the selected gig has no payment obligations.
 
+### Viewing outstanding payments: `outstanding`
+
+Format: `outstanding`
+
+Lists **unpaid** obligations across all gigs and clients, including clients hidden by `find`. Rows show the client,
+gig title, amount, due date, and payment state. Results sort by due date, earliest first; ties keep their recorded order.
+
+* `OVERDUE` means an unpaid obligation is due **before today**, using your computer's local calendar date.
+  Obligations due today or later display `OUTSTANDING`. Text and color identify overdue items, and the display
+  refreshes at local midnight without changing records.
+* Paid obligations are excluded. The empty state is `No outstanding payment obligations.`.
+* Results wrap and scroll vertically. Selecting a client and gig restores that gig's payment view.
+* Re-run `outstanding` after an obligation is marked paid to confirm it is excluded. Displaying results does not
+  change records or the client list. The command takes no arguments; `outstanding extra` is rejected.
+
 ### Filtering gigs by status: `gigs`
 
 Format: `gigs s/STATUS`
@@ -338,5 +353,6 @@ Action     | Format, Examples
 **Exit**   | `exit`
 **Find**   | `find KEYWORD [MORE_KEYWORDS]`<br> e.g., `find James Jake`
 **Filter gigs** | `gigs s/STATUS`<br> e.g., `gigs s/IN_PROGRESS`
+**Outstanding payments** | `outstanding`
 **List**   | `list`
 **Help**   | `help`
