@@ -6,6 +6,7 @@ import java.util.function.Consumer;
 
 import gigabyte.model.client.Client;
 import gigabyte.model.gig.Gig;
+import gigabyte.model.gig.GigOrdering;
 import gigabyte.model.gig.GigStatus;
 import javafx.collections.ObservableList;
 import javafx.collections.transformation.FilteredList;
@@ -79,7 +80,7 @@ public class GigListPanel extends UiPart<Region> {
 
     /** Returns whether {@code gig} belongs to {@code client}. */
     static boolean isGigForClient(Gig gig, Client client) {
-        return client != null && gig.getClient().hasSameUid(client);
+        return GigOrdering.isForClient(gig, client);
     }
 
     /** Returns the gigs currently displayed by this panel. */

@@ -119,6 +119,41 @@ public class MainWindowTest {
         }
     }
 
+    @Test
+    public void markPaidCommand_refreshesDisplayedPaymentImmediately() throws Exception {
+        Model model = new ModelManager();
+        model.addClient(ALICE);
+        model.addGig(ALICE_GIG);
+        model.addPaymentObligation(ALICE_PAYMENT);
+        Logic logic = new LogicManager(model, new StorageManager(
+                new JsonGigabyteDataStorage(temporaryFolder.resolve("paid-data.json")),
+                new JsonUserPrefsStorage(temporaryFolder.resolve("paid-preferences.json"))));
+        MainWindow window = callOnJavaFxThread(() -> {
+            MainWindow mainWindow = new MainWindow(new Stage(), logic, temporaryFolder.resolve("paid-data.json"));
+            mainWindow.fillInnerParts();
+            return mainWindow;
+        });
+
+        try {
+            callOnJavaFxThread(() -> {
+                window.getClientListPanel().getClientListView().getSelectionModel().select(0);
+                window.getGigListPanel().getGigListView().getSelectionModel().select(0);
+                assertEquals(List.of(ALICE_PAYMENT), window.getPaymentObligationListPanel()
+                        .getPaymentListView().getItems());
+
+                enterCommand(window, "markpaid 1 1 1");
+
+                assertTrue(window.getPaymentObligationListPanel().getPaymentListView().getItems().get(0).isPaid());
+                return null;
+            });
+        } finally {
+            callOnJavaFxThread(() -> {
+                window.getPrimaryStage().hide();
+                return null;
+            });
+        }
+    }
+
     private static void enterCommand(MainWindow window, String command) {
         TextField textField = (TextField) window.getRoot().getScene().lookup("#commandTextField");
         textField.setText(command);
