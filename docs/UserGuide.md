@@ -39,6 +39,8 @@
 
    * `addpayment 1 1 a/500.00 d/2027-02-15` : Records an unpaid obligation for that client's first gig.
 
+   * `markpaid 1 1 1` : Marks the first displayed payment for the first displayed client's first gig as paid.
+
    * `clear` : Deletes all clients.
 
    * `exit` : Exits the app.
@@ -107,14 +109,13 @@ Gigabyte uses one-based indexes: the first displayed item is `1`, the second is 
 numbers, decimals, text, and indexes larger than the displayed list are invalid.
 
 * A **client index** always refers to the numbered client in the list currently shown on the left. Commands such as
-  `addgig`, `addpayment`, `edit`, and `delete` use this displayed list.
+  `addgig`, `addpayment`, `markpaid`, `edit`, and `delete` use this displayed list.
 * `find` replaces the displayed client list with its matching results. A later command therefore uses the numbers in
   those results, not the numbers from the earlier full list. Run `list` to restore the full client list.
 * A **gig index** is the gig's one-based position among the chosen client's gigs. It is not an index into all gigs in
   Gigabyte. Selecting that client in the UI lets you confirm the order shown in the **Gigs** panel, but clicking the
-  client is not required before running `addpayment`.
-* The currently implemented payment command does not take a payment index: the two indexes in `addpayment` are the
-  client index and that client's gig index, in that order.
+  client is not required before running `addpayment` or `markpaid`.
+* `addpayment` takes the client and gig indexes. `markpaid` takes those same indexes followed by a payment index.
 
 Example: after `find Bernice`, `addgig 1 ...` targets the first client in the filtered results. After `list`, the same
 client might have a different index.
@@ -124,7 +125,7 @@ client might have a different index.
 Select a client in the client list to show only that client's gigs in the **Gigs** panel. Select a gig to show only
 its payment obligations in the **Payment obligations** panel beneath the gig list. Payment obligations are numbered
 from 1 and ordered by due date, earliest first. Obligations with the same due date retain the order in which they were
-recorded. These displayed payment indexes restart from 1 for each selected gig; `addpayment` does not use them.
+recorded. These displayed payment indexes restart from 1 for each selected gig; `markpaid` uses them.
 
 Each payment row shows its amount, due date, and current display state:
 
@@ -147,7 +148,8 @@ client name, status, deadline, and agreed fee. Results keep the order in which g
 * Supply exactly one `s/` argument. Missing, unsupported, repeated, or extra arguments are rejected.
 * No matches displays `No gigs with status STATUS.`. Filtering does not modify stored records or the client list.
 * Running `gigs` clears client/gig selections and the payment panel. Select a result to view its payments, or select
-  a client to return to that client's gigs. `addpayment` still uses that client's gig order, not this status view.
+  a client to return to that client's gigs. `addpayment` and `markpaid` use that client's gig order, not this status
+  view.
 
 Examples: `gigs s/IN_PROGRESS`, `gigs s/completed`. Invalid examples: `gigs`, `gigs s/WAITING`,
 `gigs s/IN_PROGRESS s/COMPLETED`.
@@ -223,6 +225,40 @@ Command | Why it is rejected
 
 The confirmation names the client and gig position, amount, and due date. To see the saved obligation, select the
 client and gig in the application; the **Payment obligations** panel refreshes immediately.
+
+### Marking a payment as paid: `markpaid`
+
+Marks one outstanding payment obligation as paid and saves it automatically.
+
+Format: `markpaid CLIENT_INDEX GIG_INDEX PAYMENT_INDEX`
+
+* `CLIENT_INDEX` is the positive index in the currently displayed client list, including `find` results.
+* `GIG_INDEX` is the positive position in that client's gig list, in the order shown in the **Gigs** panel.
+* `PAYMENT_INDEX` is the positive position in the selected gig's payment list, ordered by due date and then by the
+  order in which obligations were recorded. The payment panel and command use this same ordering.
+* All three indexes are required. Zero, negative, non-numeric, missing, extra, and out-of-range indexes are rejected.
+* A payment that is already paid cannot be marked paid again. This leaves the saved data unchanged.
+* The selected row changes to `PAID` immediately. Its gig, amount, and due date remain the same, and the paid state
+  survives restarting Gigabyte.
+
+Successful examples:
+
+* `markpaid 2 1 3` marks the third displayed payment of the first displayed gig belonging to the second displayed
+  client.
+* `find Alex` followed by `markpaid 1 1 2` marks the second displayed payment for the first matching client's first
+  gig.
+
+Unsuccessful examples:
+
+Command | Why it is rejected
+--------|-------------------
+`markpaid 0 1 1` | Client indexes start at 1.
+`markpaid 1 0 1` | Gig indexes start at 1.
+`markpaid 1 1 0` | Payment indexes start at 1.
+`markpaid 1 1 99` | The selected gig has no payment at position 99.
+`markpaid 1 1` | Exactly three indexes are required.
+`markpaid 1 1 1 2` | Extra positional indexes are not accepted.
+`markpaid 1 1 1` on an already paid row | A paid obligation cannot be marked paid a second time.
 
 ### Editing a client: `edit`
 
@@ -332,6 +368,7 @@ Action     | Format, Examples
 **Add**    | `add n/NAME p/PHONE_NUMBER e/EMAIL a/ADDRESS [t/TAG]... ` <br> e.g., `add n/James Ho p/22224444 e/jamesho@example.com a/123, Clementi Rd, 1234665 t/friend t/colleague`
 **Add gig** | `addgig INDEX t/TITLE s/STATUS d/DEADLINE f/FEE` <br> e.g., `addgig 1 t/Website redesign s/NOT_STARTED d/2027-01-31 f/1250.00`
 **Add payment** | `addpayment CLIENT_INDEX GIG_INDEX a/AMOUNT d/DUE_DATE` <br> e.g., `addpayment 1 2 a/500.00 d/2027-01-31`
+**Mark payment paid** | `markpaid CLIENT_INDEX GIG_INDEX PAYMENT_INDEX` <br> e.g., `markpaid 2 1 3`
 **Clear**  | `clear`
 **Delete** | `delete INDEX`<br> e.g., `delete 3`
 **Edit**   | `edit INDEX [n/NAME] [p/PHONE_NUMBER] [e/EMAIL] [a/ADDRESS] [t/TAG]... `<br> e.g.,`edit 2 n/James Lee e/jameslee@example.com`
