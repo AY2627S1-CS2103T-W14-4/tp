@@ -20,6 +20,8 @@ We help freelancers keep their client work and payment obligations organised, ma
 - Edit client details.
 - Create a gig linked to a client, including its status, deadline, and agreed fee.
 - View gigs by client or status.
+- Use `deadlines` to view all active gig deadlines across clients, ordered from
+  soonest to latest; overdue gigs are labelled `OVERDUE`.
 - Update a gig’s status.
 - View upcoming gig deadlines in date order.
 - Record an invoice or payment obligation linked to a gig.
