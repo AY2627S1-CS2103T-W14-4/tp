@@ -144,6 +144,45 @@ public class GigListPanelTest {
     }
 
     @Test
+    public void showDeadlineOverview_filtersCompletedAndSortsAcrossClients() {
+        Gig overdue = new Gig(BENSON, new GigTitle("Earlier"), GigStatus.IN_PROGRESS,
+                new Deadline("2020-01-01"), new Fee("50"));
+        Gig sameDate = new Gig(ALICE, new GigTitle("Later"), GigStatus.NOT_STARTED,
+                new Deadline("2027-01-31"), new Fee("60"));
+        ObservableList<Gig> gigs = FXCollections.observableArrayList(
+                sameDate, BENSON_GIG, ALICE_GIG, overdue);
+        GigListPanel panel = new GigListPanel(gigs);
+
+        panel.showDeadlineOverview();
+
+        assertEquals(List.of(overdue, ALICE_GIG, sameDate), panel.getGigListView().getItems());
+        assertEquals("", panel.getEmptyState().getText());
+    }
+
+    @Test
+    public void showDeadlineOverview_tracksChangesAndShowsEmptyState() {
+        ObservableList<Gig> gigs = FXCollections.observableArrayList(ALICE_GIG, BENSON_GIG);
+        GigListPanel panel = new GigListPanel(gigs);
+        panel.showDeadlineOverview();
+
+        gigs.remove(ALICE_GIG);
+        assertEquals("There are no active gig deadlines.", panel.getEmptyState().getText());
+        Gig added = new Gig(CARL, new GigTitle("New work"), GigStatus.NOT_STARTED,
+                new Deadline("2026-11-01"), new Fee("70"));
+        gigs.add(added);
+        assertEquals(List.of(added), panel.getGigListView().getItems());
+    }
+
+    @Test
+    public void showDeadlineOverview_thenSelectClient_returnsClientView() {
+        GigListPanel panel = createPanel();
+        panel.showDeadlineOverview();
+        panel.showGigsFor(ALICE);
+
+        assertEquals(List.of(ALICE_GIG), panel.getGigListView().getItems());
+    }
+
+    @Test
     public void showGigsWithStatus_manyMatches_keepsCompleteDetailsAndVerticalScrolling() throws Exception {
         FutureTask<Void> test = new FutureTask<>(() -> {
             ObservableList<Gig> gigs = FXCollections.observableArrayList();
