@@ -154,6 +154,7 @@ public class GigListPanelTest {
         GigListPanel panel = new GigListPanel(gigs);
 
         panel.showDeadlineOverview();
+        panel.refreshDeadlineStates();
 
         assertEquals(List.of(overdue, ALICE_GIG, sameDate), panel.getGigListView().getItems());
         assertEquals("", panel.getEmptyState().getText());
