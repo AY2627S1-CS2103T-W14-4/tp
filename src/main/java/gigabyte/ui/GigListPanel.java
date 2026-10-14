@@ -20,15 +20,15 @@ import javafx.scene.layout.Region;
 
 /** Panel displaying gigs for the selected client or a requested status across all clients. */
 public class GigListPanel extends UiPart<Region> {
-    private static final String NO_CLIENT = "Select a client to view their gigs.";
-    private static final String NO_GIGS = "This client has no gigs.";
-    private static final String NO_DEADLINES = "There are no active gig deadlines.";
     /** Shared ordering for active deadline views. */
     public static final Comparator<Gig> DEADLINE_COMPARATOR = Comparator
             .comparing((Gig gig) -> gig.getDeadline().getValue())
             .thenComparing(gig -> gig.getClient().getName().toString())
             .thenComparing(gig -> gig.getTitle().toString())
             .thenComparing(Gig::getUid);
+    private static final String NO_CLIENT = "Select a client to view their gigs.";
+    private static final String NO_GIGS = "This client has no gigs.";
+    private static final String NO_DEADLINES = "There are no active gig deadlines.";
     private final FilteredList<Gig> filteredGigs;
     private Client selectedClient;
     private GigStatus selectedStatus;
@@ -76,7 +76,7 @@ public class GigListPanel extends UiPart<Region> {
         selectedClient = client;
         selectedStatus = null;
         deadlineOverview = false;
-        ((SortedList<Gig>) gigListView.getItems()).setComparator(null);
+        getSortedGigs().setComparator(null);
         filteredGigs.setPredicate(gig -> isGigForClient(gig, client));
         updateEmptyState();
     }
@@ -90,7 +90,7 @@ public class GigListPanel extends UiPart<Region> {
         selectedClient = null;
         selectedStatus = status;
         deadlineOverview = false;
-        ((SortedList<Gig>) gigListView.getItems()).setComparator(null);
+        getSortedGigs().setComparator(null);
         filteredGigs.setPredicate(gig -> gig.getStatus() == status);
         updateEmptyState();
     }
@@ -102,13 +102,18 @@ public class GigListPanel extends UiPart<Region> {
         selectedClient = null;
         selectedStatus = null;
         filteredGigs.setPredicate(gig -> gig.getStatus() != GigStatus.COMPLETED);
-        ((SortedList<Gig>) gigListView.getItems()).setComparator(DEADLINE_COMPARATOR);
+        getSortedGigs().setComparator(DEADLINE_COMPARATOR);
         updateEmptyState();
     }
 
     /** Returns whether {@code gig} belongs to {@code client}. */
     static boolean isGigForClient(Gig gig, Client client) {
         return client != null && gig.getClient().hasSameUid(client);
+    }
+
+    @SuppressWarnings("unchecked")
+    private SortedList<Gig> getSortedGigs() {
+        return (SortedList<Gig>) gigListView.getItems();
     }
 
     /** Returns the gigs currently displayed by this panel. */
