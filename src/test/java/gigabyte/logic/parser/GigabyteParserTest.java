@@ -16,6 +16,7 @@ import gigabyte.logic.commands.AddClientCommand;
 import gigabyte.logic.commands.AddGigCommand;
 import gigabyte.logic.commands.AddPaymentCommand;
 import gigabyte.logic.commands.ClearClientsCommand;
+import gigabyte.logic.commands.DeadlinesCommand;
 import gigabyte.logic.commands.DeleteClientCommand;
 import gigabyte.logic.commands.EditClientCommand;
 import gigabyte.logic.commands.ExitCommand;
@@ -37,6 +38,11 @@ import gigabyte.testutil.EditClientDescriptorBuilder;
 public class GigabyteParserTest {
 
     private final GigabyteParser parser = new GigabyteParser();
+
+    @Test
+    public void parseCommand_deadlines() throws Exception {
+        assertTrue(parser.parseCommand(DeadlinesCommand.COMMAND_WORD) instanceof DeadlinesCommand);
+    }
 
     @Test
     public void parseCommand_filterGigs() throws Exception {

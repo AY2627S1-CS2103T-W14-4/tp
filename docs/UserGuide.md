@@ -152,6 +152,21 @@ client name, status, deadline, and agreed fee. Results keep the order in which g
 Examples: `gigs s/IN_PROGRESS`, `gigs s/completed`. Invalid examples: `gigs`, `gigs s/WAITING`,
 `gigs s/IN_PROGRESS s/COMPLETED`.
 
+### Viewing active deadlines: `deadlines`
+
+Format: `deadlines`
+
+Shows every gig whose status is not `COMPLETED`, across all clients, in the **Gigs** panel.
+Rows contain the gig title, client name, status, deadline, and agreed fee. Results are ordered by
+deadline ascending; equal deadlines are ordered deterministically by client name, gig title, and gig UID.
+
+Deadlines before the current local date remain visible and are labelled `OVERDUE`. Completed gigs are
+never included in this view. The command does not change the client filter. Selecting a client returns
+the panel to that client's normal gig view, and running `deadlines` again restores the overview. The
+overview updates automatically when gigs are added, changed, or removed.
+
+If there are no active gigs, the panel displays `There are no active gig deadlines.`
+
 ### Creating a gig: `addgig`
 
 Creates a gig linked to an existing client and saves it automatically.
