@@ -2,13 +2,17 @@ package gigabyte.ui;
 
 import static java.util.Objects.requireNonNull;
 
+import java.time.Clock;
 import java.time.LocalDate;
+import java.time.ZonedDateTime;
 import java.util.Comparator;
 import java.util.function.Consumer;
 
 import gigabyte.model.client.Client;
 import gigabyte.model.gig.Gig;
 import gigabyte.model.gig.GigStatus;
+import javafx.animation.PauseTransition;
+import javafx.application.Platform;
 import javafx.collections.ObservableList;
 import javafx.collections.transformation.FilteredList;
 import javafx.collections.transformation.SortedList;
@@ -30,6 +34,8 @@ public class GigListPanel extends UiPart<Region> {
     private static final String NO_GIGS = "This client has no gigs.";
     private static final String NO_DEADLINES = "There are no active gig deadlines.";
     private final FilteredList<Gig> filteredGigs;
+    private final Clock clock;
+    private final PauseTransition deadlineRefreshTimer = new PauseTransition();
     private Client selectedClient;
     private GigStatus selectedStatus;
     private boolean deadlineOverview;
@@ -43,7 +49,12 @@ public class GigListPanel extends UiPart<Region> {
 
     /** Creates a gig list panel backed by the given gigs and gig-selection handler. */
     public GigListPanel(ObservableList<Gig> gigs, Consumer<Gig> gigSelectionHandler) {
+        this(gigs, gigSelectionHandler, Clock.systemDefaultZone());
+    }
+
+    GigListPanel(ObservableList<Gig> gigs, Consumer<Gig> gigSelectionHandler, Clock clock) {
         super("GigListPanel.fxml", new BorderPane());
+        this.clock = clock;
         filteredGigs = new FilteredList<>(gigs, gig -> false);
         SortedList<Gig> sortedGigs = new SortedList<>(filteredGigs);
         gigListView.setItems(sortedGigs);
@@ -51,7 +62,8 @@ public class GigListPanel extends UiPart<Region> {
             ListCell<Gig> cell = new ListCell<>() {
                 @Override protected void updateItem(Gig gig, boolean empty) {
                     super.updateItem(gig, empty);
-                    String overdue = gig != null && gig.getDeadline().getValue().isBefore(LocalDate.now())
+                    String overdue = gig != null && gig.getStatus() != GigStatus.COMPLETED
+                            && gig.getDeadline().getValue().isBefore(LocalDate.now(clock))
                             ? "    OVERDUE" : "";
                     setText(empty || gig == null ? null : String.format(
                             "%s%nClient: %s%nStatus: %s    Deadline: %s%s    Fee: $%s",
@@ -68,6 +80,7 @@ public class GigListPanel extends UiPart<Region> {
                 gigSelectionHandler.accept(newGig));
         updateEmptyState();
         filteredGigs.addListener((javafx.collections.ListChangeListener<Gig>) change -> updateEmptyState());
+        Platform.runLater(this::scheduleDeadlineRefresh);
     }
 
     /** Displays only the gigs belonging to {@code client}. */
@@ -114,6 +127,24 @@ public class GigListPanel extends UiPart<Region> {
     @SuppressWarnings("unchecked")
     private SortedList<Gig> getSortedGigs() {
         return (SortedList<Gig>) gigListView.getItems();
+    }
+
+    /** Refreshes overdue labels after the local date changes. */
+    void refreshDeadlineStates() {
+        gigListView.refresh();
+    }
+
+    private void scheduleDeadlineRefresh() {
+        ZonedDateTime currentDateTime = ZonedDateTime.now(clock);
+        ZonedDateTime nextMidnight = currentDateTime.toLocalDate().plusDays(1)
+                .atStartOfDay(clock.getZone());
+        long delayMillis = java.time.Duration.between(currentDateTime, nextMidnight).toMillis();
+        deadlineRefreshTimer.setDuration(javafx.util.Duration.millis(Math.max(1, delayMillis)));
+        deadlineRefreshTimer.setOnFinished(event -> {
+            refreshDeadlineStates();
+            scheduleDeadlineRefresh();
+        });
+        deadlineRefreshTimer.playFromStart();
     }
 
     /** Returns the gigs currently displayed by this panel. */

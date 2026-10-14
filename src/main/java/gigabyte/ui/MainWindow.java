@@ -266,6 +266,7 @@ public class MainWindow extends UiPart<Stage> {
             }
 
             if (commandResult.isShowDeadlineOverview()) {
+                clientListPanel.getClientListView().getSelectionModel().clearSelection();
                 gigListPanel.showDeadlineOverview();
                 paymentObligationListPanel.showPaymentsFor(null);
             }
