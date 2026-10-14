@@ -16,6 +16,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+import gigabyte.model.GigabyteData;
 import gigabyte.model.gig.Deadline;
 import gigabyte.model.gig.Fee;
 import gigabyte.model.gig.Gig;
@@ -58,6 +59,27 @@ public class GigListPanelTest {
 
         assertEquals(1, panel.getGigListView().getItems().size());
         assertEquals(ALICE_GIG, panel.getGigListView().getItems().get(0));
+    }
+
+    @Test
+    public void replacingGigInObservableList_refreshesDisplayedStatusImmediately() {
+        GigabyteData data = new GigabyteData();
+        data.addClient(ALICE);
+        data.addGig(ALICE_GIG);
+        GigListPanel panel = new GigListPanel(data.getGigList());
+        panel.showGigsFor(ALICE);
+        Gig currentGig = data.getGigList().get(0);
+        Gig updatedGig = currentGig.withStatus(GigStatus.COMPLETED);
+
+        data.setGig(currentGig, updatedGig);
+
+        assertEquals(updatedGig, panel.getGigListView().getItems().get(0));
+        new Scene(panel.getRoot(), 500, 300);
+        panel.getRoot().applyCss();
+        panel.getRoot().layout();
+        @SuppressWarnings("unchecked")
+        ListCell<Gig> cell = (ListCell<Gig>) panel.getGigListView().lookup(".list-cell");
+        assertTrue(cell.getText().contains("Status: COMPLETED"));
     }
 
     @Test
