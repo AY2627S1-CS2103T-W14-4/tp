@@ -13,6 +13,18 @@ import gigabyte.model.gig.GigStatus;
 
 public class CommandResultTest {
     @Test
+    public void outstandingPayments_includedInResultIdentity() {
+        CommandResult result = CommandResult.forOutstandingPayments("feedback");
+        assertTrue(result.isShowOutstandingPayments());
+        assertFalse(new CommandResult("feedback").isShowOutstandingPayments());
+        assertEquals(result, CommandResult.forOutstandingPayments("feedback"));
+        assertEquals(result.hashCode(), CommandResult.forOutstandingPayments("feedback").hashCode());
+        assertNotEquals(result, new CommandResult("feedback"));
+        assertNotEquals(new CommandResult("feedback"), result);
+        assertThrows(NullPointerException.class, () -> CommandResult.forOutstandingPayments(null));
+    }
+
+    @Test
     public void gigStatusFilter_includedInResultIdentity() {
         CommandResult result = new CommandResult("feedback", GigStatus.IN_PROGRESS);
         CommandResult same = new CommandResult("feedback", GigStatus.IN_PROGRESS);
@@ -74,7 +86,7 @@ public class CommandResultTest {
         CommandResult commandResult = new CommandResult("feedback");
         String expected = CommandResult.class.getCanonicalName() + "{feedbackToUser="
                 + commandResult.getFeedbackToUser() + ", showHelp=" + commandResult.isShowHelp()
-                + ", exit=" + commandResult.isExit() + ", gigStatusFilter=null}";
+                + ", exit=" + commandResult.isExit() + ", gigStatusFilter=null, showOutstandingPayments=false}";
         assertEquals(expected, commandResult.toString());
     }
 }

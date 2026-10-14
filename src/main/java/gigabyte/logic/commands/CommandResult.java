@@ -24,24 +24,31 @@ public class CommandResult {
     private final GigStatus gigStatusFilter;
 
     /**
+     * Unpaid obligations across all clients should be shown.
+     */
+    private final boolean showOutstandingPayments;
+
+    /**
      * Constructs a {@code CommandResult} with the specified fields.
      */
     public CommandResult(String feedbackToUser, boolean showHelp, boolean exit) {
-        this(feedbackToUser, showHelp, exit, null);
+        this(feedbackToUser, showHelp, exit, null, false);
     }
 
-    private CommandResult(String feedbackToUser, boolean showHelp, boolean exit, GigStatus gigStatusFilter) {
+    private CommandResult(String feedbackToUser, boolean showHelp, boolean exit, GigStatus gigStatusFilter,
+            boolean showOutstandingPayments) {
         this.feedbackToUser = requireNonNull(feedbackToUser);
         this.showHelp = showHelp;
         this.exit = exit;
         this.gigStatusFilter = gigStatusFilter;
+        this.showOutstandingPayments = showOutstandingPayments;
     }
 
     /**
      * Constructs a result requesting a gig-status view across all clients.
      */
     public CommandResult(String feedbackToUser, GigStatus gigStatusFilter) {
-        this(feedbackToUser, false, false, requireNonNull(gigStatusFilter));
+        this(feedbackToUser, false, false, requireNonNull(gigStatusFilter), false);
     }
 
     /**
@@ -50,6 +57,13 @@ public class CommandResult {
      */
     public CommandResult(String feedbackToUser) {
         this(feedbackToUser, false, false);
+    }
+
+    /**
+     * Creates a result requesting an outstanding-payment view across all clients.
+     */
+    public static CommandResult forOutstandingPayments(String feedbackToUser) {
+        return new CommandResult(feedbackToUser, false, false, null, true);
     }
 
     public String getFeedbackToUser() {
@@ -68,6 +82,10 @@ public class CommandResult {
         return gigStatusFilter;
     }
 
+    public boolean isShowOutstandingPayments() {
+        return showOutstandingPayments;
+    }
+
     @Override
     public boolean equals(Object other) {
         if (other == this) {
@@ -82,12 +100,13 @@ public class CommandResult {
         return feedbackToUser.equals(otherCommandResult.feedbackToUser)
                 && showHelp == otherCommandResult.showHelp
                 && exit == otherCommandResult.exit
-                && gigStatusFilter == otherCommandResult.gigStatusFilter;
+                && gigStatusFilter == otherCommandResult.gigStatusFilter
+                && showOutstandingPayments == otherCommandResult.showOutstandingPayments;
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(feedbackToUser, showHelp, exit, gigStatusFilter);
+        return Objects.hash(feedbackToUser, showHelp, exit, gigStatusFilter, showOutstandingPayments);
     }
 
     @Override
@@ -97,6 +116,7 @@ public class CommandResult {
                 .add("showHelp", showHelp)
                 .add("exit", exit)
                 .add("gigStatusFilter", gigStatusFilter)
+                .add("showOutstandingPayments", showOutstandingPayments)
                 .toString();
     }
 
