@@ -189,6 +189,18 @@ public class GigabyteData implements ReadOnlyGigabyteData {
         paymentObligations.add(obligation.withGig(gigs.get(index)));
     }
 
+    /** Replaces the exact stored obligation with its paid copy. */
+    public void markPaymentPaid(PaymentObligation obligation) {
+        requireNonNull(obligation);
+        for (int index = 0; index < paymentObligations.size(); index++) {
+            if (paymentObligations.get(index) == obligation) {
+                paymentObligations.set(index, obligation.withPaid(true));
+                return;
+            }
+        }
+        throw new IllegalArgumentException("Payment obligation must belong to this Gigabyte data.");
+    }
+
     //// accessors
 
     @Override

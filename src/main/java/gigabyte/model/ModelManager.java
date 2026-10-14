@@ -119,6 +119,12 @@ public class ModelManager implements Model {
         gigabyteData.addPaymentObligation(obligation);
     }
 
+    @Override
+    public void markPaymentPaid(PaymentObligation obligation) {
+        requireNonNull(obligation);
+        gigabyteData.markPaymentPaid(obligation);
+    }
+
     //=========== Filtered Client List Accessors =============================================================
 
     /**
