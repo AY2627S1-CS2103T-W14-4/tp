@@ -62,7 +62,7 @@ public class MainWindowTest {
     }
 
     @Test
-    public void filterGigsCommand_switchesViewsClearsPaymentsAndPreservesClientWorkflow() throws Exception {
+    public void gigAndPaymentCommands_switchViewsAndPreserveClientWorkflow() throws Exception {
         Model model = new ModelManager();
         model.addClient(ALICE);
         model.addClient(BENSON);
@@ -109,6 +109,29 @@ public class MainWindowTest {
                 assertEquals(0, window.getPaymentObligationListPanel().getPaymentListView().getItems().size());
                 window.getClientListPanel().getClientListView().getSelectionModel().select(0);
                 assertEquals(List.of(ALICE_GIG), window.getGigListPanel().getGigListView().getItems());
+
+                window.getGigListPanel().getGigListView().getSelectionModel().select(0);
+                enterCommand(window, "outstanding");
+                assertEquals(List.of(ALICE_PAYMENT, BENSON_PAYMENT),
+                        window.getPaymentObligationListPanel().getPaymentListView().getItems());
+                assertNull(window.getClientListPanel().getClientListView().getSelectionModel().getSelectedItem());
+                assertNull(window.getGigListPanel().getGigListView().getSelectionModel().getSelectedItem());
+                enterCommand(window, "outstanding extra");
+                enterCommand(window, "list");
+                enterCommand(window, "find Alice");
+                assertEquals(List.of(ALICE_PAYMENT, BENSON_PAYMENT),
+                        window.getPaymentObligationListPanel().getPaymentListView().getItems());
+                assertEquals(List.of(ALICE), window.getClientListPanel().getClientListView().getItems());
+                window.getClientListPanel().getClientListView().getSelectionModel().select(0);
+                window.getGigListPanel().getGigListView().getSelectionModel().select(0);
+                assertEquals(List.of(ALICE_PAYMENT),
+                        window.getPaymentObligationListPanel().getPaymentListView().getItems());
+                enterCommand(window, "gigs s/NOT_STARTED");
+                window.getGigListPanel().getGigListView().getSelectionModel().select(0);
+                enterCommand(window, "outstanding");
+                assertNull(window.getGigListPanel().getGigListView().getSelectionModel().getSelectedItem());
+                assertEquals(List.of(ALICE_PAYMENT, BENSON_PAYMENT),
+                        window.getPaymentObligationListPanel().getPaymentListView().getItems());
                 return null;
             });
         } finally {
