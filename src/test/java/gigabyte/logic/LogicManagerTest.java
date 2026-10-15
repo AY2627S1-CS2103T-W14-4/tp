@@ -100,7 +100,7 @@ public class LogicManagerTest {
         Path path = temporaryFolder.resolve("gigabyteData.json");
         String savedData = Files.readString(path);
 
-        assertEquals(CommandResult.forOutstandingPayments("1 outstanding payment obligations."),
+        assertEquals(CommandResult.forOutstandingPayments("1 outstanding payment obligation."),
                 logic.execute("outstanding"));
         assertEquals(before, model.getGigabyteData());
         assertEquals(savedData, Files.readString(path));
