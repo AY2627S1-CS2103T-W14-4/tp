@@ -20,7 +20,9 @@ import javafx.scene.control.ListView;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.Region;
 
-/** Panel displaying payment obligations for the selected gig. */
+/**
+ * Panel displaying payments for a selected gig or unpaid payments across all clients.
+ */
 public class PaymentObligationListPanel extends UiPart<Region> {
     private static final String FXML = "PaymentObligationListPanel.fxml";
     private static final String NO_GIG = "Select a gig to view its payment obligations.";
@@ -35,6 +37,7 @@ public class PaymentObligationListPanel extends UiPart<Region> {
     private final Clock clock;
     private final PauseTransition paymentStateRefreshTimer = new PauseTransition();
     private Gig selectedGig;
+    private boolean isShowingOutstanding;
 
     @FXML
     private Label emptyState;
@@ -65,8 +68,21 @@ public class PaymentObligationListPanel extends UiPart<Region> {
 
     /** Displays only the payment obligations belonging to {@code gig}. */
     public void showPaymentsFor(Gig gig) {
+        paymentListView.getSelectionModel().clearSelection();
         selectedGig = gig;
+        isShowingOutstanding = false;
         filteredPayments.setPredicate(payment -> isPaymentForGig(payment, gig));
+        updateEmptyState();
+    }
+
+    /**
+     * Displays unpaid obligations across all gigs in due-date and source-list order.
+     */
+    public void showOutstandingPayments() {
+        paymentListView.getSelectionModel().clearSelection();
+        selectedGig = null;
+        isShowingOutstanding = true;
+        filteredPayments.setPredicate(payment -> !payment.isPaid());
         updateEmptyState();
     }
 
@@ -103,8 +119,9 @@ public class PaymentObligationListPanel extends UiPart<Region> {
                 }
 
                 String displayState = getDisplayState(payment);
-                setText(String.format("%d. Amount: $%s    Due: %s    %s",
-                        getIndex() + 1, payment.getAmount(), payment.getDueDate(), displayState));
+                setText(String.format("%d. Amount: $%s    Due: %s    %s%nClient: %s%nGig: %s",
+                        getIndex() + 1, payment.getAmount(), payment.getDueDate(), displayState,
+                        payment.getGig().getClient().getName(), payment.getGig().getTitle()));
                 getStyleClass().add("payment-" + displayState.toLowerCase(Locale.ROOT));
             }
         };
@@ -136,6 +153,10 @@ public class PaymentObligationListPanel extends UiPart<Region> {
     }
 
     private void updateEmptyState() {
+        if (isShowingOutstanding) {
+            emptyState.setText(sortedPayments.isEmpty() ? "No outstanding payment obligations." : "");
+            return;
+        }
         emptyState.setText(selectedGig == null ? NO_GIG : (sortedPayments.isEmpty() ? NO_PAYMENTS : ""));
     }
 }

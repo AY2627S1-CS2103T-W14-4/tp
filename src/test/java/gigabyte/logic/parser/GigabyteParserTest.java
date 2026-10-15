@@ -26,6 +26,7 @@ import gigabyte.logic.commands.FindClientCommand;
 import gigabyte.logic.commands.HelpCommand;
 import gigabyte.logic.commands.ListClientsCommand;
 import gigabyte.logic.commands.MarkPaymentPaidCommand;
+import gigabyte.logic.commands.OutstandingCommand;
 import gigabyte.logic.commands.SetGigStatusCommand;
 import gigabyte.logic.parser.exceptions.ParseException;
 import gigabyte.model.client.Client;
@@ -41,6 +42,15 @@ import gigabyte.testutil.EditClientDescriptorBuilder;
 public class GigabyteParserTest {
 
     private final GigabyteParser parser = new GigabyteParser();
+
+    @Test
+    public void parseCommand_outstanding_acceptsNoArgumentsAndRejectsExtraInput() throws Exception {
+        assertTrue(parser.parseCommand("outstanding") instanceof OutstandingCommand);
+        assertTrue(parser.parseCommand("  outstanding  ") instanceof OutstandingCommand);
+        String error = String.format(MESSAGE_INVALID_COMMAND_FORMAT, OutstandingCommand.MESSAGE_USAGE);
+        assertThrows(ParseException.class, error, () -> parser.parseCommand("outstanding 1"));
+        assertThrows(ParseException.class, error, () -> parser.parseCommand("outstanding s/PAID"));
+    }
 
     @Test
     public void parseCommand_deadlines() throws Exception {
@@ -77,7 +87,7 @@ public class GigabyteParserTest {
         assertEquals(new MarkPaymentPaidCommand(INDEX_FIRST_CLIENT, INDEX_FIRST_CLIENT,
                 Index.fromOneBased(3)), parser.parseCommand("markpaid 1 1 3"));
     }
-  
+
     @Test
     public void parseCommand_setGigStatus() throws Exception {
         assertEquals(new SetGigStatusCommand(INDEX_FIRST_CLIENT, INDEX_FIRST_CLIENT, GigStatus.COMPLETED),

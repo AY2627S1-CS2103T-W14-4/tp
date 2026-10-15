@@ -1,6 +1,7 @@
 package gigabyte.ui;
 
 import static gigabyte.testutil.TypicalClients.ALICE;
+import static gigabyte.testutil.TypicalClients.BENSON;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertSame;
@@ -49,6 +50,79 @@ public class PaymentObligationListPanelTest {
 
         assertEquals(0, panel.getPaymentListView().getItems().size());
         assertEquals("Select a gig to view its payment obligations.", panel.getEmptyState().getText());
+    }
+
+    @Test
+    public void showOutstandingPayments_multipleClients_sortsExcludesPaidAndKeepsStableTies() {
+        Gig otherGig = new Gig(BENSON, new GigTitle("Logo"), GigStatus.COMPLETED,
+                new Deadline("2027-01-31"), new Fee("500"));
+        PaymentObligation future = createPayment(otherGig, "100", "2026-10-12", false);
+        PaymentObligation today = createPayment(FIRST_GIG, "200", "2026-10-11", false);
+        PaymentObligation paid = createPayment(otherGig, "300", "2026-10-09", true);
+        PaymentObligation overdue = createPayment(FIRST_GIG, "400", "2026-10-10", false);
+        PaymentObligation sameDate = createPayment(otherGig, "500", "2026-10-11", false);
+        PaymentObligation identical = createPayment(FIRST_GIG, "200", "2026-10-11", false);
+        List<PaymentObligation> original = List.of(future, today, paid, overdue, identical, sameDate);
+        ObservableList<PaymentObligation> payments = FXCollections.observableArrayList(original);
+        PaymentObligationListPanel panel = createPanel(payments);
+
+        panel.showOutstandingPayments();
+
+        assertEquals(List.of(overdue, today, identical, sameDate, future), panel.getPaymentListView().getItems());
+        assertSame(today, panel.getPaymentListView().getItems().get(1));
+        assertSame(identical, panel.getPaymentListView().getItems().get(2));
+        assertEquals(original, payments);
+        assertEquals("", panel.getEmptyState().getText());
+        new Scene(panel.getRoot(), 500, 500);
+        List<ListCell<PaymentObligation>> cells = renderCells(panel);
+        assertTrue(cells.get(0).getText().contains("OVERDUE"));
+        assertTrue(cells.get(0).getStyleClass().contains("payment-overdue"));
+        for (int i = 1; i < cells.size(); i++) {
+            assertTrue(cells.get(i).getText().contains("OUTSTANDING"));
+            assertFalse(cells.get(i).getStyleClass().contains("payment-overdue"));
+        }
+        assertTrue(cells.get(3).getText().contains("Client: " + BENSON.getName()));
+        assertTrue(cells.get(3).getText().contains("Gig: Logo"));
+        assertTrue(cells.get(3).getText().contains("Amount: $500.00"));
+        assertTrue(cells.get(3).getText().contains("Due: 2026-10-11"));
+    }
+
+    @Test
+    public void showOutstandingPayments_paidStateChanges_refreshesAndRestoresGigView() {
+        ObservableList<PaymentObligation> payments = FXCollections.observableArrayList();
+        PaymentObligationListPanel panel = createPanel(payments);
+        panel.showOutstandingPayments();
+        assertEquals("No outstanding payment obligations.", panel.getEmptyState().getText());
+        PaymentObligation unpaid = createPayment(FIRST_GIG, "100", "2026-10-11", false);
+        payments.add(unpaid);
+        assertEquals(List.of(unpaid), panel.getPaymentListView().getItems());
+
+        payments.set(0, unpaid.withPaid(true));
+        panel.showOutstandingPayments();
+        assertEquals(0, panel.getPaymentListView().getItems().size());
+        assertEquals("No outstanding payment obligations.", panel.getEmptyState().getText());
+
+        panel.showPaymentsFor(FIRST_GIG);
+        assertEquals(payments, panel.getPaymentListView().getItems());
+        assertTrue(renderCells(panel).get(0).getText().contains("PAID"));
+        panel.showPaymentsFor(null);
+        assertEquals("Select a gig to view its payment obligations.", panel.getEmptyState().getText());
+    }
+
+    @Test
+    public void showOutstandingPayments_localMidnight_usesLocalDateAndRefreshesOverdueState() {
+        MutableClock localClock = new MutableClock(Instant.parse("2026-10-10T16:00:00Z"),
+                ZoneId.of("Asia/Kuala_Lumpur"));
+        PaymentObligation payment = createPayment(FIRST_GIG, "100", "2026-10-11", false);
+        PaymentObligationListPanel panel = new PaymentObligationListPanel(
+                FXCollections.observableArrayList(payment), localClock);
+        panel.showOutstandingPayments();
+        assertTrue(renderCells(panel).get(0).getText().contains("OUTSTANDING"));
+
+        localClock.advance(Duration.ofDays(1));
+        panel.refreshPaymentStates();
+        assertTrue(renderCells(panel).get(0).getText().contains("OVERDUE"));
+        assertFalse(payment.isPaid());
     }
 
     @Test
@@ -160,19 +234,26 @@ public class PaymentObligationListPanelTest {
     @Test
     public void paymentCell_narrowPanel_wrapsWithoutHorizontalScrolling() {
         PaymentObligation payment = createPayment(FIRST_GIG, "500", "2099-02-28", false);
-        PaymentObligationListPanel panel = createPanel(FXCollections.observableArrayList(payment));
-        panel.showPaymentsFor(FIRST_GIG);
+        ObservableList<PaymentObligation> payments = FXCollections.observableArrayList(payment);
+        for (int i = 0; i < 29; i++) {
+            payments.add(createPayment(FIELD_IDENTICAL_GIG, "100", "2099-03-01", false));
+        }
+        PaymentObligationListPanel panel = createPanel(payments);
+        panel.showOutstandingPayments();
 
         new Scene(panel.getRoot(), 340, 300);
         List<ListCell<PaymentObligation>> cells = renderCells(panel);
 
-        assertEquals(1, cells.size());
+        assertEquals(30, panel.getPaymentListView().getItems().size());
+        assertFalse(cells.isEmpty());
         ListCell<PaymentObligation> cell = cells.get(0);
         assertTrue(cell.isWrapText());
         assertTrue(cell.getWidth() <= panel.getPaymentListView().getWidth());
         assertTrue(cell.getText().contains("Amount: $500.00"));
         assertTrue(cell.getText().contains("Due: 2099-02-28"));
         assertTrue(cell.getText().contains("OUTSTANDING"));
+        assertTrue(cell.getText().contains("Client: " + ALICE.getName()));
+        assertTrue(cell.getText().contains("Gig: " + FIRST_GIG.getTitle()));
 
         boolean hasVisibleHorizontalScrollBar = panel.getPaymentListView()
                 .lookupAll(".scroll-bar").stream()
@@ -181,6 +262,9 @@ public class PaymentObligationListPanelTest {
                         && scrollBar.isVisible());
 
         assertFalse(hasVisibleHorizontalScrollBar);
+        assertTrue(panel.getPaymentListView().lookupAll(".scroll-bar").stream()
+                .anyMatch(node -> node instanceof ScrollBar bar
+                        && bar.getOrientation() == Orientation.VERTICAL && bar.isVisible()));
     }
 
     private PaymentObligationListPanel createPanel(ObservableList<PaymentObligation> payments) {

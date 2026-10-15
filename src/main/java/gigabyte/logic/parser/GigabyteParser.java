@@ -22,6 +22,7 @@ import gigabyte.logic.commands.FindClientCommand;
 import gigabyte.logic.commands.HelpCommand;
 import gigabyte.logic.commands.ListClientsCommand;
 import gigabyte.logic.commands.MarkPaymentPaidCommand;
+import gigabyte.logic.commands.OutstandingCommand;
 import gigabyte.logic.commands.SetGigStatusCommand;
 import gigabyte.logic.parser.exceptions.ParseException;
 
@@ -70,6 +71,13 @@ public class GigabyteParser {
             case FindClientCommand.COMMAND_WORD -> new FindClientCommandParser().parse(arguments);
             case FilterGigsCommand.COMMAND_WORD -> new FilterGigsCommandParser().parse(arguments);
             case ListClientsCommand.COMMAND_WORD -> new ListClientsCommand();
+            case OutstandingCommand.COMMAND_WORD -> {
+                if (!arguments.isBlank()) {
+                    throw new ParseException(String.format(MESSAGE_INVALID_COMMAND_FORMAT,
+                            OutstandingCommand.MESSAGE_USAGE));
+                }
+                yield new OutstandingCommand();
+            }
             case ExitCommand.COMMAND_WORD -> new ExitCommand();
             case HelpCommand.COMMAND_WORD -> new HelpCommand();
             default -> {

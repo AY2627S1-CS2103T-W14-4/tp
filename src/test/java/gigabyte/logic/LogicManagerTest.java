@@ -27,6 +27,7 @@ import gigabyte.logic.commands.AddClientCommand;
 import gigabyte.logic.commands.AddPaymentCommand;
 import gigabyte.logic.commands.CommandResult;
 import gigabyte.logic.commands.ListClientsCommand;
+import gigabyte.logic.commands.OutstandingCommand;
 import gigabyte.logic.commands.SetGigStatusCommand;
 import gigabyte.logic.commands.exceptions.CommandException;
 import gigabyte.logic.parser.CliSyntax;
@@ -92,6 +93,24 @@ public class LogicManagerTest {
     public void execute_validCommand_success() throws Exception {
         String listCommand = ListClientsCommand.COMMAND_WORD;
         assertCommandSuccess(listCommand, ListClientsCommand.MESSAGE_SUCCESS, model);
+    }
+
+    @Test
+    public void execute_outstanding_preservesRecordsAndRejectsArguments() throws Exception {
+        model.addClient(ALICE);
+        logic.execute("addgig 1 t/Website s/IN_PROGRESS d/2027-01-31 f/100");
+        logic.execute("addpayment 1 1 a/50 d/2027-02-28");
+        GigabyteData before = new GigabyteData(model.getGigabyteData());
+        Path path = temporaryFolder.resolve("gigabyteData.json");
+        String savedData = Files.readString(path);
+
+        assertEquals(CommandResult.forOutstandingPayments("1 outstanding payment obligation."),
+                logic.execute("outstanding"));
+        assertEquals(before, model.getGigabyteData());
+        assertEquals(savedData, Files.readString(path));
+        assertParseException("outstanding extra", String.format(Messages.MESSAGE_INVALID_COMMAND_FORMAT,
+                OutstandingCommand.MESSAGE_USAGE));
+        assertEquals(savedData, Files.readString(path));
     }
 
     @Test
@@ -182,7 +201,7 @@ public class LogicManagerTest {
         assertTrue(restored.getPaymentObligationList().get(0).isPaid());
         assertEquals(model.getGigabyteData(), new GigabyteData(restored));
     }
-  
+
     @Test
     public void execute_setGigStatus_usesFilteredClientsAndPersistsStatusAndPaymentLink() throws Exception {
         model.addClient(ALICE);
