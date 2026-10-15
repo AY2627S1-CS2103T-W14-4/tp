@@ -78,6 +78,11 @@ public interface Model {
     void addGig(Gig gig);
 
     /**
+     * Replaces {@code target} with {@code replacement}, preserving the gig's UID and client association.
+     */
+    void setGig(Gig target, Gig replacement);
+
+    /**
      * Returns an unmodifiable view of all gigs.
      */
     ObservableList<Gig> getGigList();
@@ -91,4 +96,7 @@ public interface Model {
      * Adds a payment obligation linked to an existing gig.
      */
     void addPaymentObligation(PaymentObligation obligation);
+
+    /** Marks the exact stored payment obligation as paid, preserving its gig, amount, and due date. */
+    void markPaymentPaid(PaymentObligation obligation);
 }

@@ -7,6 +7,7 @@ import java.util.Locale;
 
 import gigabyte.model.gig.Gig;
 import gigabyte.model.gig.PaymentObligation;
+import gigabyte.model.gig.PaymentObligationOrdering;
 import javafx.animation.PauseTransition;
 import javafx.application.Platform;
 import javafx.collections.ObservableList;
@@ -55,7 +56,8 @@ public class PaymentObligationListPanel extends UiPart<Region> {
         this.paymentObligations = paymentObligations;
         this.clock = clock;
         filteredPayments = new FilteredList<>(paymentObligations, payment -> false);
-        sortedPayments = new SortedList<>(filteredPayments, this::comparePayments);
+        sortedPayments = new SortedList<>(filteredPayments,
+                PaymentObligationOrdering.forSourceList(paymentObligations));
         paymentListView.setItems(sortedPayments);
         paymentListView.setCellFactory(unused -> createPaymentCell());
         sortedPayments.addListener((javafx.collections.ListChangeListener<PaymentObligation>) change ->
@@ -86,7 +88,7 @@ public class PaymentObligationListPanel extends UiPart<Region> {
 
     /** Returns whether {@code payment} belongs to {@code gig}. */
     static boolean isPaymentForGig(PaymentObligation payment, Gig gig) {
-        return gig != null && payment.getGig().hasSameUid(gig);
+        return PaymentObligationOrdering.isForGig(payment, gig);
     }
 
     /** Returns the payment list displayed by this panel. */
@@ -102,26 +104,6 @@ public class PaymentObligationListPanel extends UiPart<Region> {
     /** Refreshes rendered payment states after the local date changes. */
     void refreshPaymentStates() {
         paymentListView.refresh();
-    }
-
-    /** Compares payments by due date and then by their stable source-list order. */
-    private int comparePayments(PaymentObligation firstPayment, PaymentObligation secondPayment) {
-        int dueDateComparison = firstPayment.getDueDate().getValue()
-                .compareTo(secondPayment.getDueDate().getValue());
-        if (dueDateComparison != 0) {
-            return dueDateComparison;
-        }
-        return Integer.compare(getSourceIndex(firstPayment), getSourceIndex(secondPayment));
-    }
-
-    /** Returns the identity-based position of {@code payment} in the source list. */
-    private int getSourceIndex(PaymentObligation payment) {
-        for (int index = 0; index < paymentObligations.size(); index++) {
-            if (paymentObligations.get(index) == payment) {
-                return index;
-            }
-        }
-        return Integer.MAX_VALUE;
     }
 
     /** Creates a list cell that derives its text and visual state from the displayed payment. */

@@ -13,6 +13,19 @@ import gigabyte.model.gig.GigStatus;
 
 public class CommandResultTest {
     @Test
+    public void deadlineAndOutstandingViews_useIndependentFlags() {
+        CommandResult deadlines = CommandResult.deadlineOverview("feedback");
+        assertTrue(deadlines.isShowDeadlineOverview());
+        assertFalse(deadlines.isShowOutstandingPayments());
+        assertFalse(CommandResult.forOutstandingPayments("feedback").isShowDeadlineOverview());
+        assertFalse(new CommandResult("feedback").isShowDeadlineOverview());
+        assertEquals(deadlines, CommandResult.deadlineOverview("feedback"));
+        assertEquals(deadlines.hashCode(), CommandResult.deadlineOverview("feedback").hashCode());
+        assertNotEquals(new CommandResult("feedback"), deadlines);
+        assertNotEquals(deadlines, CommandResult.forOutstandingPayments("feedback"));
+    }
+
+    @Test
     public void outstandingPayments_includedInResultIdentity() {
         CommandResult result = CommandResult.forOutstandingPayments("feedback");
         assertTrue(result.isShowOutstandingPayments());
@@ -86,7 +99,8 @@ public class CommandResultTest {
         CommandResult commandResult = new CommandResult("feedback");
         String expected = CommandResult.class.getCanonicalName() + "{feedbackToUser="
                 + commandResult.getFeedbackToUser() + ", showHelp=" + commandResult.isShowHelp()
-                + ", exit=" + commandResult.isExit() + ", gigStatusFilter=null, showOutstandingPayments=false}";
+                + ", exit=" + commandResult.isExit()
+                + ", gigStatusFilter=null, showOutstandingPayments=false, showDeadlineOverview=false}";
         assertEquals(expected, commandResult.toString());
     }
 }

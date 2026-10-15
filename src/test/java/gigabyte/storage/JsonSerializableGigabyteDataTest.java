@@ -14,6 +14,12 @@ import org.junit.jupiter.api.Test;
 import gigabyte.commons.exceptions.IllegalValueException;
 import gigabyte.commons.util.JsonUtil;
 import gigabyte.model.GigabyteData;
+import gigabyte.model.gig.Deadline;
+import gigabyte.model.gig.Fee;
+import gigabyte.model.gig.Gig;
+import gigabyte.model.gig.GigStatus;
+import gigabyte.model.gig.GigTitle;
+import gigabyte.model.gig.PaymentObligation;
 import gigabyte.testutil.TypicalClients;
 
 public class JsonSerializableGigabyteDataTest {
@@ -60,6 +66,27 @@ public class JsonSerializableGigabyteDataTest {
                 List.of(), Arrays.asList((JsonAdaptedPaymentObligation) null));
         assertThrows(IllegalValueException.class, JsonAdaptedPaymentObligation.MISSING_FIELD_MESSAGE,
                 data::toModelType);
+    }
+
+    @Test
+    public void jsonRoundTrip_paidAndUnpaidPayments_preservesPaymentStates() throws Exception {
+        GigabyteData source = new GigabyteData();
+        source.addClient(ALICE);
+        Gig gig = new Gig(ALICE, new GigTitle("Website redesign"), GigStatus.IN_PROGRESS,
+                new Deadline("2027-12-31"), new Fee("1250"));
+        source.addGig(gig);
+        Gig storedGig = source.getGigList().get(0);
+        source.addPaymentObligation(new PaymentObligation(storedGig, new Fee("100"),
+                new Deadline("2027-01-31"), false));
+        source.addPaymentObligation(new PaymentObligation(storedGig, new Fee("200"),
+                new Deadline("2027-02-28"), true));
+
+        String json = JsonUtil.toJsonString(new JsonSerializableGigabyteData(source));
+        GigabyteData restored = JsonUtil.fromJsonString(json, JsonSerializableGigabyteData.class).toModelType();
+
+        assertEquals(source, restored);
+        assertEquals(List.of(false, true), restored.getPaymentObligationList().stream()
+                .map(PaymentObligation::isPaid).toList());
     }
 
 }

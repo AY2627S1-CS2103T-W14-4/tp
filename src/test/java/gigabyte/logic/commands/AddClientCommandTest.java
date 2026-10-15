@@ -151,6 +151,11 @@ public class AddClientCommandTest {
         }
 
         @Override
+        public void setGig(Gig target, Gig replacement) {
+            throw new AssertionError("This method should not be called.");
+        }
+
+        @Override
         public ObservableList<Gig> getGigList() {
             throw new AssertionError("This method should not be called.");
         }
@@ -162,6 +167,11 @@ public class AddClientCommandTest {
 
         @Override
         public void addPaymentObligation(PaymentObligation obligation) {
+            throw new AssertionError("This method should not be called.");
+        }
+
+        @Override
+        public void markPaymentPaid(PaymentObligation obligation) {
             throw new AssertionError("This method should not be called.");
         }
     }

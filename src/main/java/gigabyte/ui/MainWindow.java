@@ -257,6 +257,7 @@ public class MainWindow extends UiPart<Stage> {
             CommandResult commandResult = logic.execute(commandText);
             logger.info("Result: " + commandResult.getFeedbackToUser());
             resultDisplay.setFeedbackToUser(commandResult.getFeedbackToUser());
+            paymentObligationListPanel.refreshPaymentStates();
 
             if (commandResult.getGigStatusFilter() != null) {
                 // Clear the selection so clicking the same client restores their gigs too.
@@ -269,6 +270,12 @@ public class MainWindow extends UiPart<Stage> {
                 clientListPanel.getClientListView().getSelectionModel().clearSelection();
                 gigListPanel.getGigListView().getSelectionModel().clearSelection();
                 paymentObligationListPanel.showOutstandingPayments();
+            }
+
+            if (commandResult.isShowDeadlineOverview()) {
+                clientListPanel.getClientListView().getSelectionModel().clearSelection();
+                gigListPanel.showDeadlineOverview();
+                paymentObligationListPanel.showPaymentsFor(null);
             }
 
             if (commandResult.isShowHelp()) {

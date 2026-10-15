@@ -16,6 +16,7 @@ import gigabyte.model.gig.Fee;
 import gigabyte.model.gig.Gig;
 import gigabyte.model.gig.GigStatus;
 import gigabyte.model.gig.GigTitle;
+import gigabyte.model.gig.PaymentObligation;
 import gigabyte.model.tag.Tag;
 
 /**
@@ -57,6 +58,17 @@ public class SampleDataUtil {
                 GigStatus.NOT_STARTED, new Deadline("2027-03-15"), new Fee("1200.00")));
         sampleGigabyteData.addGig(new Gig(sampleClients[1], new GigTitle("Brand identity refresh"),
                 GigStatus.COMPLETED, new Deadline("2026-11-30"), new Fee("1800.00")));
+        sampleGigabyteData.addGig(new Gig(sampleClients[1], new GigTitle("Quarterly newsletter template"),
+                GigStatus.IN_PROGRESS, new Deadline("2027-02-12"), new Fee("950.00")));
+
+        // Fixed 2026/2027 dates keep screenshots and tests deterministic. Charlotte remains intentionally empty
+        // so the client-level empty state is visible on a fresh launch.
+        sampleGigabyteData.addPaymentObligation(new PaymentObligation(sampleGigabyteData.getGigList().get(0),
+                new Fee("1250.00"), new Deadline("2027-01-15"), true));
+        sampleGigabyteData.addPaymentObligation(new PaymentObligation(sampleGigabyteData.getGigList().get(1),
+                new Fee("1200.00"), new Deadline("2027-03-01"), false));
+        sampleGigabyteData.addPaymentObligation(new PaymentObligation(sampleGigabyteData.getGigList().get(2),
+                new Fee("1800.00"), new Deadline("2026-12-15"), false));
         return sampleGigabyteData;
     }
 

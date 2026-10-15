@@ -104,6 +104,12 @@ public class ModelManager implements Model {
     }
 
     @Override
+    public void setGig(Gig target, Gig replacement) {
+        requireAllNonNull(target, replacement);
+        gigabyteData.setGig(target, replacement);
+    }
+
+    @Override
     public ObservableList<Gig> getGigList() {
         return gigabyteData.getGigList();
     }
@@ -117,6 +123,12 @@ public class ModelManager implements Model {
     public void addPaymentObligation(PaymentObligation obligation) {
         requireNonNull(obligation);
         gigabyteData.addPaymentObligation(obligation);
+    }
+
+    @Override
+    public void markPaymentPaid(PaymentObligation obligation) {
+        requireNonNull(obligation);
+        gigabyteData.markPaymentPaid(obligation);
     }
 
     //=========== Filtered Client List Accessors =============================================================

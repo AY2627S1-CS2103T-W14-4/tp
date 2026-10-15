@@ -22,6 +22,7 @@ public class CommandResult {
 
     /** Status to display across all clients, or null when the gig view should remain unchanged. */
     private final GigStatus gigStatusFilter;
+    private final boolean showDeadlineOverview;
 
     /**
      * Unpaid obligations across all clients should be shown.
@@ -32,23 +33,24 @@ public class CommandResult {
      * Constructs a {@code CommandResult} with the specified fields.
      */
     public CommandResult(String feedbackToUser, boolean showHelp, boolean exit) {
-        this(feedbackToUser, showHelp, exit, null, false);
+        this(feedbackToUser, showHelp, exit, null, false, false);
     }
 
     private CommandResult(String feedbackToUser, boolean showHelp, boolean exit, GigStatus gigStatusFilter,
-            boolean showOutstandingPayments) {
+            boolean showDeadlineOverview, boolean showOutstandingPayments) {
         this.feedbackToUser = requireNonNull(feedbackToUser);
         this.showHelp = showHelp;
         this.exit = exit;
         this.gigStatusFilter = gigStatusFilter;
         this.showOutstandingPayments = showOutstandingPayments;
+        this.showDeadlineOverview = showDeadlineOverview;
     }
 
     /**
      * Constructs a result requesting a gig-status view across all clients.
      */
     public CommandResult(String feedbackToUser, GigStatus gigStatusFilter) {
-        this(feedbackToUser, false, false, requireNonNull(gigStatusFilter), false);
+        this(feedbackToUser, false, false, requireNonNull(gigStatusFilter), false, false);
     }
 
     /**
@@ -63,7 +65,14 @@ public class CommandResult {
      * Creates a result requesting an outstanding-payment view across all clients.
      */
     public static CommandResult forOutstandingPayments(String feedbackToUser) {
-        return new CommandResult(feedbackToUser, false, false, null, true);
+        return new CommandResult(feedbackToUser, false, false, null, false, true);
+    }
+
+    /**
+     * Constructs a result requesting the active deadline overview.
+     */
+    public static CommandResult deadlineOverview(String feedbackToUser) {
+        return new CommandResult(requireNonNull(feedbackToUser), false, false, null, true, false);
     }
 
     public String getFeedbackToUser() {
@@ -86,6 +95,10 @@ public class CommandResult {
         return showOutstandingPayments;
     }
 
+    public boolean isShowDeadlineOverview() {
+        return showDeadlineOverview;
+    }
+
     @Override
     public boolean equals(Object other) {
         if (other == this) {
@@ -101,12 +114,14 @@ public class CommandResult {
                 && showHelp == otherCommandResult.showHelp
                 && exit == otherCommandResult.exit
                 && gigStatusFilter == otherCommandResult.gigStatusFilter
-                && showOutstandingPayments == otherCommandResult.showOutstandingPayments;
+                && showOutstandingPayments == otherCommandResult.showOutstandingPayments
+                && showDeadlineOverview == otherCommandResult.showDeadlineOverview;
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(feedbackToUser, showHelp, exit, gigStatusFilter, showOutstandingPayments);
+        return Objects.hash(feedbackToUser, showHelp, exit, gigStatusFilter,
+                showOutstandingPayments, showDeadlineOverview);
     }
 
     @Override
@@ -117,6 +132,7 @@ public class CommandResult {
                 .add("exit", exit)
                 .add("gigStatusFilter", gigStatusFilter)
                 .add("showOutstandingPayments", showOutstandingPayments)
+                .add("showDeadlineOverview", showDeadlineOverview)
                 .toString();
     }
 

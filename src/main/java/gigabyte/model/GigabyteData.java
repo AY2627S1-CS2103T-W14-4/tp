@@ -179,6 +179,37 @@ public class GigabyteData implements ReadOnlyGigabyteData {
         gigs.add(storedGig);
     }
 
+    /**
+     * Replaces {@code target} with {@code replacement}, preserving its UID and client association and relinking
+     * existing payment obligations to the replacement.
+     *
+     * @throws GigNotFoundException if {@code target} does not exist
+     * @throws IllegalArgumentException if {@code replacement} changes the gig UID or client association
+     */
+    public void setGig(Gig target, Gig replacement) {
+        requireAllNonNull(target, replacement);
+
+        int targetIndex = findGigIndexByUid(gigs, target);
+        if (targetIndex < 0) {
+            throw new GigNotFoundException();
+        }
+
+        Gig storedTarget = gigs.get(targetIndex);
+        if (!storedTarget.hasSameUid(replacement)
+                || !storedTarget.getClient().hasSameUid(replacement.getClient())) {
+            throw new IllegalArgumentException("A replacement gig must preserve its UID and client association.");
+        }
+
+        Gig storedReplacement = replacement.withClient(storedTarget.getClient());
+        List<Gig> replacementGigs = new ArrayList<>(gigs);
+        replacementGigs.set(targetIndex, storedReplacement);
+        List<PaymentObligation> replacementObligations = linkPaymentObligations(
+                gigs, replacementGigs, paymentObligations);
+
+        gigs.setAll(replacementGigs);
+        paymentObligations.setAll(replacementObligations);
+    }
+
     /** Adds a payment obligation linked to an existing gig. */
     public void addPaymentObligation(PaymentObligation obligation) {
         requireNonNull(obligation);
@@ -187,6 +218,18 @@ public class GigabyteData implements ReadOnlyGigabyteData {
             throw new GigNotFoundException();
         }
         paymentObligations.add(obligation.withGig(gigs.get(index)));
+    }
+
+    /** Replaces the exact stored obligation with its paid copy. */
+    public void markPaymentPaid(PaymentObligation obligation) {
+        requireNonNull(obligation);
+        for (int index = 0; index < paymentObligations.size(); index++) {
+            if (paymentObligations.get(index) == obligation) {
+                paymentObligations.set(index, obligation.withPaid(true));
+                return;
+            }
+        }
+        throw new IllegalArgumentException("Payment obligation must belong to this Gigabyte data.");
     }
 
     //// accessors
@@ -233,6 +276,16 @@ public class GigabyteData implements ReadOnlyGigabyteData {
             }
         }
         return gigs.indexOf(target);
+    }
+
+    /** Finds a gig by stable UID without falling back to equal field values. */
+    private static int findGigIndexByUid(List<Gig> gigs, Gig target) {
+        for (int index = 0; index < gigs.size(); index++) {
+            if (gigs.get(index).hasSameUid(target)) {
+                return index;
+            }
+        }
+        return -1;
     }
 
     /**

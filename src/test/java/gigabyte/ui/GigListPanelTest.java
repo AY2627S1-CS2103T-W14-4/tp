@@ -8,6 +8,11 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.time.Clock;
+import java.time.Duration;
+import java.time.Instant;
+import java.time.ZoneId;
+import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.FutureTask;
 import java.util.concurrent.TimeUnit;
@@ -16,6 +21,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+import gigabyte.model.GigabyteData;
 import gigabyte.model.gig.Deadline;
 import gigabyte.model.gig.Fee;
 import gigabyte.model.gig.Gig;
@@ -58,6 +64,27 @@ public class GigListPanelTest {
 
         assertEquals(1, panel.getGigListView().getItems().size());
         assertEquals(ALICE_GIG, panel.getGigListView().getItems().get(0));
+    }
+
+    @Test
+    public void replacingGigInObservableList_refreshesDisplayedStatusImmediately() {
+        GigabyteData data = new GigabyteData();
+        data.addClient(ALICE);
+        data.addGig(ALICE_GIG);
+        GigListPanel panel = new GigListPanel(data.getGigList());
+        panel.showGigsFor(ALICE);
+        Gig currentGig = data.getGigList().get(0);
+        Gig updatedGig = currentGig.withStatus(GigStatus.COMPLETED);
+
+        data.setGig(currentGig, updatedGig);
+
+        assertEquals(updatedGig, panel.getGigListView().getItems().get(0));
+        new Scene(panel.getRoot(), 500, 300);
+        panel.getRoot().applyCss();
+        panel.getRoot().layout();
+        @SuppressWarnings("unchecked")
+        ListCell<Gig> cell = (ListCell<Gig>) panel.getGigListView().lookup(".list-cell");
+        assertTrue(cell.getText().contains("Status: COMPLETED"));
     }
 
     @Test
@@ -141,6 +168,75 @@ public class GigListPanelTest {
         assertEquals(List.of(BENSON_GIG), panel.getGigListView().getItems());
         panel.showGigsFor(null);
         assertEquals("Select a client to view their gigs.", panel.getEmptyState().getText());
+    }
+
+    @Test
+    public void showDeadlineOverview_filtersCompletedAndSortsAcrossClients() {
+        Gig overdue = new Gig(BENSON, new GigTitle("Earlier"), GigStatus.IN_PROGRESS,
+                new Deadline("2020-01-01"), new Fee("50"));
+        Gig sameDate = new Gig(ALICE, new GigTitle("Later"), GigStatus.NOT_STARTED,
+                new Deadline("2027-01-31"), new Fee("60"));
+        ObservableList<Gig> gigs = FXCollections.observableArrayList(
+                sameDate, BENSON_GIG, ALICE_GIG, overdue);
+        GigListPanel panel = new GigListPanel(gigs);
+
+        panel.showDeadlineOverview();
+
+        assertEquals(List.of(overdue, ALICE_GIG, sameDate), panel.getGigListView().getItems());
+        assertEquals("", panel.getEmptyState().getText());
+    }
+
+    @Test
+    public void refreshDeadlineStates_localDateAdvances_updatesActiveGigToOverdue() {
+        MutableClock mutableClock = new MutableClock(Instant.parse("2026-10-11T04:00:00Z"),
+                ZoneId.of("Asia/Kuala_Lumpur"));
+        Gig dueToday = new Gig(ALICE, new GigTitle("Due today"), GigStatus.IN_PROGRESS,
+                new Deadline("2026-10-11"), new Fee("100"));
+        GigListPanel panel = new GigListPanel(
+                FXCollections.observableArrayList(dueToday), gig -> { }, mutableClock);
+        panel.showDeadlineOverview();
+        assertFalse(renderCells(panel).get(0).getText().contains("OVERDUE"));
+
+        mutableClock.advance(Duration.ofDays(1));
+        panel.refreshDeadlineStates();
+
+        assertTrue(renderCells(panel).get(0).getText().contains("OVERDUE"));
+    }
+
+    @Test
+    public void gigCell_completedPastDeadline_notMarkedOverdue() {
+        Clock clock = Clock.fixed(Instant.parse("2026-10-11T04:00:00Z"),
+                ZoneId.of("Asia/Kuala_Lumpur"));
+        Gig completed = new Gig(ALICE, new GigTitle("Completed work"), GigStatus.COMPLETED,
+                new Deadline("2026-10-10"), new Fee("100"));
+        GigListPanel panel = new GigListPanel(
+                FXCollections.observableArrayList(completed), gig -> { }, clock);
+        panel.showGigsFor(ALICE);
+
+        assertFalse(renderCells(panel).get(0).getText().contains("OVERDUE"));
+    }
+
+    @Test
+    public void showDeadlineOverview_tracksChangesAndShowsEmptyState() {
+        ObservableList<Gig> gigs = FXCollections.observableArrayList(ALICE_GIG, BENSON_GIG);
+        GigListPanel panel = new GigListPanel(gigs);
+        panel.showDeadlineOverview();
+
+        gigs.remove(ALICE_GIG);
+        assertEquals("There are no active gig deadlines.", panel.getEmptyState().getText());
+        Gig added = new Gig(CARL, new GigTitle("New work"), GigStatus.NOT_STARTED,
+                new Deadline("2026-11-01"), new Fee("70"));
+        gigs.add(added);
+        assertEquals(List.of(added), panel.getGigListView().getItems());
+    }
+
+    @Test
+    public void showDeadlineOverview_thenSelectClient_returnsClientView() {
+        GigListPanel panel = createPanel();
+        panel.showDeadlineOverview();
+        panel.showGigsFor(ALICE);
+
+        assertEquals(List.of(ALICE_GIG), panel.getGigListView().getItems());
     }
 
     @Test
@@ -238,5 +334,48 @@ public class GigListPanelTest {
 
     private GigListPanel createPanel() {
         return new GigListPanel(FXCollections.observableArrayList(ALICE_GIG, BENSON_GIG));
+    }
+
+    @SuppressWarnings("unchecked")
+    private List<ListCell<Gig>> renderCells(GigListPanel panel) {
+        if (panel.getRoot().getScene() == null) {
+            new Scene(panel.getRoot(), 500, 300);
+        }
+        panel.getRoot().applyCss();
+        panel.getRoot().layout();
+        return panel.getGigListView().lookupAll(".list-cell").stream()
+                .map(node -> (ListCell<Gig>) node)
+                .filter(cell -> !cell.isEmpty())
+                .sorted(Comparator.comparingInt((ListCell<Gig> cell) -> cell.getIndex()))
+                .toList();
+    }
+
+    private static class MutableClock extends Clock {
+        private Instant currentInstant;
+        private final ZoneId zoneId;
+
+        MutableClock(Instant currentInstant, ZoneId zoneId) {
+            this.currentInstant = currentInstant;
+            this.zoneId = zoneId;
+        }
+
+        void advance(Duration duration) {
+            currentInstant = currentInstant.plus(duration);
+        }
+
+        @Override
+        public ZoneId getZone() {
+            return zoneId;
+        }
+
+        @Override
+        public Clock withZone(ZoneId zone) {
+            return new MutableClock(currentInstant, zone);
+        }
+
+        @Override
+        public Instant instant() {
+            return currentInstant;
+        }
     }
 }
