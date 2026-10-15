@@ -1,6 +1,8 @@
 # Gigabyte
 
 [![CI Status](https://github.com/AY2627S1-CS2103T-W14-4/tp/actions/workflows/gradle.yml/badge.svg)](https://github.com/AY2627S1-CS2103T-W14-4/tp/actions/workflows/gradle.yml)
+[![codecov](https://codecov.io/gh/AY2627S1-CS2103T-W14-4/tp/graph/badge.svg?token=S4O2ICMM1L)](https://codecov.io/gh/AY2627S1-CS2103T-W14-4/tp)
+
 
 ![Ui](docs/images/Ui.png)
 
