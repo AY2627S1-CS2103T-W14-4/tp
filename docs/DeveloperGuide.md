@@ -72,10 +72,13 @@ The **API** of this component is specified in [`Ui.java`](https://github.com/AY2
 <puml src="diagrams/UiClassDiagram.puml" alt="Structure of the UI Component"/>
 
 The UI consists of a `MainWindow` and its parts, such as `CommandBox`, `ResultDisplay`, `ClientListPanel`,
-`GigListPanel`, and `StatusBarFooter`. All of these, including `MainWindow`, inherit from the abstract `UiPart`
-class, which captures common behavior among classes that represent visible GUI parts. Selecting a client in
-`ClientListPanel` passes that client to `GigListPanel`, which filters the observable gig list by the client's stable
-identifier and renders each gig's title, status, deadline, and fee.
+`GigListPanel`, `PaymentObligationListPanel`, and `StatusBarFooter`. All of these, including `MainWindow`, inherit
+from the abstract `UiPart` class, which captures common behavior among classes that represent visible GUI parts.
+Selecting a client in `ClientListPanel` passes that client to `GigListPanel`, which filters the observable gig list
+by the client's stable identifier and renders each gig's title, status, deadline, and fee. Selecting a gig then passes
+it to `PaymentObligationListPanel`, which shows that gig's due-date-ordered payments and their paid, outstanding, or
+overdue display states. `MainWindow` also switches these panels into the cross-client `gigs`, `deadlines`, and
+`outstanding` overview modes based on flags carried by `CommandResult`.
 
 The `UI` component uses the JavaFX UI framework. The layouts of these UI parts are defined in matching `.fxml` files in `src/main/resources/view`. For example, [`MainWindow.fxml`](https://github.com/AY2627S1-CS2103T-W14-4/tp/tree/master/src/main/resources/view/MainWindow.fxml) specifies the layout of [`MainWindow`](https://github.com/AY2627S1-CS2103T-W14-4/tp/tree/master/src/main/java/gigabyte/ui/MainWindow.java).
 
@@ -84,8 +87,9 @@ The `UI` component,
 * executes user commands using the `Logic` component.
 * listens for changes to `Model` data so that the UI can be updated with the modified data.
 * keeps a reference to the `Logic` component, because the `UI` relies on the `Logic` to execute commands.
-* depends on some classes in the `Model` component because it displays `Client` objects from the model.
-* displays `Gig` objects for the selected client without changing the client filter used by commands.
+* depends on some classes in the `Model` component because it displays `Client`, `Gig`, and `PaymentObligation`
+  objects from the model.
+* displays gigs and payments for the current selection without changing the client filter used by commands.
 
 ### Logic component
 
@@ -123,6 +127,11 @@ How the parsing works:
 * `AddGigCommandParser` parses one displayed client index plus `t/`, `s/`, `d/`, and `f/` fields.
   `AddPaymentCommandParser` parses displayed client and per-client gig indexes plus `a/` and `d/` fields. Both reject
   missing or repeated single-valued prefixes before their commands update the model.
+* `SetGigStatusCommandParser` parses a displayed client index, a per-client gig index, and one `s/` field;
+  `MarkPaymentPaidCommandParser` parses the displayed client, gig, and payment indexes; and
+  `FilterGigsCommandParser` parses one `s/` field. `deadlines` needs no arguments, while `outstanding` explicitly
+  rejects arguments. Their commands return `CommandResult` view instructions that `MainWindow` applies without
+  changing the current client filter.
 
 ### Model component
 **API** : [`Model.java`](https://github.com/AY2627S1-CS2103T-W14-4/tp/tree/master/src/main/java/gigabyte/model/Model.java)
@@ -332,7 +341,7 @@ Priorities: High (must have) - `* * *`, Medium (nice to have) - `* *`, Low (unli
 
 For all use cases below, the **System** is the `Gigabyte` and the **Actor** is the `freelancer`, unless specified otherwise.
 
-**Use case: Create a gig for a displayed client**
+**Use case: Create and progress a gig for a displayed client**
 
 **Preconditions:** The client already exists and is visible in the current client list.
 
@@ -342,6 +351,10 @@ For all use cases below, the **System** is the `Gigabyte` and the **Actor** is t
 2. Freelancer enters `addgig` with a title, initial status, deadline, and agreed fee.
 3. Gigabyte validates the index and all four fields.
 4. Gigabyte creates the gig, links it to the client, saves the data, and confirms the new gig details.
+5. Freelancer identifies the new gig's position within that client's gig list.
+6. Freelancer enters `setstatus` with the displayed client index, gig index, and next status.
+7. Gigabyte validates the indexes and status.
+8. Gigabyte updates and saves the gig while preserving its client, title, deadline, fee, UID, and payments.
 
     Use case ends.
 
@@ -353,6 +366,10 @@ For all use cases below, the **System** is the `Gigabyte` and the **Actor** is t
   * 3a1. Gigabyte reports that the client index is invalid without creating a gig.
 * 3b. The title, status, deadline, or fee is invalid.
   * 3b1. Gigabyte explains the relevant constraint without creating a gig.
+* 7a. Either index or the requested status is invalid.
+  * 7a1. Gigabyte reports the error without changing the gig.
+* 7b. The gig already has the requested status.
+  * 7b1. Gigabyte reports that no change was made.
 
 **Use case: Record a payment obligation**
 
@@ -380,29 +397,47 @@ For all use cases below, the **System** is the `Gigabyte` and the **Actor** is t
 
 **MSS**
 
-1.  Freelancer requests to view the gig.
-2.  Gigabyte shows the gig and its associated payment obligations.
-3.  Freelancer requests to record a new payment obligation.
-4.  Freelancer supplies the amount and due date.
-5.  Gigabyte validates and records the obligation as outstanding.
-6.  Freelancer requests to view outstanding payments.
-7.  Gigabyte shows the obligation in due date order.
-8.  Freelancer selects the obligation and marks it as paid.
-9.  Gigabyte records the paid status and confirms the change.
+1. Freelancer identifies the displayed client index and the gig's position within that client's gig list.
+2. Freelancer enters `addpayment` with both indexes, an amount, and a due date.
+3. Gigabyte validates and records the obligation as unpaid.
+4. Freelancer enters `outstanding`.
+5. Gigabyte shows unpaid obligations across all gigs in due-date order.
+6. Freelancer selects the client and gig to see that gig's numbered payment rows.
+7. Freelancer enters `markpaid` with the displayed client, gig, and payment indexes.
+8. Gigabyte validates the indexes, saves the paid state, refreshes the payment row, and confirms the change.
 
     Use case ends.
 
 **Extensions**
 
-* 4a. The amount or due date is invalid.
+* 3a. The amount, due date, or either parent index is invalid.
 
-    * 4a1. Gigabyte explains the error without creating an obligation.
-    Use case resumes at step 4.
+    * 3a1. Gigabyte explains the error without creating an obligation.
+    Use case resumes at step 2.
 
 * 8a. The selected obligation is already paid.
 
     * 8a1. Gigabyte informs the freelancer that no change was made.
     Use case ends.
+
+**Use case: Review active deadlines**
+
+**Preconditions:** At least one gig exists.
+
+**MSS**
+
+1. Freelancer enters `deadlines`.
+2. Gigabyte shows every non-completed gig across all clients, ordered by earliest deadline.
+3. Gigabyte labels deadlines before the current local date as `OVERDUE` and includes the client, title, status,
+   deadline, and fee for each result.
+4. Freelancer selects a client to return to that client's normal gig list.
+
+    Use case ends.
+
+**Extensions**
+
+* 2a. There are no non-completed gigs.
+  * 2a1. Gigabyte displays `There are no active gig deadlines.`.
 
 ### Non-Functional Requirements
 
@@ -447,6 +482,8 @@ with `java -jar gigabyte.jar`. Back up `data/addressbook.json` before any test t
       gig's status, deadline, and fee. The Payment obligations panel still says
       `Select a gig to view its payment obligations.`
    1. Select `Portfolio website redesign`.<br>
+      Expected: The panel shows the sample `$1250.00` obligation due `2027-01-15` as `PAID`.
+   1. Select `Bernice Yu`, then select `Quarterly newsletter template`.<br>
       Expected: The Payment obligations panel says `This gig has no payment obligations.`
    1. Select `Charlotte Oliveiro`.<br>
       Expected: The Gigs panel says `This client has no gigs.`, the previous gig selection is cleared, and the
@@ -500,6 +537,45 @@ Start this section from a fresh test folder so the sample clients and gigs are p
       Expected: No gig is added. Zero, negative, and non-numeric values produce the command-format error; `999`
       reports that the client index is invalid.
 
+### Updating gig statuses and reviewing gigs
+
+Start each test in this section from a fresh test folder.
+
+1. **Update a gig status**
+   1. Input: `setstatus 1 2 s/COMPLETED`<br>
+      Expected: The result confirms that Alex's second gig is now `COMPLETED`. Selecting Alex shows
+      `Product launch photography` with the new status while its title, deadline, and fee are unchanged.
+   1. Input the same command again.<br>
+      Expected: The command is rejected because the gig is already `COMPLETED`, and no data changes.
+
+1. **Invalid status, repeated prefix, and indexes**
+   1. Input: `setstatus 1 2 s/WAITING`<br>
+      Expected: No gig changes; the result lists `NOT_STARTED`, `IN_PROGRESS`, and `COMPLETED` as valid statuses.
+   1. Input: `setstatus 1 2 s/IN_PROGRESS s/COMPLETED`<br>
+      Expected: No gig changes; the result reports multiple values for `s/`.
+   1. Repeat `setstatus CLIENT_INDEX GIG_INDEX s/COMPLETED` with `0`, `-1`, `abc`, and `999` in each index
+      position.<br>
+      Expected: No gig changes. Zero, negative, and non-numeric values produce the command-format error; `999`
+      identifies the client or gig index that is out of range.
+
+1. **Active deadline overview**
+   1. Input: `addgig 1 t/Overdue follow-up s/IN_PROGRESS d/2000-01-01 f/100`<br>
+      Expected: The overdue test gig is added for Alex.
+   1. Input: `deadlines`<br>
+      Expected: Every non-completed gig appears across all clients, ordered by deadline. `Overdue follow-up` is
+      first and labelled `OVERDUE`; `Brand identity refresh` is absent because it is completed.
+   1. Select `Bernice Yu`.<br>
+      Expected: The overview closes and Bernice's normal gig list is restored.
+
+1. **Filter gigs by status**
+   1. Input: `gigs s/IN_PROGRESS`<br>
+      Expected: The Gigs panel shows `Portfolio website redesign` and `Quarterly newsletter template`, including
+      their client names, and leaves the client list unchanged.
+   1. Input: `gigs s/WAITING`<br>
+      Expected: The command is rejected, the previous results remain visible, and no data changes.
+   1. Input: `gigs s/IN_PROGRESS s/COMPLETED`<br>
+      Expected: The repeated `s/` prefix is rejected and the previous results remain visible.
+
 ### Help and client commands
 
 1. **Help**
@@ -531,11 +607,11 @@ Start this section from a fresh test folder. Alex's sample gigs make `CLIENT_IND
 
 1. **Valid payment obligation**
    1. Select `Alex Yeoh`, then select `Portfolio website redesign`.<br>
-      Expected: The Payment obligations panel says `This gig has no payment obligations.`
+      Expected: The panel shows the sample `$1250.00` obligation due `2027-01-15` as `PAID`.
    1. Input: `addpayment 1 1 a/500.00 d/2099-07-15`<br>
       Expected: The result says an unpaid obligation was recorded for `Alex Yeoh`, gig 1, with amount `500.00` and
       due date `2099-07-15`. Without reselecting the gig, the panel immediately shows
-      `1. Amount: $500.00`, `Due: 2099-07-15`, and `OUTSTANDING`.
+      `2. Amount: $500.00`, `Due: 2099-07-15`, and `OUTSTANDING` after the earlier sample payment.
 
 1. **Invalid amount and date**
    1. Repeat `addpayment 1 1 a/AMOUNT d/2099-07-15`, replacing `AMOUNT` with `0`, `-10`, `abc`, and `10.999`.<br>
@@ -569,30 +645,51 @@ Start each test in this section from a fresh test folder unless the test says ot
       `addpayment 1 2 a/900 d/2099-01-01`<br>
       Expected: All five commands succeed.
    1. Select `Alex Yeoh`, then select `Portfolio website redesign`.<br>
-      Expected: Exactly four payments appear. Their displayed indexes restart from 1 and their amounts are ordered
-      `$100.00`, `$200.00`, `$250.00`, `$300.00`. The two obligations due on `2099-02-01` retain the order in which
-      they were recorded. The `$100.00` row is `OVERDUE` and visually distinct from the three `OUTSTANDING` rows.
+      Expected: Exactly five payments appear. Their displayed indexes restart from 1 and their amounts are ordered
+      `$100.00`, `$1250.00`, `$200.00`, `$250.00`, `$300.00`. The `$1250.00` sample row is `PAID`; the two
+      obligations due on `2099-02-01` retain the order in which they were recorded. The `$100.00` row is `OVERDUE`
+      and visually distinct from the three new `OUTSTANDING` rows.
    1. Select `Product launch photography`.<br>
-      Expected: Only `1. Amount: $900.00`, due `2099-01-01`, appears; none of the first gig's payments remain visible.
+      Expected: The sample `$1200.00` obligation due `2027-03-01` and the new `$900.00` obligation due `2099-01-01`
+      appear in that order; none of the first gig's payments remain visible.
    1. Select `Bernice Yu`.<br>
-      Expected: Alex's gig and payment selections are cleared. Only Bernice's gig is shown, and the Payment
+      Expected: Alex's gig and payment selections are cleared. Bernice's two gigs are shown, and the Payment
       obligations panel says `Select a gig to view its payment obligations.`
    1. Select `Brand identity refresh`.<br>
-      Expected: The Payment obligations panel says `This gig has no payment obligations.`
+      Expected: Only the sample `$1800.00` obligation due `2026-12-15` appears.
 
-1. **Paid-row appearance using controlled test data**
+1. **Mark a payment paid and reject a repeated attempt**
    1. Input these commands:<br>
       `addpayment 1 1 a/700 d/2099-04-01`<br>
       `addpayment 1 1 a/710 d/2099-05-01`<br>
       `addpayment 1 1 a/720 d/2020-05-01`<br>
-      Then input `exit`.<br>
-      Expected: All three obligations are recorded and Gigabyte closes.
-   1. Back up `data/addressbook.json`. In the `paymentObligations` array, find the entry whose `amountCents` is
-      `70000`, change only its `paid` value from `false` to `true`, save the file, and relaunch the JAR.<br>
-      Expected: Gigabyte loads normally.
+      Expected: All three obligations are recorded as unpaid.
    1. Select `Alex Yeoh`, then select `Portfolio website redesign`.<br>
+      Expected: The `$720.00` row is payment 1, the sample `$1250.00` paid row is payment 2, and the `$700.00` and
+      `$710.00` rows are payments 3 and 4 respectively.
+   1. Input: `markpaid 1 1 3`<br>
       Expected: The `$700.00` row shows `PAID`. Its muted paid styling is visibly different from the blue outstanding
       `$710.00` row and the red overdue `$720.00` row. Its stored due date remains unchanged.
+   1. Input: `markpaid 1 1 3` again.<br>
+      Expected: The command is rejected because the obligation is already paid, and all payment data remains unchanged.
+   1. Repeat `markpaid CLIENT_INDEX GIG_INDEX PAYMENT_INDEX` with `0`, `-1`, `abc`, and `999` in each index
+      position.<br>
+      Expected: No payment changes. Zero, negative, and non-numeric values produce the command-format error; `999`
+      identifies the client, gig, or payment index that is out of range.
+
+1. **Outstanding-payment overview**
+   1. Input: `addpayment 1 1 a/100 d/2000-01-01`, followed by
+      `addpayment 1 1 a/500 d/2099-01-01`.<br>
+      Expected: Both unpaid obligations are recorded for Alex's first gig.
+   1. Input: `markpaid 1 1 3`<br>
+      Expected: The new `$500.00` obligation is marked paid; payment 1 is the new overdue row and payment 2 is the
+      earlier sample paid row.
+   1. Input: `find Charlotte`, followed by `outstanding`.<br>
+      Expected: Outstanding obligations across all clients appear despite the filtered client list. The overdue
+      `$100.00` row is first and labelled `OVERDUE`; the sample `$1800.00` and `$1200.00` unpaid rows follow in
+      due-date order. The sample `$1250.00` and new `$500.00` paid rows are absent.
+   1. Input: `outstanding extra`.<br>
+      Expected: The command is rejected, the existing overview remains visible, and no data changes.
 
 1. **Field-identical gigs remain separate**
    1. Input the following command twice:<br>
@@ -621,6 +718,8 @@ Start each test in this section from a fresh test folder unless the test says ot
 
 ### Commands after filtering clients
 
+Start this section from a fresh test folder and perform the tests in order.
+
 1. **Adding a gig after `find`**
    1. Input: `find Bernice`<br>
       Expected: Only `Bernice Yu` is displayed and is numbered 1.
@@ -628,11 +727,18 @@ Start each test in this section from a fresh test folder unless the test says ot
       Expected: The gig is created for Bernice, not for the client who was number 1 in the full list. The filtered
       client list remains visible.
    1. Select Bernice.<br>
-      Expected: The new gig appears with Bernice's existing `Brand identity refresh` gig.
+      Expected: The new gig appears after Bernice's two sample gigs.
 
-1. **Adding a payment after `find`**
+1. **Updating a gig after `find`**
+   1. Input: `find Bernice`, followed by `setstatus 1 2 s/COMPLETED`.<br>
+      Expected: `Quarterly newsletter template`, Bernice's second gig, changes from `IN_PROGRESS` to `COMPLETED`.
+      No gig belonging to a client hidden by the filter changes.
+
+1. **Adding and settling a payment after `find`**
    1. Input: `find Bernice`, followed by `addpayment 1 1 a/125 d/2027-08-15`.<br>
       Expected: The result confirms an unpaid obligation for Bernice's first gig.
+   1. Select Bernice, select `Brand identity refresh`, then input `markpaid 1 1 2`.<br>
+      Expected: The new `$125.00` obligation, shown after the earlier sample obligation, changes to `PAID`.
    1. Input: `list`<br>
       Expected: The full six-client list is restored; subsequent client indexes use this full list.
 
@@ -648,12 +754,11 @@ Start each test in this section from a fresh test folder unless the test says ot
 1. **Restart after adding data**
    1. In a fresh test folder, input
       `addgig 1 t/Persistence check s/NOT_STARTED d/2027-09-01 f/900`, then
-      `addpayment 1 3 a/450 d/2027-09-15`, then `exit`.<br>
-      Expected: Both commands succeed before the app exits.
+      `addpayment 1 3 a/450 d/2027-09-15`, `setstatus 1 3 s/IN_PROGRESS`, `markpaid 1 3 1`, then `exit`.<br>
+      Expected: All four data-changing commands succeed before the app exits.
    1. Relaunch the same JAR from the same folder, select Alex, then select `Persistence check`.<br>
-      Expected: `Persistence check` is still Alex's third gig with the same status, deadline, and fee. Its Payment
-      obligations panel shows `1. Amount: $450.00`, due `2027-09-15`, with the appropriate unpaid display state for
-      the current local date.
+      Expected: `Persistence check` is still Alex's third gig with status `IN_PROGRESS`, deadline `2027-09-01`, and
+      fee `$900.00`. Its Payment obligations panel shows `1. Amount: $450.00`, due `2027-09-15`, as `PAID`.
 
 1. **Missing data file**
    1. Close the app and rename `data/addressbook.json` to `addressbook.backup.json`, then relaunch.<br>
@@ -675,8 +780,19 @@ Start each test in this section from a fresh test folder unless the test says ot
    `addpayment 1 3 a/1000 d/2027-10-15`.<br>
    Expected: An unpaid obligation is recorded for Alex's third gig and immediately appears in its Payment
    obligations panel.
+1. Input: `setstatus 1 3 s/COMPLETED`<br>
+   Expected: `End-to-end website` changes to `COMPLETED` without changing its title, deadline, fee, or payment.
+1. Input: `markpaid 1 3 1`<br>
+   Expected: The `$1000.00` obligation immediately changes to `PAID`.
+1. Input: `gigs s/COMPLETED`<br>
+   Expected: Completed gigs across all clients are shown, including `End-to-end website`.
+1. Input: `deadlines`<br>
+   Expected: Active gigs are shown in deadline order; `End-to-end website` is absent because it is completed.
+1. Input: `outstanding`<br>
+   Expected: Unpaid obligations across all clients are shown in due-date order; the paid `$1000.00` obligation is
+   absent.
 1. Input `exit`, relaunch from the same folder, input `find Alex`, and select Alex.<br>
-   Expected: `End-to-end website` is still present with its status, deadline, and fee unchanged.
+   Expected: `End-to-end website` is still present with status `COMPLETED`, deadline `2027-10-01`, and fee `$2000.00`.
 1. Select `End-to-end website`.<br>
-   Expected: Its Payment obligations panel shows `1. Amount: $1000.00`, due `2027-10-15`, with the appropriate unpaid
-   display state for the current local date. No payment from another gig is shown.
+   Expected: Its Payment obligations panel shows `1. Amount: $1000.00`, due `2027-10-15`, as `PAID`. No payment from
+   another gig is shown.

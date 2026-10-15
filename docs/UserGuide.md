@@ -444,6 +444,7 @@ Action     | Format, Examples
 **Exit**   | `exit`
 **Find**   | `find KEYWORD [MORE_KEYWORDS]`<br> e.g., `find James Jake`
 **Filter gigs** | `gigs s/STATUS`<br> e.g., `gigs s/IN_PROGRESS`
+**Active deadlines** | `deadlines`
 **Outstanding payments** | `outstanding`
 **List**   | `list`
 **Help**   | `help`
