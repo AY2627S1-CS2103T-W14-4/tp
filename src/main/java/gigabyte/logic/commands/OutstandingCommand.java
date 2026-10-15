@@ -16,6 +16,7 @@ public class OutstandingCommand extends Command {
     public CommandResult execute(Model model) {
         requireNonNull(model);
         long count = model.getPaymentObligationList().stream().filter(payment -> !payment.isPaid()).count();
-        return CommandResult.forOutstandingPayments(String.format("%d outstanding payment obligations.", count));
+        return CommandResult.forOutstandingPayments(String.format(
+            "%d outstanding payment obligation%s.", count, count == 1 ? "" : "s"));
     }
 }
