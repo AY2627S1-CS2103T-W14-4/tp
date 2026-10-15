@@ -22,26 +22,29 @@ public class CommandResult {
 
     /** Status to display across all clients, or null when the gig view should remain unchanged. */
     private final GigStatus gigStatusFilter;
+    private final boolean showDeadlineOverview;
 
     /**
      * Constructs a {@code CommandResult} with the specified fields.
      */
     public CommandResult(String feedbackToUser, boolean showHelp, boolean exit) {
-        this(feedbackToUser, showHelp, exit, null);
+        this(feedbackToUser, showHelp, exit, null, false);
     }
 
-    private CommandResult(String feedbackToUser, boolean showHelp, boolean exit, GigStatus gigStatusFilter) {
+    private CommandResult(String feedbackToUser, boolean showHelp, boolean exit, GigStatus gigStatusFilter,
+                          boolean showDeadlineOverview) {
         this.feedbackToUser = requireNonNull(feedbackToUser);
         this.showHelp = showHelp;
         this.exit = exit;
         this.gigStatusFilter = gigStatusFilter;
+        this.showDeadlineOverview = showDeadlineOverview;
     }
 
     /**
      * Constructs a result requesting a gig-status view across all clients.
      */
     public CommandResult(String feedbackToUser, GigStatus gigStatusFilter) {
-        this(feedbackToUser, false, false, requireNonNull(gigStatusFilter));
+        this(feedbackToUser, false, false, requireNonNull(gigStatusFilter), false);
     }
 
     /**
@@ -50,6 +53,11 @@ public class CommandResult {
      */
     public CommandResult(String feedbackToUser) {
         this(feedbackToUser, false, false);
+    }
+
+    /** Constructs a result requesting the active deadline overview. */
+    public static CommandResult deadlineOverview(String feedbackToUser) {
+        return new CommandResult(requireNonNull(feedbackToUser), false, false, null, true);
     }
 
     public String getFeedbackToUser() {
@@ -68,6 +76,10 @@ public class CommandResult {
         return gigStatusFilter;
     }
 
+    public boolean isShowDeadlineOverview() {
+        return showDeadlineOverview;
+    }
+
     @Override
     public boolean equals(Object other) {
         if (other == this) {
@@ -82,12 +94,13 @@ public class CommandResult {
         return feedbackToUser.equals(otherCommandResult.feedbackToUser)
                 && showHelp == otherCommandResult.showHelp
                 && exit == otherCommandResult.exit
-                && gigStatusFilter == otherCommandResult.gigStatusFilter;
+                && gigStatusFilter == otherCommandResult.gigStatusFilter
+                && showDeadlineOverview == otherCommandResult.showDeadlineOverview;
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(feedbackToUser, showHelp, exit, gigStatusFilter);
+        return Objects.hash(feedbackToUser, showHelp, exit, gigStatusFilter, showDeadlineOverview);
     }
 
     @Override

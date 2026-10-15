@@ -109,6 +109,9 @@ public class MainWindowTest {
                 assertEquals(0, window.getPaymentObligationListPanel().getPaymentListView().getItems().size());
                 window.getClientListPanel().getClientListView().getSelectionModel().select(0);
                 assertEquals(List.of(ALICE_GIG), window.getGigListPanel().getGigListView().getItems());
+                enterCommand(window, "deadlines");
+                assertNull(window.getClientListPanel().getClientListView().getSelectionModel().getSelectedItem());
+                assertEquals(List.of(ALICE_GIG, BENSON_GIG), window.getGigListPanel().getGigListView().getItems());
                 return null;
             });
         } finally {

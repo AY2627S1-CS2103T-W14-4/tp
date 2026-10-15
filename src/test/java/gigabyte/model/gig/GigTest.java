@@ -53,6 +53,27 @@ public class GigTest {
     }
 
     @Test
+    public void withStatus_validStatus_returnsCopyPreservingIdentityAndOtherFields() {
+        Gig original = new Gig(ALICE, TITLE, GigStatus.NOT_STARTED, DEADLINE, FEE);
+
+        Gig updated = original.withStatus(GigStatus.COMPLETED);
+
+        assertEquals(original.getUid(), updated.getUid());
+        assertSame(original.getClient(), updated.getClient());
+        assertEquals(TITLE, updated.getTitle());
+        assertEquals(GigStatus.COMPLETED, updated.getStatus());
+        assertEquals(DEADLINE, updated.getDeadline());
+        assertEquals(FEE, updated.getAgreedFee());
+    }
+
+    @Test
+    public void withStatus_nullStatus_throwsNullPointerException() {
+        Gig gig = new Gig(ALICE, TITLE, GigStatus.NOT_STARTED, DEADLINE, FEE);
+
+        assertThrows(NullPointerException.class, () -> gig.withStatus(null));
+    }
+
+    @Test
     public void withNewUid_returnsCopyWithReplacementUidAndSameTitle() {
         Gig original = new Gig(ALICE, TITLE, GigStatus.IN_PROGRESS, DEADLINE, FEE);
 

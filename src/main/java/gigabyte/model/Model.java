@@ -78,6 +78,11 @@ public interface Model {
     void addGig(Gig gig);
 
     /**
+     * Replaces {@code target} with {@code replacement}, preserving the gig's UID and client association.
+     */
+    void setGig(Gig target, Gig replacement);
+
+    /**
      * Returns an unmodifiable view of all gigs.
      */
     ObservableList<Gig> getGigList();

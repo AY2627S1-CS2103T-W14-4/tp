@@ -166,6 +166,47 @@ public class GigabyteDataTest {
     }
 
     @Test
+    public void setGig_withPaymentObligation_preservesUidAssociationAndRelinksObligation() {
+        gigabyteData.addClient(ALICE);
+        Gig originalGig = new Gig(ALICE, TITLE, GigStatus.NOT_STARTED,
+                new Deadline("2026-12-31"), new Fee("100"));
+        gigabyteData.addGig(originalGig);
+        Gig storedGig = gigabyteData.getGigList().get(0);
+        PaymentObligation obligation = new PaymentObligation(storedGig, new Fee("50"),
+                new Deadline("2026-11-30"), false);
+        gigabyteData.addPaymentObligation(obligation);
+        Gig replacementGig = storedGig.withStatus(GigStatus.COMPLETED);
+
+        gigabyteData.setGig(storedGig, replacementGig);
+
+        Gig updatedGig = gigabyteData.getGigList().get(0);
+        PaymentObligation updatedObligation = gigabyteData.getPaymentObligationList().get(0);
+        assertEquals(storedGig.getUid(), updatedGig.getUid());
+        assertSame(storedGig.getClient(), updatedGig.getClient());
+        assertEquals(GigStatus.COMPLETED, updatedGig.getStatus());
+        assertEquals(TITLE, updatedGig.getTitle());
+        assertEquals(new Deadline("2026-12-31"), updatedGig.getDeadline());
+        assertEquals(new Fee("100"), updatedGig.getAgreedFee());
+        assertSame(updatedGig, updatedObligation.getGig());
+        assertEquals(obligation.getAmount(), updatedObligation.getAmount());
+        assertEquals(obligation.getDueDate(), updatedObligation.getDueDate());
+        assertEquals(obligation.isPaid(), updatedObligation.isPaid());
+    }
+
+    @Test
+    public void setGig_invalidReplacement_throwsAndLeavesDataUnchanged() {
+        gigabyteData.addClient(ALICE);
+        gigabyteData.addGig(new Gig(ALICE, TITLE, GigStatus.NOT_STARTED,
+                new Deadline("2026-12-31"), new Fee("100")));
+        Gig storedGig = gigabyteData.getGigList().get(0);
+        Gig replacementWithNewUid = storedGig.withStatus(GigStatus.COMPLETED).withNewUid();
+
+        assertThrows(IllegalArgumentException.class, () -> gigabyteData.setGig(storedGig, replacementWithNewUid));
+
+        assertEquals(List.of(storedGig), gigabyteData.getGigList());
+    }
+
+    @Test
     public void setGigs_withoutLinkedGig_throwsAndLeavesDataUnchanged() {
         gigabyteData.addClient(ALICE);
         Gig gig = new Gig(ALICE, TITLE, GigStatus.NOT_STARTED, new Deadline("2026-12-31"), new Fee("100"));

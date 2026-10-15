@@ -1,6 +1,7 @@
 package gigabyte.logic;
 
 import static gigabyte.logic.Messages.MESSAGE_INVALID_CLIENT_DISPLAYED_INDEX;
+import static gigabyte.logic.Messages.MESSAGE_INVALID_COMMAND_FORMAT;
 import static gigabyte.logic.Messages.MESSAGE_UNKNOWN_COMMAND;
 import static gigabyte.logic.commands.CommandTestUtil.ADDRESS_DESC_AMY;
 import static gigabyte.logic.commands.CommandTestUtil.EMAIL_DESC_AMY;
@@ -26,7 +27,9 @@ import gigabyte.logic.commands.AddClientCommand;
 import gigabyte.logic.commands.AddPaymentCommand;
 import gigabyte.logic.commands.CommandResult;
 import gigabyte.logic.commands.ListClientsCommand;
+import gigabyte.logic.commands.SetGigStatusCommand;
 import gigabyte.logic.commands.exceptions.CommandException;
+import gigabyte.logic.parser.CliSyntax;
 import gigabyte.logic.parser.exceptions.ParseException;
 import gigabyte.model.GigabyteData;
 import gigabyte.model.Model;
@@ -178,6 +181,58 @@ public class LogicManagerTest {
                 .readGigabyteData().orElseThrow();
         assertTrue(restored.getPaymentObligationList().get(0).isPaid());
         assertEquals(model.getGigabyteData(), new GigabyteData(restored));
+    }
+  
+    @Test
+    public void execute_setGigStatus_usesFilteredClientsAndPersistsStatusAndPaymentLink() throws Exception {
+        model.addClient(ALICE);
+        model.addClient(AMY);
+        model.addGig(new Gig(ALICE, new GigTitle("Website"), GigStatus.NOT_STARTED,
+                new Deadline("2027-01-31"), new Fee("100")));
+        model.addGig(new Gig(AMY, new GigTitle("Logo"), GigStatus.IN_PROGRESS,
+                new Deadline("2027-02-28"), new Fee("200")));
+        logic.execute("addpayment 2 1 a/50 d/2027-03-31");
+        logic.execute("find Amy");
+        Gig targetGig = model.getGigList().get(1);
+
+        CommandResult result = logic.execute("setstatus 1 1 s/cOmPlEtEd");
+
+        assertEquals(GigStatus.COMPLETED, model.getGigList().get(1).getStatus());
+        assertEquals(targetGig.getUid(), model.getGigList().get(1).getUid());
+        assertSame(model.getGigList().get(1), model.getPaymentObligationList().get(0).getGig());
+        assertEquals(String.format(SetGigStatusCommand.MESSAGE_SUCCESS, AMY.getName(), 1, GigStatus.COMPLETED),
+                result.getFeedbackToUser());
+
+        Path path = temporaryFolder.resolve("gigabyteData.json");
+        ReadOnlyGigabyteData restored = new JsonGigabyteDataStorage(path).readGigabyteData().orElseThrow();
+        assertEquals(GigStatus.COMPLETED, restored.getGigList().get(1).getStatus());
+        assertEquals(model.getGigabyteData(), new GigabyteData(restored));
+        assertSame(restored.getGigList().get(1), restored.getPaymentObligationList().get(0).getGig());
+    }
+
+    @Test
+    public void execute_setGigStatus_invalidInputLeavesClientsGigsPaymentsAndFileUnchanged() throws Exception {
+        model.addClient(ALICE);
+        model.addGig(new Gig(ALICE, new GigTitle("Website"), GigStatus.IN_PROGRESS,
+                new Deadline("2027-01-31"), new Fee("100")));
+        logic.execute("addpayment 1 1 a/50 d/2027-02-28");
+        GigabyteData before = new GigabyteData(model.getGigabyteData());
+        Path path = temporaryFolder.resolve("gigabyteData.json");
+        String savedData = Files.readString(path);
+        String usage = String.format(MESSAGE_INVALID_COMMAND_FORMAT, SetGigStatusCommand.MESSAGE_USAGE);
+
+        assertParseException("setstatus 1 1", usage);
+        assertParseException("setstatus 1 1 s/WAITING", GigStatus.MESSAGE_CONSTRAINTS);
+        assertParseException("setstatus 1 1 s/COMPLETED s/NOT_STARTED",
+                Messages.getErrorMessageForDuplicatePrefixes(CliSyntax.PREFIX_STATUS));
+        assertParseException("setstatus 1 1 2 s/COMPLETED", usage);
+        assertCommandException("setstatus 2 1 s/COMPLETED", MESSAGE_INVALID_CLIENT_DISPLAYED_INDEX);
+        assertCommandException("setstatus 1 2 s/COMPLETED", SetGigStatusCommand.MESSAGE_INVALID_GIG_INDEX);
+        assertCommandException("setstatus 1 1 s/IN_PROGRESS",
+                SetGigStatusCommand.MESSAGE_STATUS_UNCHANGED.formatted(GigStatus.IN_PROGRESS));
+
+        assertEquals(before, model.getGigabyteData());
+        assertEquals(savedData, Files.readString(path));
     }
 
     @Test
