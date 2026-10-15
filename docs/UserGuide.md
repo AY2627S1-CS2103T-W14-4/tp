@@ -37,6 +37,8 @@
 
    * `addgig 1 t/Website redesign s/IN_PROGRESS d/2027-01-31 f/1250.00` : Adds a titled gig for the first displayed client.
 
+   * `setstatus 1 2 s/COMPLETED` : Marks the second gig for the first displayed client as completed.
+
    * `addpayment 1 1 a/500.00 d/2027-02-15` : Records an unpaid obligation for that client's first gig.
 
    * `clear` : Deletes all clients.
@@ -115,6 +117,7 @@ numbers, decimals, text, and indexes larger than the displayed list are invalid.
   client is not required before running `addpayment`.
 * The currently implemented payment command does not take a payment index: the two indexes in `addpayment` are the
   client index and that client's gig index, in that order.
+* `setstatus` uses the same client and gig index rules as `addpayment`.
 
 Example: after `find Bernice`, `addgig 1 ...` targets the first client in the filtered results. After `list`, the same
 client might have a different index.
@@ -202,6 +205,39 @@ Command | Why it is rejected
 `addgig 1 t/Website redesign s/NOT_STARTED d/2027-01-31 f/0` | Fees must be greater than zero.
 `addgig 1 t/Website redesign t/Second title s/NOT_STARTED d/2027-01-31 f/1250.00` | The single-valued `t/` prefix is repeated.
 `addgig 0 t/Website redesign s/NOT_STARTED d/2027-01-31 f/1250.00` | Client indexes start at 1.
+
+### Updating a gig's status: `setstatus`
+
+Changes the status of one existing gig and saves it automatically. The gig keeps its title, client, deadline, agreed
+fee, and UID. Existing payment obligations remain linked to it, and the **Gigs** panel refreshes as soon as the
+command succeeds.
+
+Format: `setstatus CLIENT_INDEX GIG_INDEX s/STATUS`
+
+* `CLIENT_INDEX` is the positive index in the currently displayed client list, including filtered `find` results.
+* `GIG_INDEX` is the positive position in that client's gig list, counted from the top. It uses the same order as the
+  **Gigs** panel and `addpayment`.
+* `STATUS` is `NOT_STARTED`, `IN_PROGRESS`, or `COMPLETED`; parsing ignores case and surrounding whitespace.
+* Supply exactly two indexes and one `s/` field. Missing or unsupported statuses, repeated `s/` fields, extra
+  positional arguments, and indexes outside the displayed lists are rejected without changing stored data.
+* Requesting the gig's current status is rejected. Statuses can otherwise be changed in either direction.
+
+Examples:
+
+* `setstatus 1 2 s/IN_PROGRESS`
+* `setstatus 1 2 s/completed`
+* `find Bernice` followed by `setstatus 1 1 s/COMPLETED` updates the first gig belonging to the first matching client.
+
+Unsuccessful examples:
+
+Command | Why it is rejected
+--------|-------------------
+`setstatus 1 2` | A status is required.
+`setstatus 1 2 s/WAITING` | `WAITING` is not a supported status.
+`setstatus 1 2 s/IN_PROGRESS s/COMPLETED` | The single-valued `s/` prefix is repeated.
+`setstatus 1 2 3 s/COMPLETED` | Exactly two indexes are required.
+`setstatus 1 99 s/COMPLETED` | The selected client does not have a gig at position 99.
+`setstatus 1 2 s/NOT_STARTED` | Gig 2 is already `NOT_STARTED`.
 
 ### Recording a payment obligation: `addpayment`
 
@@ -347,6 +383,7 @@ Action     | Format, Examples
 **Add**    | `add n/NAME p/PHONE_NUMBER e/EMAIL a/ADDRESS [t/TAG]... ` <br> e.g., `add n/James Ho p/22224444 e/jamesho@example.com a/123, Clementi Rd, 1234665 t/friend t/colleague`
 **Add gig** | `addgig INDEX t/TITLE s/STATUS d/DEADLINE f/FEE` <br> e.g., `addgig 1 t/Website redesign s/NOT_STARTED d/2027-01-31 f/1250.00`
 **Add payment** | `addpayment CLIENT_INDEX GIG_INDEX a/AMOUNT d/DUE_DATE` <br> e.g., `addpayment 1 2 a/500.00 d/2027-01-31`
+**Set gig status** | `setstatus CLIENT_INDEX GIG_INDEX s/STATUS` <br> e.g., `setstatus 1 2 s/COMPLETED`
 **Clear**  | `clear`
 **Delete** | `delete INDEX`<br> e.g., `delete 3`
 **Edit**   | `edit INDEX [n/NAME] [p/PHONE_NUMBER] [e/EMAIL] [a/ADDRESS] [t/TAG]... `<br> e.g.,`edit 2 n/James Lee e/jameslee@example.com`

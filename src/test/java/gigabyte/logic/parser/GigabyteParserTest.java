@@ -24,6 +24,7 @@ import gigabyte.logic.commands.FilterGigsCommand;
 import gigabyte.logic.commands.FindClientCommand;
 import gigabyte.logic.commands.HelpCommand;
 import gigabyte.logic.commands.ListClientsCommand;
+import gigabyte.logic.commands.SetGigStatusCommand;
 import gigabyte.logic.parser.exceptions.ParseException;
 import gigabyte.model.client.Client;
 import gigabyte.model.client.ClientNameContainsKeywordsPredicate;
@@ -67,6 +68,12 @@ public class GigabyteParserTest {
     public void parseCommand_addPayment() throws Exception {
         assertEquals(new AddPaymentCommand(INDEX_FIRST_CLIENT, INDEX_FIRST_CLIENT, new Fee("50.00"),
                 new Deadline("2027-01-31")), parser.parseCommand("addpayment 1 1 a/50.00 d/2027-01-31"));
+    }
+
+    @Test
+    public void parseCommand_setGigStatus() throws Exception {
+        assertEquals(new SetGigStatusCommand(INDEX_FIRST_CLIENT, INDEX_FIRST_CLIENT, GigStatus.COMPLETED),
+                parser.parseCommand("setstatus 1 1 s/completed"));
     }
 
     @Test

@@ -75,6 +75,11 @@ public class Gig {
         return new Gig(uid, replacementClient, title, status, deadline, agreedFee);
     }
 
+    /** Returns a copy with the status changed, preserving this gig's identity and client association. */
+    public Gig withStatus(GigStatus replacementStatus) {
+        return new Gig(uid, client, title, replacementStatus, deadline, agreedFee);
+    }
+
     /** Returns a copy with a new stable identifier. */
     public Gig withNewUid() {
         return new Gig(UUID.randomUUID(), client, title, status, deadline, agreedFee);
