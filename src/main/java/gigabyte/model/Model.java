@@ -96,4 +96,7 @@ public interface Model {
      * Adds a payment obligation linked to an existing gig.
      */
     void addPaymentObligation(PaymentObligation obligation);
+
+    /** Marks the exact stored payment obligation as paid, preserving its gig, amount, and due date. */
+    void markPaymentPaid(PaymentObligation obligation);
 }

@@ -12,6 +12,7 @@ import static gigabyte.testutil.TypicalClients.ALICE;
 import static gigabyte.testutil.TypicalClients.AMY;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
 import java.nio.file.AccessDeniedException;
@@ -164,6 +165,24 @@ public class LogicManagerTest {
         assertSame(restored.getGigList().get(0), restored.getPaymentObligationList().get(0).getGig());
     }
 
+    @Test
+    public void execute_markPaid_savesPaidStateForReload() throws Exception {
+        model.addClient(ALICE);
+        model.addGig(new Gig(ALICE, new GigTitle("Website redesign"), GigStatus.IN_PROGRESS,
+                new Deadline("2027-01-31"), new Fee("100")));
+        logic.execute("addpayment 1 1 a/50.25 d/2027-02-28");
+
+        CommandResult result = logic.execute("markpaid 1 1 1");
+
+        assertEquals("Marked payment obligation for Alice Pauline, gig 1, payment 1 as paid: Amount: 50.25; "
+                + "Due date: 2027-02-28", result.getFeedbackToUser());
+        assertTrue(model.getPaymentObligationList().get(0).isPaid());
+        ReadOnlyGigabyteData restored = new JsonGigabyteDataStorage(temporaryFolder.resolve("gigabyteData.json"))
+                .readGigabyteData().orElseThrow();
+        assertTrue(restored.getPaymentObligationList().get(0).isPaid());
+        assertEquals(model.getGigabyteData(), new GigabyteData(restored));
+    }
+  
     @Test
     public void execute_setGigStatus_usesFilteredClientsAndPersistsStatusAndPaymentLink() throws Exception {
         model.addClient(ALICE);

@@ -14,6 +14,7 @@ import gigabyte.model.client.Client;
 import gigabyte.model.gig.Deadline;
 import gigabyte.model.gig.Fee;
 import gigabyte.model.gig.Gig;
+import gigabyte.model.gig.GigOrdering;
 import gigabyte.model.gig.PaymentObligation;
 
 /**
@@ -55,8 +56,7 @@ public class AddPaymentCommand extends Command {
             throw new CommandException(Messages.MESSAGE_INVALID_CLIENT_DISPLAYED_INDEX);
         }
         Client client = clients.get(clientIndex.getZeroBased());
-        List<Gig> gigs = model.getGigList().stream()
-                .filter(gig -> gig.getClient().hasSameUid(client)).toList();
+        List<Gig> gigs = GigOrdering.forClient(model.getGigList(), client);
         if (gigIndex.getZeroBased() >= gigs.size()) {
             throw new CommandException(MESSAGE_INVALID_GIG_INDEX);
         }

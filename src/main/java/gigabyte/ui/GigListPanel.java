@@ -10,6 +10,7 @@ import java.util.function.Consumer;
 
 import gigabyte.model.client.Client;
 import gigabyte.model.gig.Gig;
+import gigabyte.model.gig.GigOrdering;
 import gigabyte.model.gig.GigStatus;
 import javafx.animation.PauseTransition;
 import javafx.application.Platform;
@@ -121,7 +122,7 @@ public class GigListPanel extends UiPart<Region> {
 
     /** Returns whether {@code gig} belongs to {@code client}. */
     static boolean isGigForClient(Gig gig, Client client) {
-        return client != null && gig.getClient().hasSameUid(client);
+        return GigOrdering.isForClient(gig, client);
     }
 
     @SuppressWarnings("unchecked")
