@@ -171,9 +171,23 @@ The `Storage` component,
 * serializes clients, gigs, and payment obligations through `JsonAdaptedClient`, `JsonAdaptedGig`, and
   `JsonAdaptedPaymentObligation`. Gigs store `clientUid`; payment obligations store `gigUid`; monetary values are
   stored as integer cents.
-* migrates supported older representations when loading, including name-linked gigs, index-linked payment
-  obligations, decimal fee strings, and title-less gigs. A title-less gig receives `Untitled gig`, which is written in
-  the current format on the next successful save.
+* reads only the current save format through `JsonUtil.readJsonFileStrict`, rejecting unknown fields and
+  fractional values for integer fields. The adapters require all three top-level arrays and each record's required
+  fields; IDs and titles are never generated during loading. Older formats fail with `DataLoadingException`.
+  User preferences continue to use the separate, permissive `JsonUtil.readJsonFile` path.
+
+The save-file fields are:
+
+| Object | Required fields |
+| --- | --- |
+| Root | `clients`, `gigs`, `paymentObligations` (arrays, including when empty) |
+| Client | `uid`, `name`, `phone`, `email`, `address`, `tags` |
+| Gig | `uid`, `clientUid`, `title`, `status`, `deadline`, `feeCents` |
+| Payment obligation | `gigUid`, `amountCents`, `dueDate`, `paid` |
+
+UUIDs must be valid, references must resolve to saved records, titles must be valid text, and monetary values must
+be positive integer cents. Null collections and null records are rejected. There is no automatic conversion of
+`persons`, name- or index-based references, decimal amount fields, or missing IDs and titles.
 
 ### Common classes
 
@@ -193,8 +207,8 @@ Each `Client` and `Gig` has an immutable UUID. A `Gig` holds the canonical `Clie
 
 When a client is edited, `GigabyteData#setClient` rebuilds that client's immutable gigs with `Gig#withClient` and then
 relinks payment obligations to the replacement gig objects. `Gig#withClient` preserves the gig UUID and title, so
-editing contact details does not break payment links or discard gig information. When loading legacy data, storage
-resolves older name- and index-based links once and the next successful save writes the stable-ID representation.
+editing contact details does not break payment links or discard gig information. During loading, storage resolves
+`clientUid` and `gigUid` against the saved UUIDs and rejects missing or invalid references.
 
 ### \[Proposed\] Undo/redo feature
 
@@ -468,7 +482,7 @@ Given below are instructions to test the app manually.
 
 **Preparation:** Build the release candidate with `gradlew shadowJar` (macOS/Linux: `./gradlew shadowJar`) and copy
 `build/libs/gigabyte.jar` into an otherwise empty test folder. Unless a test says otherwise, launch it from that folder
-with `java -jar gigabyte.jar`. Back up `data/addressbook.json` before any test that changes or corrupts it.
+with `java -jar gigabyte.jar`. Back up `data/gigabyte.json` before any test that changes or corrupts it.
 </box>
 
 ### Launch, sample data, and empty states
@@ -761,11 +775,11 @@ Start this section from a fresh test folder and perform the tests in order.
       fee `$900.00`. Its Payment obligations panel shows `1. Amount: $450.00`, due `2027-09-15`, as `PAID`.
 
 1. **Missing data file**
-   1. Close the app and rename `data/addressbook.json` to `addressbook.backup.json`, then relaunch.<br>
+   1. Close the app and rename `data/gigabyte.json` to `gigabyte.backup.json`, then relaunch.<br>
       Expected: Gigabyte starts with the six sample clients and their sample gigs. The backup file is unchanged.
 
 1. **Corrupted data file**
-   1. Close the app, back up `data/addressbook.json`, replace its contents with `{not valid json`, and relaunch.<br>
+   1. Close the app, back up `data/gigabyte.json`, replace its contents with `{not valid json`, and relaunch.<br>
       Expected: Gigabyte starts with an empty client list because the existing file could not be read.
    1. Input: `list`.<br>
       Expected: The command succeeds with the empty list and overwrites the corrupted file with valid empty data.

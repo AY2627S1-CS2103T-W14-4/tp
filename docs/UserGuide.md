@@ -204,8 +204,7 @@ Format: `addgig INDEX t/TITLE s/STATUS d/DEADLINE f/FEE`
 * `FEE` is a positive amount with at most two decimal places, without a currency symbol.
 * The confirmation shows the linked client, title, status, deadline, and agreed fee. The displayed client list stays
   unchanged, including when it is filtered.
-* Gigs are retained after restarting the app. Older saved gigs without a title load as `Untitled gig`; the fallback
-  title is written to the data file the next time Gigabyte saves.
+* Gigs, including their titles, are retained after restarting the app. Every saved gig must have a valid title.
 
 Successful examples:
 
@@ -272,7 +271,7 @@ Format: `addpayment CLIENT_INDEX GIG_INDEX a/AMOUNT d/DUE_DATE`
 * `DUE_DATE` must be a valid calendar date in `yyyy-MM-dd` format.
 * Multiple obligations may be recorded for the same gig. New obligations start unpaid.
 * Invalid input leaves existing clients, gigs, and obligations unchanged.
-* Obligations survive restarting the app. Older data files without payment obligations remain supported.
+* Obligations survive restarting the app. The save file must include a `paymentObligations` array, even when empty.
 
 Successful examples:
 
@@ -395,18 +394,23 @@ Client, gig, and payment-obligation data is restored when you next launch the ap
 
 ### Editing the data file
 
-Gigabyte data is saved automatically as a JSON file `[JAR file location]/data/addressbook.json`. Advanced users are welcome to update data directly by editing that data file.
+Gigabyte data is saved automatically as a JSON file `[JAR file location]/data/gigabyte.json`. Advanced users are welcome to update data directly by editing that data file.
 
 Client records are stored in the `clients` array with stable `uid` values. Gigs refer to clients by `clientUid`, store
 their titles as plain text, and are referenced by payment obligations using `gigUid`. Fees and payment amounts are
-stored as integer cents. Older files using `persons`, client names, title-less gigs, decimal fee strings, and
-`gigIndex` references are still loaded; title-less gigs receive the title `Untitled gig`, and Gigabyte writes the
-current format the next time it saves.
+stored as positive integer cents. The `clients`, `gigs`, and `paymentObligations` arrays are all required; use `[]`
+for an empty collection. Each client must include its `uid`, contact fields, and `tags` array. Each gig must include
+its `uid`, `clientUid`, `title`, `status`, `deadline`, and `feeCents`. Each payment obligation must include its
+`gigUid`, `amountCents`, `dueDate`, and `paid` state.
+
+Only the current save format is supported. Older files using `persons`, missing UUIDs or titles, client-name links,
+decimal `fee`/`amount` strings, or `gigIndex` references cannot be loaded. Unknown fields and missing required fields
+are rejected; Gigabyte does not upgrade older save files.
 
 <box type="warning" seamless>
 
 **Caution:**
-If your changes make the data file invalid, Gigabyte starts with an empty client list at the next run. The invalid file remains on disk until you run a command (Gigabyte saves after every command). Still, we recommend backing up the file before editing it.<br>
+If the data file is invalid or uses an unsupported older format, Gigabyte starts with an empty client list at the next run. The invalid file remains on disk until you run a command (Gigabyte saves after every command). Still, we recommend backing up the file before editing it.<br>
 Furthermore, certain edits can cause Gigabyte to behave in unexpected ways (e.g., if a value entered is outside of the acceptable range). Therefore, edit the data file only if you are confident that you can update it correctly.
 </box>
 
@@ -419,7 +423,7 @@ _Details coming soon ..._
 ## FAQ
 
 **Q**: How do I transfer my data to another computer?<br>
-**A**: Install the app on the other computer and overwrite the data file it creates with the data file from your previous Gigabyte home folder.
+**A**: Install the app on the other computer and overwrite the data file it creates with a save file in the current format from your previous Gigabyte home folder. Older save formats are not supported.
 
 --------------------------------------------------------------------------------------------------------------------
 

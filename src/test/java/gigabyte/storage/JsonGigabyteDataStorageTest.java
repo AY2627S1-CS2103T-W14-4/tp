@@ -9,10 +9,8 @@ import static gigabyte.testutil.TypicalClients.getTypicalGigabyteData;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertSame;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
@@ -183,16 +181,8 @@ public class JsonGigabyteDataStorageTest {
     }
 
     @Test
-    public void readLegacyGigWithoutTitle_thenSave_writesUntitledFallback() throws Exception {
-        ReadOnlyGigabyteData legacyData = readGigabyteData("legacyGigsWithoutTitlesGigabyteData.json")
-                .orElseThrow();
-        assertEquals(1, legacyData.getGigList().size());
-        assertEquals(GigTitle.UNTITLED, legacyData.getGigList().get(0).getTitle());
-
-        Path migratedFile = testFolder.resolve("migrated.json");
-        new JsonGigabyteDataStorage(migratedFile).saveGigabyteData(legacyData);
-
-        assertTrue(Files.readString(migratedFile).contains("\"title\" : \"Untitled gig\""));
+    public void readLegacyGigWithoutTitle_throwsDataLoadingException() {
+        assertThrows(DataLoadingException.class, () -> readGigabyteData("legacyGigsWithoutTitlesGigabyteData.json"));
     }
 
     /**

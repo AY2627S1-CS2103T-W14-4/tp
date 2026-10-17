@@ -1,5 +1,7 @@
 # Add a Title to Every Gig — Design
 
+> Updated on 2026-10-17 to reflect support for the current save format only.
+
 ## Purpose
 
 Every gig must have a short descriptive title so freelancers can distinguish similar work for the same client. The title is part of the core gig representation, is entered with `t/` when adding a gig, is shown prominently in the gig list, and survives persistence.
@@ -22,11 +24,11 @@ addgig CLIENT_INDEX t/TITLE s/STATUS d/DEADLINE f/FEE
 
 `AddGigCommand` stores the title, includes it when constructing the `Gig`, and mentions it in usage and success messages.
 
-## Storage and migration
+## Storage validation
 
-`JsonAdaptedGig` reads and writes a `title` property. Newly saved gigs always include the title. When a stored gig has no `title` property, the adapter assigns the documented fallback `Untitled gig`; this is the only path that supplies a missing title. A present but invalid title remains malformed storage and is rejected with `GigTitle.MESSAGE_CONSTRAINTS`.
+`JsonAdaptedGig` reads and writes a required `title` property. A missing, null, non-textual, blank, or overlong title causes loading to fail. No default title is supplied.
 
-The next save serializes the fallback title in the current format. Existing UID/client-link migration behavior remains unchanged.
+Storage accepts only the current format: all collections, client and gig UUIDs, UUID references, titles, and integer-cent amounts are required. Older formats and unknown fields are rejected.
 
 ## UI and sample data
 
@@ -43,8 +45,8 @@ The next save serializes the fallback title in the current format. Existing UID/
 
 ## Testing
 
-Tests cover title normalization and boundaries, gig copy/equality behavior, parser missing/blank/duplicate/valid titles, command construction, client edits preserving titles, JSON adapter validation and fallback, full storage round trips, old title-less data, UI text, and sample data. The User Guide documents the new command format, validation, migration fallback, examples, and command summary.
+Tests cover title normalization and boundaries, gig copy/equality behavior, parser missing/blank/duplicate/valid titles, command construction, client edits preserving titles, JSON adapter validation, full storage round trips, rejection of title-less and other older data, UI text, and sample data. The User Guide documents the new command format, validation, supported save format, examples, and command summary.
 
 ## Out of scope
 
-Gig descriptions, notes, attachments, globally unique titles, and removal of legacy-data support remain out of scope.
+Gig descriptions, notes, attachments, and globally unique titles remain out of scope.
