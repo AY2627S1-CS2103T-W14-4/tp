@@ -482,7 +482,7 @@ Given below are instructions to test the app manually.
 
 **Preparation:** Build the release candidate with `gradlew shadowJar` (macOS/Linux: `./gradlew shadowJar`) and copy
 `build/libs/gigabyte.jar` into an otherwise empty test folder. Unless a test says otherwise, launch it from that folder
-with `java -jar gigabyte.jar`. Back up `data/addressbook.json` before any test that changes or corrupts it.
+with `java -jar gigabyte.jar`. Back up `data/gigabyte.json` before any test that changes or corrupts it.
 </box>
 
 ### Launch, sample data, and empty states
@@ -775,11 +775,11 @@ Start this section from a fresh test folder and perform the tests in order.
       fee `$900.00`. Its Payment obligations panel shows `1. Amount: $450.00`, due `2027-09-15`, as `PAID`.
 
 1. **Missing data file**
-   1. Close the app and rename `data/addressbook.json` to `addressbook.backup.json`, then relaunch.<br>
+   1. Close the app and rename `data/gigabyte.json` to `gigabyte.backup.json`, then relaunch.<br>
       Expected: Gigabyte starts with the six sample clients and their sample gigs. The backup file is unchanged.
 
 1. **Corrupted data file**
-   1. Close the app, back up `data/addressbook.json`, replace its contents with `{not valid json`, and relaunch.<br>
+   1. Close the app, back up `data/gigabyte.json`, replace its contents with `{not valid json`, and relaunch.<br>
       Expected: Gigabyte starts with an empty client list because the existing file could not be read.
    1. Input: `list`.<br>
       Expected: The command succeeds with the empty list and overwrites the corrupted file with valid empty data.

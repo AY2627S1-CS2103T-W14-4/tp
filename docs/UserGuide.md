@@ -394,7 +394,7 @@ Client, gig, and payment-obligation data is restored when you next launch the ap
 
 ### Editing the data file
 
-Gigabyte data is saved automatically as a JSON file `[JAR file location]/data/addressbook.json`. Advanced users are welcome to update data directly by editing that data file.
+Gigabyte data is saved automatically as a JSON file `[JAR file location]/data/gigabyte.json`. Advanced users are welcome to update data directly by editing that data file.
 
 Client records are stored in the `clients` array with stable `uid` values. Gigs refer to clients by `clientUid`, store
 their titles as plain text, and are referenced by payment obligations using `gigUid`. Fees and payment amounts are
