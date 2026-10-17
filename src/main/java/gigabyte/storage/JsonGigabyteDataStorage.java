@@ -50,7 +50,7 @@ public class JsonGigabyteDataStorage {
     public Optional<ReadOnlyGigabyteData> readGigabyteData(Path filePath) throws DataLoadingException {
         requireNonNull(filePath);
 
-        Optional<JsonSerializableGigabyteData> jsonGigabyteData = JsonUtil.readJsonFile(
+        Optional<JsonSerializableGigabyteData> jsonGigabyteData = JsonUtil.readJsonFileStrict(
                 filePath, JsonSerializableGigabyteData.class);
         if (!jsonGigabyteData.isPresent()) {
             return Optional.empty();

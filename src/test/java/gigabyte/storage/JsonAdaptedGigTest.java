@@ -5,9 +5,15 @@ import static gigabyte.testutil.TypicalClients.ALICE;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
 
+import java.math.BigInteger;
 import java.util.List;
 
 import org.junit.jupiter.api.Test;
+
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.IntNode;
+import com.fasterxml.jackson.databind.node.NullNode;
+import com.fasterxml.jackson.databind.node.TextNode;
 
 import gigabyte.commons.exceptions.IllegalValueException;
 import gigabyte.model.gig.Deadline;
@@ -18,65 +24,75 @@ import gigabyte.model.gig.GigTitle;
 import gigabyte.model.gig.exceptions.GigClientNotFoundException;
 
 public class JsonAdaptedGigTest {
+    private static final String UID = "00000000-0000-0000-0000-000000000001";
+    private static final String CLIENT_UID = ALICE.getUid().toString();
+    private static final JsonNode TITLE = TextNode.valueOf("Website redesign");
+    private static final String STATUS = "NOT_STARTED";
+    private static final String DEADLINE = "2027-01-31";
+    private static final BigInteger FEE_CENTS = BigInteger.valueOf(125050);
+
     @Test
     public void toModelType_validFields_restoresGigWithCanonicalClient() throws Exception {
         Gig original = new Gig(ALICE, new GigTitle("Website redesign"), GigStatus.IN_PROGRESS,
-                new Deadline("2027-01-31"), new Fee("1250.50"));
+                new Deadline(DEADLINE), Fee.fromCents(FEE_CENTS));
         Gig restored = new JsonAdaptedGig(original).toModelType(List.of(ALICE));
         assertEquals(original, restored);
+        assertEquals(original.getUid(), restored.getUid());
         assertSame(ALICE, restored.getClient());
     }
 
     @Test
-    public void toModelType_absentTitle_usesUntitledFallback() throws Exception {
-        Gig restored = new JsonAdaptedGig(ALICE.getName().fullName, "NOT_STARTED", "2027-01-31", "100")
-                .toModelType(List.of(ALICE));
-
-        assertEquals(GigTitle.UNTITLED, restored.getTitle());
-    }
-
-    @Test
     public void toModelType_invalidPresentTitle_throwsIllegalValueException() {
-        assertThrows(IllegalValueException.class, GigTitle.MESSAGE_CONSTRAINTS, () ->
-                new JsonAdaptedGig(ALICE.getName().fullName, null, "NOT_STARTED", "2027-01-31", "100")
-                        .toModelType(List.of(ALICE)));
-        assertThrows(IllegalValueException.class, GigTitle.MESSAGE_CONSTRAINTS, () ->
-                new JsonAdaptedGig(ALICE.getName().fullName, "   ", "NOT_STARTED", "2027-01-31", "100")
-                        .toModelType(List.of(ALICE)));
-        assertThrows(IllegalValueException.class, GigTitle.MESSAGE_CONSTRAINTS, () ->
-                new JsonAdaptedGig(ALICE.getName().fullName, "a".repeat(101), "NOT_STARTED", "2027-01-31", "100")
-                        .toModelType(List.of(ALICE)));
+        for (JsonNode title : List.of(NullNode.getInstance(), IntNode.valueOf(123),
+                TextNode.valueOf("   "), TextNode.valueOf("a".repeat(101)))) {
+            assertThrows(IllegalValueException.class, GigTitle.MESSAGE_CONSTRAINTS, () ->
+                    new JsonAdaptedGig(UID, CLIENT_UID, title, STATUS, DEADLINE, FEE_CENTS)
+                            .toModelType(List.of(ALICE)));
+        }
     }
 
     @Test
     public void toModelType_missingFields_throwsIllegalValueException() {
         for (JsonAdaptedGig gig : List.of(
-                new JsonAdaptedGig(null, "NOT_STARTED", "2027-01-31", "100"),
-                new JsonAdaptedGig(ALICE.getName().fullName, null, "2027-01-31", "100"),
-                new JsonAdaptedGig(ALICE.getName().fullName, "NOT_STARTED", null, "100"),
-                new JsonAdaptedGig(ALICE.getName().fullName, "NOT_STARTED", "2027-01-31", null))) {
+                new JsonAdaptedGig(null, CLIENT_UID, TITLE, STATUS, DEADLINE, FEE_CENTS),
+                new JsonAdaptedGig(UID, null, TITLE, STATUS, DEADLINE, FEE_CENTS),
+                new JsonAdaptedGig(UID, CLIENT_UID, null, STATUS, DEADLINE, FEE_CENTS),
+                new JsonAdaptedGig(UID, CLIENT_UID, TITLE, null, DEADLINE, FEE_CENTS),
+                new JsonAdaptedGig(UID, CLIENT_UID, TITLE, STATUS, null, FEE_CENTS),
+                new JsonAdaptedGig(UID, CLIENT_UID, TITLE, STATUS, DEADLINE, null))) {
             assertThrows(IllegalValueException.class, JsonAdaptedGig.MISSING_FIELD_MESSAGE, () ->
                     gig.toModelType(List.of(ALICE)));
         }
     }
 
     @Test
-    public void toModelType_unknownClient_throwsIllegalValueException() {
-        JsonAdaptedGig gig = new JsonAdaptedGig("Unknown Client", "NOT_STARTED", "2027-01-31", "100");
-        assertThrows(IllegalValueException.class, GigClientNotFoundException.MESSAGE, () ->
-                gig.toModelType(List.of(ALICE)));
+    public void toModelType_invalidUid_throwsIllegalValueException() {
+        assertThrows(IllegalValueException.class, JsonAdaptedGig.INVALID_UID_MESSAGE, () ->
+                new JsonAdaptedGig("invalid", CLIENT_UID, TITLE, STATUS, DEADLINE, FEE_CENTS)
+                        .toModelType(List.of(ALICE)));
+    }
+
+    @Test
+    public void toModelType_invalidOrUnknownClientUid_throwsIllegalValueException() {
+        for (String clientUid : List.of("invalid", "00000000-0000-0000-0000-000000000002")) {
+            assertThrows(IllegalValueException.class, GigClientNotFoundException.MESSAGE, () ->
+                    new JsonAdaptedGig(UID, clientUid, TITLE, STATUS, DEADLINE, FEE_CENTS)
+                            .toModelType(List.of(ALICE)));
+        }
     }
 
     @Test
     public void toModelType_invalidFields_throwsIllegalValueException() {
         assertThrows(IllegalValueException.class, GigStatus.MESSAGE_CONSTRAINTS, () ->
-                new JsonAdaptedGig(ALICE.getName().fullName, "UNKNOWN", "2027-01-31", "100")
+                new JsonAdaptedGig(UID, CLIENT_UID, TITLE, "UNKNOWN", DEADLINE, FEE_CENTS)
                         .toModelType(List.of(ALICE)));
         assertThrows(IllegalValueException.class, Deadline.MESSAGE_CONSTRAINTS, () ->
-                new JsonAdaptedGig(ALICE.getName().fullName, "NOT_STARTED", "2027-02-29", "100")
+                new JsonAdaptedGig(UID, CLIENT_UID, TITLE, STATUS, "2027-02-29", FEE_CENTS)
                         .toModelType(List.of(ALICE)));
-        assertThrows(IllegalValueException.class, Fee.MESSAGE_CONSTRAINTS, () ->
-                new JsonAdaptedGig(ALICE.getName().fullName, "NOT_STARTED", "2027-01-31", "0")
-                        .toModelType(List.of(ALICE)));
+        for (BigInteger feeCents : List.of(BigInteger.ZERO, BigInteger.valueOf(-1))) {
+            assertThrows(IllegalValueException.class, Fee.MESSAGE_CONSTRAINTS, () ->
+                    new JsonAdaptedGig(UID, CLIENT_UID, TITLE, STATUS, DEADLINE, feeCents)
+                            .toModelType(List.of(ALICE)));
+        }
     }
 }

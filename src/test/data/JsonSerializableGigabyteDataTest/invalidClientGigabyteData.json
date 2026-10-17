@@ -1,8 +1,14 @@
 {
-  "persons": [ {
-    "name": "Hans Muster",
-    "phone": "9482424",
-    "email": "invalid@email!3e",
-    "address": "4th street"
-  } ]
+  "clients": [
+    {
+      "name": "Hans Muster",
+      "phone": "9482424",
+      "email": "invalid@email!3e",
+      "address": "4th street",
+      "uid": "00000000-0000-0000-0000-000000000001",
+      "tags": []
+    }
+  ],
+  "gigs": [],
+  "paymentObligations": []
 }

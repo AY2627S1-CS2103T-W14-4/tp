@@ -13,6 +13,7 @@ import com.fasterxml.jackson.annotation.PropertyAccessor;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.ObjectReader;
 import com.fasterxml.jackson.databind.SerializationFeature;
 
 import gigabyte.commons.core.LogsCenter;
@@ -42,7 +43,7 @@ public class JsonUtil {
 
     /**
      * Returns the JSON object from the given file or {@code Optional.empty()} object if the file is not found.
-     * If any values are missing from the file, default values will be used, as long as the file is a valid JSON file.
+     * Missing values use the defaults and validation provided by the target class. Unknown fields are ignored.
      *
      * @param filePath cannot be null.
      * @param classOfObjectToDeserialize JSON file has to correspond to the structure in the class given here.
@@ -50,6 +51,24 @@ public class JsonUtil {
      */
     public static <T> Optional<T> readJsonFile(
             Path filePath, Class<T> classOfObjectToDeserialize) throws DataLoadingException {
+        return readJsonFileWithReader(filePath, objectMapper.readerFor(classOfObjectToDeserialize));
+    }
+
+    /**
+     * Reads a JSON file while rejecting unknown fields and fractional values for integer fields.
+     * Missing values are validated by the target class.
+     *
+     * @throws DataLoadingException if the file cannot be read or does not match the expected format.
+     */
+    public static <T> Optional<T> readJsonFileStrict(Path filePath, Class<T> instanceClass)
+            throws DataLoadingException {
+        return readJsonFileWithReader(filePath, objectMapper.readerFor(instanceClass)
+                .with(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
+                .without(DeserializationFeature.ACCEPT_FLOAT_AS_INT));
+    }
+
+    private static <T> Optional<T> readJsonFileWithReader(Path filePath, ObjectReader reader)
+            throws DataLoadingException {
         requireNonNull(filePath);
 
         if (!Files.exists(filePath)) {
@@ -60,7 +79,10 @@ public class JsonUtil {
         T jsonFile;
 
         try {
-            jsonFile = deserializeObjectFromJsonFile(filePath, classOfObjectToDeserialize);
+            jsonFile = reader.readValue(FileUtil.readFromFile(filePath));
+            if (jsonFile == null) {
+                throw new IOException("JSON file must contain an object.");
+            }
         } catch (IOException e) {
             logger.warning("Error reading from jsonFile file " + filePath + ": " + e);
             throw new DataLoadingException(e);

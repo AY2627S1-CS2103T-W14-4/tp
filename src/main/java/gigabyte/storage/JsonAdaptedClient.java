@@ -31,7 +31,7 @@ class JsonAdaptedClient {
     private final String phone;
     private final String email;
     private final String address;
-    private final List<JsonAdaptedTag> tags = new ArrayList<>();
+    private final List<JsonAdaptedTag> tags;
 
     /**
      * Constructs a {@code JsonAdaptedClient} with the given client details.
@@ -46,14 +46,7 @@ class JsonAdaptedClient {
         this.phone = phone;
         this.email = email;
         this.address = address;
-        if (tags != null) {
-            this.tags.addAll(tags);
-        }
-    }
-
-    /** Retains the previous adapter constructor for direct legacy conversions. */
-    public JsonAdaptedClient(String name, String phone, String email, String address, List<JsonAdaptedTag> tags) {
-        this(null, name, phone, email, address, tags);
+        this.tags = tags == null ? null : new ArrayList<>(tags);
     }
 
     /**
@@ -65,9 +58,9 @@ class JsonAdaptedClient {
         phone = source.getPhone().value;
         email = source.getEmail().value;
         address = source.getAddress().value;
-        tags.addAll(source.getTags().stream()
+        tags = source.getTags().stream()
                 .map(JsonAdaptedTag::new)
-                .collect(Collectors.toList()));
+                .collect(Collectors.toList());
     }
 
     /**
@@ -76,8 +69,17 @@ class JsonAdaptedClient {
      * @throws IllegalValueException if there were any data constraints violated in the adapted client.
      */
     public Client toModelType() throws IllegalValueException {
+        if (uid == null) {
+            throw new IllegalValueException(String.format(MISSING_FIELD_MESSAGE_FORMAT, "uid"));
+        }
+        if (tags == null) {
+            throw new IllegalValueException(String.format(MISSING_FIELD_MESSAGE_FORMAT, "tags"));
+        }
         final List<Tag> clientTags = new ArrayList<>();
         for (JsonAdaptedTag tag : tags) {
+            if (tag == null) {
+                throw new IllegalValueException(Tag.MESSAGE_CONSTRAINTS);
+            }
             clientTags.add(tag.toModelType());
         }
 
@@ -116,7 +118,7 @@ class JsonAdaptedClient {
         final Set<Tag> modelTags = new HashSet<>(clientTags);
         UUID modelUid;
         try {
-            modelUid = uid == null ? UUID.randomUUID() : UUID.fromString(uid);
+            modelUid = UUID.fromString(uid);
         } catch (IllegalArgumentException exception) {
             throw new IllegalValueException(INVALID_UID_MESSAGE);
         }
