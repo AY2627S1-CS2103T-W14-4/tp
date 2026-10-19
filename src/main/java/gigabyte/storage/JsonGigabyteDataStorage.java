@@ -3,6 +3,7 @@ package gigabyte.storage;
 import static java.util.Objects.requireNonNull;
 
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Optional;
 import java.util.logging.Logger;
@@ -29,6 +30,23 @@ public class JsonGigabyteDataStorage {
 
     public Path getGigabyteDataFilePath() {
         return filePath;
+    }
+
+    /**
+     * Moves the legacy save file to this storage's path if the current save file does not exist.
+     * Preserves the file contents without changing the save format. An existing current file takes precedence.
+     *
+     * @throws IOException if the legacy file cannot be moved. Callers should stop initialization on failure.
+     */
+    public void migrateLegacyDataFile(Path legacyFilePath) throws IOException {
+        requireNonNull(legacyFilePath);
+        if (Files.exists(filePath) || !Files.exists(legacyFilePath)) {
+            return;
+        }
+
+        // Do not replace a current save file, even if it was created after the existence check.
+        Files.move(legacyFilePath, filePath);
+        logger.info("Migrated data file from " + legacyFilePath + " to " + filePath);
     }
 
     /**

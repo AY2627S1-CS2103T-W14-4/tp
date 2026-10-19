@@ -392,6 +392,11 @@ Format: `exit`
 Gigabyte automatically saves data after every successfully executed command. You do not need to save manually.
 Client, gig, and payment-obligation data is restored when you next launch the app from the same home folder.
 
+When upgrading from a version that saved to `data/addressbook.json`, Gigabyte automatically renames that file to
+`data/gigabyte.json` on startup if `data/gigabyte.json` does not already exist. Its contents are preserved, and future
+changes are saved to `data/gigabyte.json`. If both files exist, Gigabyte uses `data/gigabyte.json` and leaves
+`data/addressbook.json` untouched. If the rename fails, startup stops and the error is reported in the console.
+
 ### Editing the data file
 
 Gigabyte data is saved automatically as a JSON file `[JAR file location]/data/gigabyte.json`. Advanced users are welcome to update data directly by editing that data file.
@@ -405,7 +410,7 @@ its `uid`, `clientUid`, `title`, `status`, `deadline`, and `feeCents`. Each paym
 
 Only the current save format is supported. Older files using `persons`, missing UUIDs or titles, client-name links,
 decimal `fee`/`amount` strings, or `gigIndex` references cannot be loaded. Unknown fields and missing required fields
-are rejected; Gigabyte does not upgrade older save files.
+are rejected. The automatic filename migration does not convert older JSON formats.
 
 <box type="warning" seamless>
 

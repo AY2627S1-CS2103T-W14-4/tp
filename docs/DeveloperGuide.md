@@ -175,6 +175,9 @@ The `Storage` component,
   fractional values for integer fields. The adapters require all three top-level arrays and each record's required
   fields; IDs and titles are never generated during loading. Older formats fail with `DataLoadingException`.
   User preferences continue to use the separate, permissive `JsonUtil.readJsonFile` path.
+* migrates `data/addressbook.json` to `data/gigabyte.json` during `MainApp.init`, before loading data, if the current
+  file does not exist. `JsonGigabyteDataStorage.migrateLegacyDataFile` moves the file without changing its contents
+  or replacing an existing destination. An `IOException` during migration stops startup.
 
 The save-file fields are:
 
@@ -774,8 +777,17 @@ Start this section from a fresh test folder and perform the tests in order.
       Expected: `Persistence check` is still Alex's third gig with status `IN_PROGRESS`, deadline `2027-09-01`, and
       fee `$900.00`. Its Payment obligations panel shows `1. Amount: $450.00`, due `2027-09-15`, as `PAID`.
 
+1. **Previous save-file name**
+   1. In a test folder, close the app and rename `data/gigabyte.json` to `data/addressbook.json`, then relaunch.<br>
+      Expected: All saved data is loaded, `data/gigabyte.json` exists with the same contents, and
+      `data/addressbook.json` no longer exists. Subsequent commands save to `data/gigabyte.json`.
+   1. Close the app, place a different valid save at `data/addressbook.json` while keeping `data/gigabyte.json`,
+      then relaunch.<br>
+      Expected: Gigabyte loads `data/gigabyte.json` and leaves both files unchanged.
+
 1. **Missing data file**
-   1. Close the app and rename `data/gigabyte.json` to `gigabyte.backup.json`, then relaunch.<br>
+   1. In a test folder with no `data/addressbook.json`, close the app and rename `data/gigabyte.json` to
+      `gigabyte.backup.json`, then relaunch.<br>
       Expected: Gigabyte starts with the six sample clients and their sample gigs. The backup file is unchanged.
 
 1. **Corrupted data file**
