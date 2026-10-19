@@ -116,6 +116,50 @@ public class GigabyteDataTest {
     }
 
     @Test
+    public void deletePaymentObligation_identicalPayments_removesExactInstanceAndPreservesOrder() {
+        gigabyteData.addClient(ALICE);
+        gigabyteData.addGig(new Gig(ALICE, TITLE, GigStatus.NOT_STARTED,
+                new Deadline("2099-12-31"), new Fee("100")));
+        Gig gig = gigabyteData.getGigList().get(0);
+        PaymentObligation payment = new PaymentObligation(gig, new Fee("50"), new Deadline("2099-01-31"), false);
+        gigabyteData.addPaymentObligation(payment);
+        gigabyteData.addPaymentObligation(payment);
+        gigabyteData.addPaymentObligation(payment.withPaid(true));
+        List<PaymentObligation> before = List.copyOf(gigabyteData.getPaymentObligationList());
+
+        gigabyteData.deletePaymentObligation(before.get(1));
+
+        assertEquals(2, gigabyteData.getPaymentObligationList().size());
+        assertSame(before.get(0), gigabyteData.getPaymentObligationList().get(0));
+        assertSame(before.get(2), gigabyteData.getPaymentObligationList().get(1));
+        assertSame(gig, gigabyteData.getGigList().get(0));
+        assertSame(ALICE, gigabyteData.getClientList().get(0));
+        assertThrows(IllegalArgumentException.class, () -> gigabyteData.deletePaymentObligation(before.get(1)));
+        assertSame(before.get(0), gigabyteData.getPaymentObligationList().get(0));
+        assertEquals(2, gigabyteData.getPaymentObligationList().size());
+    }
+
+    @Test
+    public void deletePaymentObligation_equalButUnstoredInstance_throwsAndLeavesDataUnchanged() {
+        gigabyteData.addClient(ALICE);
+        gigabyteData.addGig(new Gig(ALICE, TITLE, GigStatus.NOT_STARTED,
+                new Deadline("2099-12-31"), new Fee("100")));
+        PaymentObligation payment = new PaymentObligation(gigabyteData.getGigList().get(0), new Fee("50"),
+                new Deadline("2099-01-31"), false);
+        gigabyteData.addPaymentObligation(payment);
+        GigabyteData before = new GigabyteData(gigabyteData);
+
+        assertThrows(IllegalArgumentException.class, () -> gigabyteData.deletePaymentObligation(payment));
+
+        assertEquals(before, gigabyteData);
+    }
+
+    @Test
+    public void deletePaymentObligation_null_throwsNullPointerException() {
+        assertThrows(NullPointerException.class, () -> gigabyteData.deletePaymentObligation(null));
+    }
+
+    @Test
     public void setClient_withPaymentObligation_relinksObligationAtomically() {
         gigabyteData.addClient(ALICE);
         Gig gig = new Gig(ALICE, TITLE, GigStatus.NOT_STARTED, new Deadline("2026-12-31"), new Fee("100"));

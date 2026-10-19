@@ -99,4 +99,10 @@ public interface Model {
 
     /** Marks the exact stored payment obligation as paid, preserving its gig, amount, and due date. */
     void markPaymentPaid(PaymentObligation obligation);
+
+    /**
+     * Deletes the exact stored payment obligation, preserving its gig and all other obligations.
+     * @throws IllegalArgumentException if the obligation is not a stored instance
+     */
+    void deletePaymentObligation(PaymentObligation obligation);
 }

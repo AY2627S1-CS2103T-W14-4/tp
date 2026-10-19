@@ -131,6 +131,12 @@ public class ModelManager implements Model {
         gigabyteData.markPaymentPaid(obligation);
     }
 
+    @Override
+    public void deletePaymentObligation(PaymentObligation obligation) {
+        requireNonNull(obligation);
+        gigabyteData.deletePaymentObligation(obligation);
+    }
+
     //=========== Filtered Client List Accessors =============================================================
 
     /**
