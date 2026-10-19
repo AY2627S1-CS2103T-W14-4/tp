@@ -31,7 +31,7 @@ public class JsonSerializableGigabyteDataTest {
 
     @Test
     public void toModelType_typicalClientsFile_success() throws Exception {
-        JsonSerializableGigabyteData dataFromFile = JsonUtil.readJsonFile(TYPICAL_CLIENTS_FILE,
+        JsonSerializableGigabyteData dataFromFile = JsonUtil.readJsonFileStrict(TYPICAL_CLIENTS_FILE,
                 JsonSerializableGigabyteData.class).get();
         GigabyteData gigabyteDataFromFile = dataFromFile.toModelType();
         GigabyteData typicalClientsGigabyteData = TypicalClients.getTypicalGigabyteData();
@@ -40,23 +40,41 @@ public class JsonSerializableGigabyteDataTest {
 
     @Test
     public void toModelType_invalidClientFile_throwsIllegalValueException() throws Exception {
-        JsonSerializableGigabyteData dataFromFile = JsonUtil.readJsonFile(INVALID_CLIENT_FILE,
+        JsonSerializableGigabyteData dataFromFile = JsonUtil.readJsonFileStrict(INVALID_CLIENT_FILE,
                 JsonSerializableGigabyteData.class).get();
         assertThrows(IllegalValueException.class, dataFromFile::toModelType);
     }
 
     @Test
     public void toModelType_duplicateClients_throwsIllegalValueException() throws Exception {
-        JsonSerializableGigabyteData dataFromFile = JsonUtil.readJsonFile(DUPLICATE_CLIENT_FILE,
+        JsonSerializableGigabyteData dataFromFile = JsonUtil.readJsonFileStrict(DUPLICATE_CLIENT_FILE,
                 JsonSerializableGigabyteData.class).get();
         assertThrows(IllegalValueException.class, JsonSerializableGigabyteData.MESSAGE_DUPLICATE_CLIENT,
                 dataFromFile::toModelType);
     }
 
     @Test
+    public void toModelType_missingCollections_throwsIllegalValueException() {
+        for (JsonSerializableGigabyteData data : List.of(
+                new JsonSerializableGigabyteData(null, List.of(), List.of()),
+                new JsonSerializableGigabyteData(List.of(), null, List.of()),
+                new JsonSerializableGigabyteData(List.of(), List.of(), null))) {
+            assertThrows(IllegalValueException.class, JsonSerializableGigabyteData.MISSING_FIELD_MESSAGE,
+                    data::toModelType);
+        }
+    }
+
+    @Test
+    public void toModelType_nullClient_throwsIllegalValueException() {
+        JsonSerializableGigabyteData data = new JsonSerializableGigabyteData(Arrays.asList((JsonAdaptedClient) null),
+                List.of(), List.of());
+        assertThrows(IllegalValueException.class, JsonSerializableGigabyteData.MESSAGE_NULL_CLIENT, data::toModelType);
+    }
+
+    @Test
     public void toModelType_nullGig_throwsIllegalValueException() {
         JsonSerializableGigabyteData data = new JsonSerializableGigabyteData(List.of(new JsonAdaptedClient(ALICE)),
-                Arrays.asList((JsonAdaptedGig) null), null);
+                Arrays.asList((JsonAdaptedGig) null), List.of());
         assertThrows(IllegalValueException.class, JsonAdaptedGig.MISSING_FIELD_MESSAGE, data::toModelType);
     }
 
