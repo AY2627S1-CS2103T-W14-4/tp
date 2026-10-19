@@ -99,4 +99,7 @@ public interface Model {
 
     /** Marks the exact stored payment obligation as paid, preserving its gig, amount, and due date. */
     void markPaymentPaid(PaymentObligation obligation);
+
+    /** Replaces a payment obligation while preserving its gig association and paid state. */
+    void setPaymentObligation(PaymentObligation target, PaymentObligation replacement);
 }

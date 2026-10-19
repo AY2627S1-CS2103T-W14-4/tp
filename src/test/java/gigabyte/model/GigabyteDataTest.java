@@ -8,6 +8,7 @@ import static gigabyte.testutil.TypicalClients.BENSON;
 import static gigabyte.testutil.TypicalClients.getTypicalGigabyteData;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -113,6 +114,88 @@ public class GigabyteDataTest {
                 new Fee("50"), new Deadline("2026-11-30"), false);
 
         assertThrows(GigNotFoundException.class, () -> gigabyteData.addPaymentObligation(obligation));
+    }
+
+    @Test
+    public void setPaymentObligation_exactTarget_replacesOnlySelectedIdenticalObligation() {
+        gigabyteData.addClient(ALICE);
+        Gig gig = new Gig(ALICE, TITLE, GigStatus.NOT_STARTED, new Deadline("2026-12-31"), new Fee("100"));
+        gigabyteData.addGig(gig);
+        PaymentObligation first = new PaymentObligation(gig, new Fee("50"),
+                new Deadline("2026-11-30"), false);
+        PaymentObligation second = new PaymentObligation(gig, new Fee("50"),
+                new Deadline("2026-11-30"), false);
+        gigabyteData.addPaymentObligation(first);
+        gigabyteData.addPaymentObligation(second);
+        PaymentObligation storedFirst = gigabyteData.getPaymentObligationList().get(0);
+        PaymentObligation storedSecond = gigabyteData.getPaymentObligationList().get(1);
+        PaymentObligation replacement = storedSecond.withDetails(new Fee("75"), storedSecond.getDueDate());
+
+        gigabyteData.setPaymentObligation(storedSecond, replacement);
+
+        assertSame(storedFirst, gigabyteData.getPaymentObligationList().get(0));
+        assertNotSame(storedSecond, gigabyteData.getPaymentObligationList().get(1));
+        assertEquals(new Fee("75"), gigabyteData.getPaymentObligationList().get(1).getAmount());
+    }
+
+    @Test
+    public void setPaymentObligation_equalCopy_replacesStoredObligation() {
+        gigabyteData.addClient(ALICE);
+        Gig gig = new Gig(ALICE, TITLE, GigStatus.NOT_STARTED, new Deadline("2026-12-31"), new Fee("100"));
+        gigabyteData.addGig(gig);
+        PaymentObligation original = new PaymentObligation(gig, new Fee("50"),
+                new Deadline("2026-11-30"), false);
+        gigabyteData.addPaymentObligation(original);
+        PaymentObligation stored = gigabyteData.getPaymentObligationList().get(0);
+        PaymentObligation equalCopy = new PaymentObligation(stored.getGig(), stored.getAmount(),
+                stored.getDueDate(), stored.isPaid());
+        PaymentObligation replacement = equalCopy.withDetails(new Fee("75"), equalCopy.getDueDate());
+
+        gigabyteData.setPaymentObligation(equalCopy, replacement);
+
+        assertEquals(new Fee("75"), gigabyteData.getPaymentObligationList().get(0).getAmount());
+        assertSame(stored.getGig(), gigabyteData.getPaymentObligationList().get(0).getGig());
+    }
+
+    @Test
+    public void setPaymentObligation_changedAssociationOrState_throwsAndLeavesDataUnchanged() {
+        gigabyteData.addClient(ALICE);
+        gigabyteData.addClient(BENSON);
+        Gig gig = new Gig(ALICE, TITLE, GigStatus.NOT_STARTED, new Deadline("2026-12-31"), new Fee("100"));
+        Gig otherGig = new Gig(BENSON, OTHER_TITLE, GigStatus.NOT_STARTED,
+                new Deadline("2026-12-31"), new Fee("100"));
+        gigabyteData.addGig(gig);
+        gigabyteData.addGig(otherGig);
+        gigabyteData.addPaymentObligation(new PaymentObligation(gig, new Fee("50"),
+                new Deadline("2026-11-30"), false));
+        PaymentObligation stored = gigabyteData.getPaymentObligationList().get(0);
+        PaymentObligation changedAssociation = new PaymentObligation(gigabyteData.getGigList().get(1),
+                new Fee("75"), stored.getDueDate(), false);
+        PaymentObligation changedState = new PaymentObligation(stored.getGig(), new Fee("75"),
+                stored.getDueDate(), true);
+
+        assertThrows(IllegalArgumentException.class, () ->
+                gigabyteData.setPaymentObligation(stored, changedAssociation));
+        assertThrows(IllegalArgumentException.class, () ->
+                gigabyteData.setPaymentObligation(stored, changedState));
+        assertSame(stored, gigabyteData.getPaymentObligationList().get(0));
+    }
+
+    @Test
+    public void setPaymentObligation_missingTarget_throwsAndLeavesDataUnchanged() {
+        gigabyteData.addClient(ALICE);
+        Gig gig = new Gig(ALICE, TITLE, GigStatus.NOT_STARTED, new Deadline("2026-12-31"), new Fee("100"));
+        gigabyteData.addGig(gig);
+        gigabyteData.addPaymentObligation(new PaymentObligation(gig, new Fee("50"),
+                new Deadline("2026-11-30"), false));
+        PaymentObligation stored = gigabyteData.getPaymentObligationList().get(0);
+        PaymentObligation missing = new PaymentObligation(stored.getGig(), new Fee("25"),
+                new Deadline("2026-10-31"), false);
+        PaymentObligation replacement = missing.withDetails(new Fee("75"), missing.getDueDate());
+
+        assertThrows(IllegalArgumentException.class, () ->
+                gigabyteData.setPaymentObligation(missing, replacement));
+        assertSame(stored, gigabyteData.getPaymentObligationList().get(0));
     }
 
     @Test

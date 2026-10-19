@@ -172,6 +172,23 @@ public class ModelManagerTest {
     }
 
     @Test
+    public void setPaymentObligation_existingPayment_replacesPayment() {
+        modelManager.addClient(ALICE);
+        modelManager.addGig(createGig(ALICE));
+        PaymentObligation payment = new PaymentObligation(modelManager.getGigList().get(0),
+                new Fee("500"), new Deadline("2027-02-28"), true);
+        modelManager.addPaymentObligation(payment);
+        PaymentObligation stored = modelManager.getPaymentObligationList().get(0);
+        PaymentObligation replacement = stored.withDetails(new Fee("650"), new Deadline("2027-03-15"));
+
+        modelManager.setPaymentObligation(stored, replacement);
+
+        assertEquals(List.of(replacement), modelManager.getPaymentObligationList());
+        assertSame(stored.getGig(), modelManager.getPaymentObligationList().get(0).getGig());
+        assertTrue(modelManager.getPaymentObligationList().get(0).isPaid());
+    }
+
+    @Test
     public void deleteClient_clientHasGig_throwsClientHasGigsException() {
         modelManager.addClient(ALICE);
         modelManager.addGig(createGig(ALICE));
