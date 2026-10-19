@@ -14,11 +14,15 @@ import java.time.ZoneId;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
+import java.util.Optional;
 import java.util.UUID;
 
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+import gigabyte.commons.core.index.Index;
+import gigabyte.logic.commands.EditPaymentCommand;
+import gigabyte.model.ModelManager;
 import gigabyte.model.gig.Deadline;
 import gigabyte.model.gig.Fee;
 import gigabyte.model.gig.Gig;
@@ -167,6 +171,49 @@ public class PaymentObligationListPanelTest {
     }
 
     @Test
+    public void editPaymentCommand_dueDateCrossesToday_reordersAndRefreshesGigView() throws Exception {
+        ModelManager model = createModelWithFirstGig();
+        Gig storedGig = model.getGigList().get(0);
+        model.addPaymentObligation(createPayment(storedGig, "100", "2026-10-12", false));
+        model.addPaymentObligation(createPayment(storedGig, "200", "2026-10-11", false));
+        PaymentObligationListPanel panel = createPanel(model.getPaymentObligationList());
+        panel.showPaymentsFor(storedGig);
+        assertEquals(new Fee("200"), panel.getPaymentListView().getItems().get(0).getAmount());
+
+        new EditPaymentCommand(Index.fromOneBased(1), Index.fromOneBased(1), Index.fromOneBased(2),
+                Optional.empty(), Optional.of(new Deadline("2026-10-10"))).execute(model);
+
+        assertEquals(new Fee("100"), panel.getPaymentListView().getItems().get(0).getAmount());
+        List<ListCell<PaymentObligation>> cells = renderCells(panel);
+        assertTrue(cells.get(0).getText().contains("Due: 2026-10-10"));
+        assertTrue(cells.get(0).getStyleClass().contains("payment-overdue"));
+        assertTrue(cells.get(1).getStyleClass().contains("payment-outstanding"));
+
+        new EditPaymentCommand(Index.fromOneBased(1), Index.fromOneBased(1), Index.fromOneBased(1),
+                Optional.empty(), Optional.of(new Deadline("2026-10-12"))).execute(model);
+
+        assertEquals(new Fee("200"), panel.getPaymentListView().getItems().get(0).getAmount());
+        cells = renderCells(panel);
+        assertTrue(cells.get(1).getText().contains("Due: 2026-10-12"));
+        assertTrue(cells.get(1).getStyleClass().contains("payment-outstanding"));
+    }
+
+    @Test
+    public void editPaymentCommand_amountChanges_refreshesOutstandingViewImmediately() throws Exception {
+        ModelManager model = createModelWithFirstGig();
+        Gig storedGig = model.getGigList().get(0);
+        model.addPaymentObligation(createPayment(storedGig, "100", "2026-10-12", false));
+        PaymentObligationListPanel panel = createPanel(model.getPaymentObligationList());
+        panel.showOutstandingPayments();
+
+        new EditPaymentCommand(Index.fromOneBased(1), Index.fromOneBased(1), Index.fromOneBased(1),
+                Optional.of(new Fee("650")), Optional.empty()).execute(model);
+
+        assertEquals(new Fee("650"), panel.getPaymentListView().getItems().get(0).getAmount());
+        assertTrue(renderCells(panel).get(0).getText().contains("Amount: $650.00"));
+    }
+
+    @Test
     public void showPaymentsFor_gigWithoutPayments_showsNoPaymentsEmptyState() {
         PaymentObligationListPanel panel = createPanel(FXCollections.observableArrayList());
 
@@ -269,6 +316,13 @@ public class PaymentObligationListPanelTest {
 
     private PaymentObligationListPanel createPanel(ObservableList<PaymentObligation> payments) {
         return new PaymentObligationListPanel(payments, TEST_CLOCK);
+    }
+
+    private ModelManager createModelWithFirstGig() {
+        ModelManager model = new ModelManager();
+        model.addClient(ALICE);
+        model.addGig(FIRST_GIG);
+        return model;
     }
 
     @SuppressWarnings("unchecked")
