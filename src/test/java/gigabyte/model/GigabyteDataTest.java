@@ -158,6 +158,34 @@ public class GigabyteDataTest {
     }
 
     @Test
+    public void setPaymentObligation_equalCopyForFieldIdenticalGig_replacesMatchingGigObligation() {
+        gigabyteData.addClient(ALICE);
+        Gig firstGig = new Gig(ALICE, TITLE, GigStatus.NOT_STARTED,
+                new Deadline("2026-12-31"), new Fee("100"));
+        Gig secondGig = new Gig(ALICE, TITLE, GigStatus.NOT_STARTED,
+                new Deadline("2026-12-31"), new Fee("100"));
+        gigabyteData.addGig(firstGig);
+        gigabyteData.addGig(secondGig);
+        PaymentObligation firstPayment = new PaymentObligation(firstGig, new Fee("50"),
+                new Deadline("2026-11-30"), false);
+        PaymentObligation secondPayment = new PaymentObligation(secondGig, new Fee("50"),
+                new Deadline("2026-11-30"), false);
+        gigabyteData.addPaymentObligation(firstPayment);
+        gigabyteData.addPaymentObligation(secondPayment);
+        PaymentObligation storedFirst = gigabyteData.getPaymentObligationList().get(0);
+        PaymentObligation storedSecond = gigabyteData.getPaymentObligationList().get(1);
+        PaymentObligation secondCopy = new PaymentObligation(storedSecond.getGig(), storedSecond.getAmount(),
+                storedSecond.getDueDate(), storedSecond.isPaid());
+        PaymentObligation replacement = secondCopy.withDetails(new Fee("75"), secondCopy.getDueDate());
+
+        gigabyteData.setPaymentObligation(secondCopy, replacement);
+
+        assertSame(storedFirst, gigabyteData.getPaymentObligationList().get(0));
+        assertEquals(new Fee("75"), gigabyteData.getPaymentObligationList().get(1).getAmount());
+        assertTrue(gigabyteData.getPaymentObligationList().get(1).getGig().hasSameUid(secondGig));
+    }
+
+    @Test
     public void setPaymentObligation_changedAssociationOrState_throwsAndLeavesDataUnchanged() {
         gigabyteData.addClient(ALICE);
         gigabyteData.addClient(BENSON);

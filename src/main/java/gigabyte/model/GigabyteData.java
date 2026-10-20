@@ -253,14 +253,20 @@ public class GigabyteData implements ReadOnlyGigabyteData {
         throw new IllegalArgumentException("Payment obligation must belong to this Gigabyte data.");
     }
 
-    /** Finds {@code target} by identity before falling back to value equality. */
+    /** Finds {@code target} by identity before matching its gig identity and value. */
     private int findPaymentObligationIndex(PaymentObligation target) {
         for (int index = 0; index < paymentObligations.size(); index++) {
             if (paymentObligations.get(index) == target) {
                 return index;
             }
         }
-        return paymentObligations.indexOf(target);
+        for (int index = 0; index < paymentObligations.size(); index++) {
+            PaymentObligation candidate = paymentObligations.get(index);
+            if (candidate.getGig().hasSameUid(target.getGig()) && candidate.equals(target)) {
+                return index;
+            }
+        }
+        return -1;
     }
 
     //// accessors
