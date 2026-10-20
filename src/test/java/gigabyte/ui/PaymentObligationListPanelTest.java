@@ -214,6 +214,35 @@ public class PaymentObligationListPanelTest {
     }
 
     @Test
+    public void editPaymentCommand_dueDateChanges_reordersAndRefreshesOutstandingView() throws Exception {
+        ModelManager model = createModelWithFirstGig();
+        Gig storedGig = model.getGigList().get(0);
+        model.addPaymentObligation(createPayment(storedGig, "100", "2026-10-12", false));
+        model.addPaymentObligation(createPayment(storedGig, "200", "2026-10-11", false));
+        PaymentObligationListPanel panel = createPanel(model.getPaymentObligationList());
+        panel.showOutstandingPayments();
+        assertEquals(new Fee("200"), panel.getPaymentListView().getItems().get(0).getAmount());
+
+        new EditPaymentCommand(Index.fromOneBased(1), Index.fromOneBased(1), Index.fromOneBased(2),
+                Optional.empty(), Optional.of(new Deadline("2026-10-10"))).execute(model);
+
+        assertEquals(new Fee("100"), panel.getPaymentListView().getItems().get(0).getAmount());
+        List<ListCell<PaymentObligation>> cells = renderCells(panel);
+        assertTrue(cells.get(0).getText().contains("Due: 2026-10-10"));
+        assertTrue(cells.get(0).getText().contains("OVERDUE"));
+        assertTrue(cells.get(0).getStyleClass().contains("payment-overdue"));
+
+        new EditPaymentCommand(Index.fromOneBased(1), Index.fromOneBased(1), Index.fromOneBased(1),
+                Optional.empty(), Optional.of(new Deadline("2026-10-12"))).execute(model);
+
+        assertEquals(new Fee("200"), panel.getPaymentListView().getItems().get(0).getAmount());
+        cells = renderCells(panel);
+        assertTrue(cells.get(1).getText().contains("Due: 2026-10-12"));
+        assertTrue(cells.get(1).getText().contains("OUTSTANDING"));
+        assertTrue(cells.get(1).getStyleClass().contains("payment-outstanding"));
+    }
+
+    @Test
     public void showPaymentsFor_gigWithoutPayments_showsNoPaymentsEmptyState() {
         PaymentObligationListPanel panel = createPanel(FXCollections.observableArrayList());
 
