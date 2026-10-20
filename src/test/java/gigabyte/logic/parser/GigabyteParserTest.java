@@ -8,6 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 import org.junit.jupiter.api.Test;
@@ -20,6 +21,7 @@ import gigabyte.logic.commands.ClearClientsCommand;
 import gigabyte.logic.commands.DeadlinesCommand;
 import gigabyte.logic.commands.DeleteClientCommand;
 import gigabyte.logic.commands.EditClientCommand;
+import gigabyte.logic.commands.EditPaymentCommand;
 import gigabyte.logic.commands.ExitCommand;
 import gigabyte.logic.commands.FilterGigsCommand;
 import gigabyte.logic.commands.FindClientCommand;
@@ -93,6 +95,13 @@ public class GigabyteParserTest {
     public void parseCommand_markPaymentUnpaid() throws Exception {
         assertEquals(new MarkPaymentUnpaidCommand(INDEX_FIRST_CLIENT, INDEX_FIRST_CLIENT,
                 Index.fromOneBased(3)), parser.parseCommand("markunpaid 1 1 3"));
+    }
+
+    @Test
+    public void parseCommand_editPayment() throws Exception {
+        assertEquals(new EditPaymentCommand(INDEX_FIRST_CLIENT, INDEX_FIRST_CLIENT, Index.fromOneBased(3),
+                Optional.of(new Fee("650")), Optional.of(new Deadline("2027-05-15"))),
+                parser.parseCommand("editpayment 1 1 3 a/650 d/2027-05-15"));
     }
 
     @Test

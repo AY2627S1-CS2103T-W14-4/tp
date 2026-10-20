@@ -174,6 +174,11 @@ public class AddClientCommandTest {
         public void setPaymentPaidState(PaymentObligation obligation, boolean isPaid) {
             throw new AssertionError("This method should not be called.");
         }
+
+        @Override
+        public void setPaymentObligation(PaymentObligation target, PaymentObligation replacement) {
+            throw new AssertionError("This method should not be called.");
+        }
     }
 
     /**

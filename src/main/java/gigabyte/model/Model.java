@@ -99,4 +99,7 @@ public interface Model {
 
     /** Sets the exact stored payment obligation's paid state, preserving its gig, amount, and due date. */
     void setPaymentPaidState(PaymentObligation obligation, boolean isPaid);
+
+    /** Replaces a payment obligation while preserving its gig association and paid state. */
+    void setPaymentObligation(PaymentObligation target, PaymentObligation replacement);
 }

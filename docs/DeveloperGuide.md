@@ -128,6 +128,7 @@ How the parsing works:
   `AddPaymentCommandParser` parses displayed client and per-client gig indexes plus `a/` and `d/` fields. Both reject
   missing or repeated single-valued prefixes before their commands update the model.
 * `SetGigStatusCommandParser` parses a displayed client index, a per-client gig index, and one `s/` field;
+  `EditPaymentCommandParser` parses displayed client, gig, and payment indexes plus optional `a/` and `d/` fields;
   `MarkPaymentPaidCommandParser` and `MarkPaymentUnpaidCommandParser` parse the displayed client, gig, and payment
   indexes; and `FilterGigsCommandParser` parses one `s/` field. `deadlines` needs no arguments, while `outstanding`
   explicitly rejects arguments. Their commands return `CommandResult` view instructions that `MainWindow` applies
@@ -145,7 +146,8 @@ The `Model` component,
   payment obligations are exposed as unmodifiable observable lists.
 * stores the `Client` objects selected by the current filter, such as search results, in a separate _filtered_ list. It exposes this list as an unmodifiable `ObservableList<Client>` that the UI can observe and bind to, so the UI updates when the list changes.
 * uses stable UUIDs to preserve links from each gig to its client and from each payment obligation to its gig. Client
-  edits replace linked immutable objects while retaining those identifiers and links. Payment-status changes replace
+  edits replace linked immutable objects while retaining those identifiers and links. Payment edits replace the
+  selected immutable obligation while preserving its canonical gig and paid state. Payment-status changes replace
   the exact immutable obligation while retaining its gig, amount, and due date.
 * stores a `UserPrefs` object that represents the user’s preferences (currently, just the GUI settings). This is exposed to the outside as a `ReadOnlyUserPrefs` object.
 * does not depend on any of the other three components (as the `Model` represents data entities of the domain, they should make sense on their own without depending on other components)
@@ -213,6 +215,12 @@ When a client is edited, `GigabyteData#setClient` rebuilds that client's immutab
 relinks payment obligations to the replacement gig objects. `Gig#withClient` preserves the gig UUID and title, so
 editing contact details does not break payment links or discard gig information. During loading, storage resolves
 `clientUid` and `gigUid` against the saved UUIDs and rejects missing or invalid references.
+
+`EditPaymentCommand` resolves the displayed client, per-client gig, and due-date-ordered payment indexes before it
+creates a replacement with `PaymentObligation#withDetails`. `GigabyteData#setPaymentObligation` searches for the
+selected stored object by identity before falling back to value equality, so editing one of two equal-valued payments
+changes only the indexed occurrence. The replacement keeps the stored gig object and paid state. Replacing the item
+in the observable payment list immediately updates and reorders the selected-gig and outstanding payment views.
 
 `MarkPaymentPaidCommand` and `MarkPaymentUnpaidCommand` resolve the displayed client, per-client gig, and
 due-date-ordered payment indexes before changing any data. They reject a request that already matches the stored paid
@@ -352,6 +360,7 @@ Priorities: High (must have) - `* * *`, Medium (nice to have) - `* *`, Low (unli
 | `* * *`  | user                                       | delete a person                                                          | remove entries that I no longer need                                   |
 | `* * *`  | user                                       | find a person by name                                                    | locate details of persons without having to go through the entire list |
 | `* * *`  | freelancer                                 | record a payment obligation linked to a gig, with an amount and due date | know what payment I expect and when                                    |
+| `* * *`  | freelancer                                 | correct a payment obligation's amount or due date                        | keep revised invoice details accurate                                  |
 | `* * *`  | freelancer                                 | mark a payment obligation as paid                                        | distinguish settled payments from money still owed                      |
 | `* * *`  | freelancer                                 | correct a payment that I accidentally marked as paid                     | keep my outstanding-payment list accurate                              |
 | `* * *`  | freelancer                                 | view a client’s details and associated gigs                              | understand my work with that client                                    |
@@ -416,6 +425,33 @@ For all use cases below, the **System** is the `Gigabyte` and the **Actor** is t
   * 3a1. Gigabyte reports whether the client index or per-client gig index is invalid without recording an obligation.
 * 3b. The amount or due date is invalid.
   * 3b1. Gigabyte explains the relevant constraint without recording an obligation.
+
+**Use case: Edit a payment obligation**
+
+**Preconditions:** The relevant client, gig, and payment obligation already exist.
+
+**MSS**
+
+1. Freelancer identifies the displayed client index, the gig's position within that client's normal gig list, and
+   the payment's position in the gig's due-date-ordered payment list.
+2. Freelancer enters `editpayment` with all three indexes and a replacement amount, due date, or both.
+3. Gigabyte resolves all three indexes before changing the obligation.
+4. Gigabyte validates the replacement fields and confirms that the resulting obligation is different.
+5. Gigabyte replaces and saves the selected obligation while preserving its gig and paid state.
+6. Gigabyte refreshes the visible payment view and reorders the row if its due date changed.
+
+    Use case ends.
+
+**Extensions**
+
+* 2a. Neither editable field is supplied, or a single-valued prefix is repeated.
+  * 2a1. Gigabyte reports the input error without changing any obligation.
+* 3a. Any index is invalid.
+  * 3a1. Gigabyte reports which displayed index is invalid without changing any obligation.
+* 4a. The amount or due date is invalid.
+  * 4a1. Gigabyte explains the relevant constraint without changing any obligation.
+* 4b. The replacement details equal the selected obligation's existing details.
+  * 4b1. Gigabyte reports that no change was made.
 
 **Use case: Record and settle a payment obligation**
 
@@ -724,6 +760,52 @@ Start each test in this section from a fresh test folder unless the test says ot
    1. Input `markunpaid 1 1 1`, exit, and relaunch Gigabyte from the same folder.<br>
       Expected: Alex's sample payment remains unpaid, retains its gig, amount, and due date, and appears in
       `outstanding` with the display state derived from the relaunch date.
+### Editing payment obligations
+
+Start this section from a fresh test folder. Select `Alex Yeoh`, then select `Portfolio website redesign` so the
+sample `$1250.00` paid obligation is payment 1.
+
+1. **Edit amount, due date, and both fields**
+   1. Input: `editpayment 1 1 1 a/1300`<br>
+      Expected: Payment 1 immediately shows `$1300.00`, keeps due date `2027-01-15`, and remains `PAID`.
+   1. Input: `addpayment 1 1 a/500 d/2099-07-15`<br>
+      Expected: An unpaid `$500.00` obligation is added as payment 2.
+   1. Input: `editpayment 1 1 1 d/2099-08-01`<br>
+      Expected: The same paid payment keeps amount `$1300.00`, moves from payment 1 to payment 2 after the earlier
+      `$500.00` obligation, and remains `PAID`.
+   1. Input: `editpayment 1 1 2 a/1350 d/2020-08-01`<br>
+      Expected: The paid payment changes both fields atomically, moves back to payment 1, and keeps its paid state and
+      gig.
+
+1. **Edit one of two identical obligations**
+   1. Input these commands:<br>
+      `addpayment 1 1 a/500 d/2099-09-01`<br>
+      `addpayment 1 1 a/500 d/2099-09-01`<br>
+      Expected: Two separate `$500.00` rows appear next to each other in recorded order.
+   1. Input `editpayment 1 1 PAYMENT_INDEX a/550`, replacing `PAYMENT_INDEX` with the later identical row's displayed
+      index.<br>
+      Expected: Only the selected row changes to `$550.00`; the other remains `$500.00`.
+
+1. **Refresh the outstanding overview and overdue state**
+   1. Select Alex's first gig and note the current per-gig index of the unpaid `$500.00` obligation.
+   1. Input: `outstanding`.<br>
+      Expected: The unpaid obligations appear in due-date order.
+   1. Input `editpayment 1 1 PAYMENT_INDEX d/2000-01-01`, using the `$500.00` obligation's noted index.<br>
+      Expected: Without rerunning `outstanding`, the edited row moves earlier and displays `OVERDUE`.
+   1. Select Alex's first gig, note that payment's new per-gig index, display `outstanding` again, and edit its date to
+      `2099-12-31`.<br>
+      Expected: The row moves later and displays `OUTSTANDING` immediately.
+
+1. **Reject invalid and no-op edits**
+   1. Try commands with no editable field, repeated `a/` or `d/`, invalid amounts or dates, and `0`, `-1`, `abc`,
+      or `999` in each index position.<br>
+      Expected: Every command is rejected and all obligations remain unchanged.
+   1. Input an edit that supplies the selected payment's existing amount and due date.<br>
+      Expected: Gigabyte reports that the payment already has those details and leaves it unchanged.
+
+1. **Persist edited details**
+   1. Exit and relaunch Gigabyte after a successful edit.<br>
+      Expected: The edited amount and due date, original gig association, and original paid state are restored.
 
 ### Viewing payment obligations
 

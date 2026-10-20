@@ -39,6 +39,11 @@ public class PaymentObligation {
         return new PaymentObligation(gig, amount, dueDate, paid);
     }
 
+    /** Returns a copy with the amount and due date changed. */
+    public PaymentObligation withDetails(Fee amount, Deadline dueDate) {
+        return new PaymentObligation(gig, amount, dueDate, paid);
+    }
+
     /** Returns a copy linked to {@code replacementGig}. */
     public PaymentObligation withGig(Gig replacementGig) {
         return new PaymentObligation(replacementGig, amount, dueDate, paid);

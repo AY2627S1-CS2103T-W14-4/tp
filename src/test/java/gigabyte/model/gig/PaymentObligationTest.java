@@ -4,6 +4,7 @@ import static gigabyte.testutil.Assert.assertThrows;
 import static gigabyte.testutil.TypicalClients.ALICE;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.junit.jupiter.api.Test;
@@ -26,6 +27,20 @@ public class PaymentObligationTest {
         PaymentObligation obligation = new PaymentObligation(GIG, AMOUNT, DUE_DATE, false);
         assertFalse(obligation.isPaid());
         assertTrue(obligation.withPaid(true).isPaid());
+    }
+
+    @Test
+    public void withDetails_replacesDetailsAndPreservesAssociationAndState() {
+        PaymentObligation obligation = new PaymentObligation(GIG, AMOUNT, DUE_DATE, true);
+        Fee replacementAmount = new Fee("75.25");
+        Deadline replacementDueDate = new Deadline("2027-01-15");
+
+        PaymentObligation replacement = obligation.withDetails(replacementAmount, replacementDueDate);
+
+        assertSame(GIG, replacement.getGig());
+        assertEquals(replacementAmount, replacement.getAmount());
+        assertEquals(replacementDueDate, replacement.getDueDate());
+        assertTrue(replacement.isPaid());
     }
 
     @Test

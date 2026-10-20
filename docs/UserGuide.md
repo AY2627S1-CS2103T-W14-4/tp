@@ -41,6 +41,8 @@
 
    * `addpayment 1 1 a/500.00 d/2027-02-15` : Records an unpaid obligation for that client's first gig.
 
+   * `editpayment 1 1 1 a/650.00` : Changes the first displayed payment's amount to `$650.00`.
+
    * `markpaid 1 1 1` : Marks the first displayed payment for the first displayed client's first gig as paid.
 
    * `markunpaid 1 1 1` : Corrects the first displayed payment's status back to unpaid.
@@ -113,13 +115,14 @@ Gigabyte uses one-based indexes: the first displayed item is `1`, the second is 
 numbers, decimals, text, and indexes larger than the displayed list are invalid.
 
 * A **client index** always refers to the numbered client in the list currently shown on the left. Commands such as
-  `addgig`, `addpayment`, `markpaid`, `markunpaid`, `edit`, and `delete` use this displayed list.
+  `addgig`, `addpayment`, `editpayment`, `markpaid`, `markunpaid`, `edit`, and `delete` use this displayed list.
 * `find` replaces the displayed client list with its matching results. A later command therefore uses the numbers in
   those results, not the numbers from the earlier full list. Run `list` to restore the full client list.
 * A **gig index** is the gig's one-based position among the chosen client's gigs. It is not an index into all gigs in
   Gigabyte. Selecting that client in the UI lets you confirm the order shown in the **Gigs** panel, but clicking the
   client is not required before running `addpayment`.
-* `addpayment` takes only the client index and that client's gig index. `markpaid` and `markunpaid` also take the
+* `addpayment` takes only the client index and that client's gig index. `editpayment`, `markpaid`, and `markunpaid`
+  also take the
   payment's index in the selected gig's due-date-ordered payment list.
 * `setstatus` uses the same client and gig index rules as `addpayment`.
 
@@ -131,7 +134,9 @@ client might have a different index.
 Select a client in the client list to show only that client's gigs in the **Gigs** panel. Select a gig to show only
 its payment obligations in the **Payment obligations** panel beneath the gig list. Payment obligations are numbered
 from 1 and ordered by due date, earliest first. Obligations with the same due date retain the order in which they were
-recorded. These displayed payment indexes restart from 1 for each selected gig; `markpaid` and `markunpaid` use them.
+recorded. These displayed payment indexes restart from 1 for each selected gig; `editpayment`, `markpaid`, and
+`markunpaid` use them. `editpayment` resolves the selected payment before applying a due-date change that might move
+the payment to a new displayed position.
 
 Each payment row shows its amount, due date, and current display state:
 
@@ -158,11 +163,11 @@ gig title, amount, due date, and payment state. Results sort by due date, earlie
   refreshes at local midnight without changing records.
 * Paid obligations are excluded. The empty state is `No outstanding payment obligations.`.
 * Results wrap and scroll vertically. Selecting a client and gig restores that gig's payment view.
-  Overview row numbers are not `markpaid` or `markunpaid` payment indexes; select the client and gig to check the
-  per-gig indexes.
-* While this overview is visible, `markpaid` removes the selected obligation immediately and `markunpaid` restores it
-  immediately. Displaying results does not change records or the client list. The command takes no arguments;
-  `outstanding extra` is rejected.
+  Overview row numbers are not `editpayment`, `markpaid`, or `markunpaid` payment indexes; select the client and gig
+  to check the per-gig indexes.
+* While this overview is visible, `markpaid` removes the selected obligation immediately, `markunpaid` restores it
+  immediately, and `editpayment` refreshes and reorders it immediately when applicable. Displaying results does not
+  change records or the client list. The command takes no arguments; `outstanding extra` is rejected.
 
 ### Filtering gigs by status: `gigs`
 
@@ -175,7 +180,8 @@ client name, status, deadline, and agreed fee. Results keep the order in which g
 * Supply exactly one `s/` argument. Missing, unsupported, repeated, or extra arguments are rejected.
 * No matches displays `No gigs with status STATUS.`. Filtering does not modify stored records or the client list.
 * Running `gigs` clears client/gig selections and the payment panel. Select a result to view its payments, or select
-  a client to return to that client's gigs. `addpayment`, `markpaid`, and `markunpaid` use that client's gig order,
+  a client to return to that client's gigs. `addpayment`, `editpayment`, `markpaid`, and `markunpaid` use that
+  client's gig order,
   not this status view.
 
 Examples: `gigs s/IN_PROGRESS`, `gigs s/completed`. Invalid examples: `gigs`, `gigs s/WAITING`,
@@ -299,6 +305,42 @@ Command | Why it is rejected
 
 The confirmation names the client and gig position, amount, and due date. To see the saved obligation, select the
 client and gig in the application; the **Payment obligations** panel refreshes immediately.
+
+### Editing a payment obligation: `editpayment`
+
+Corrects the amount, due date, or both fields of an existing payment obligation and saves the change automatically.
+
+Format: `editpayment CLIENT_INDEX GIG_INDEX PAYMENT_INDEX [a/AMOUNT] [d/DUE_DATE]`
+
+* `CLIENT_INDEX` is the positive index in the currently displayed client list, including `find` results.
+* `GIG_INDEX` is the positive position in that client's normal gig list, in the order shown in the **Gigs** panel.
+* `PAYMENT_INDEX` is the positive position in that gig's payment list, ordered by due date and then by recorded order.
+* At least one of `a/AMOUNT` or `d/DUE_DATE` is required. Each may appear at most once and in either order.
+* `AMOUNT` and `DUE_DATE` follow the same validation rules as `addpayment`.
+* Gigabyte resolves all three indexes before changing anything. If a due-date edit changes the payment's displayed
+  position, the edit still applies to the payment that occupied `PAYMENT_INDEX` when the command began.
+* The payment remains attached to the same gig and keeps its paid or unpaid state. Paid payments can be corrected.
+* A command that would leave both details unchanged is rejected. Invalid input leaves all payment data unchanged.
+* The selected gig's payment panel refreshes and reorders immediately. If the outstanding overview is visible, it
+  refreshes immediately too, including overdue styling derived from the new due date.
+
+Successful examples:
+
+* `editpayment 1 2 1 a/650.00` changes only the amount of payment 1.
+* `editpayment 1 2 1 d/2027-05-15` changes only its due date and may move the row.
+* `editpayment 1 2 1 a/650.00 d/2027-05-15` changes both details atomically.
+
+Unsuccessful examples:
+
+Command | Why it is rejected
+--------|-------------------
+`editpayment 1 2 1` | At least one editable field is required.
+`editpayment 1 2 a/650.00` | Exactly three indexes are required.
+`editpayment 1 2 99 a/650.00` | The selected gig has no payment at position 99.
+`editpayment 1 2 1 a/0` | Amounts must be positive numbers.
+`editpayment 1 2 1 d/2027-02-29` | The due date must be a valid `yyyy-MM-dd` calendar date.
+`editpayment 1 2 1 a/650 a/700` | The single-valued `a/` prefix is repeated.
+`editpayment 1 2 1 a/650` when its amount is already `$650.00` | The resulting payment would be unchanged.
 
 ### Marking a payment as paid: `markpaid`
 
@@ -486,6 +528,7 @@ Action     | Format, Examples
 **Add**    | `add n/NAME p/PHONE_NUMBER e/EMAIL a/ADDRESS [t/TAG]... ` <br> e.g., `add n/James Ho p/22224444 e/jamesho@example.com a/123, Clementi Rd, 1234665 t/friend t/colleague`
 **Add gig** | `addgig INDEX t/TITLE s/STATUS d/DEADLINE f/FEE` <br> e.g., `addgig 1 t/Website redesign s/NOT_STARTED d/2027-01-31 f/1250.00`
 **Add payment** | `addpayment CLIENT_INDEX GIG_INDEX a/AMOUNT d/DUE_DATE` <br> e.g., `addpayment 1 2 a/500.00 d/2027-01-31`
+**Edit payment** | `editpayment CLIENT_INDEX GIG_INDEX PAYMENT_INDEX [a/AMOUNT] [d/DUE_DATE]` <br> e.g., `editpayment 1 2 1 a/650.00 d/2027-05-15`
 **Mark payment paid** | `markpaid CLIENT_INDEX GIG_INDEX PAYMENT_INDEX` <br> e.g., `markpaid 2 1 3`
 **Mark payment unpaid** | `markunpaid CLIENT_INDEX GIG_INDEX PAYMENT_INDEX` <br> e.g., `markunpaid 2 1 3`
 **Set gig status** | `setstatus CLIENT_INDEX GIG_INDEX s/STATUS` <br> e.g., `setstatus 1 2 s/COMPLETED`

@@ -230,6 +230,28 @@ public class LogicManagerTest {
     }
 
     @Test
+    public void execute_editPayment_savesEditedDetailsForReload() throws Exception {
+        model.addClient(ALICE);
+        model.addGig(new Gig(ALICE, new GigTitle("Website redesign"), GigStatus.IN_PROGRESS,
+                new Deadline("2027-01-31"), new Fee("100")));
+        logic.execute("addpayment 1 1 a/50.25 d/2027-02-28");
+        logic.execute("markpaid 1 1 1");
+
+        CommandResult result = logic.execute("editpayment 1 1 1 a/650 d/2027-05-15");
+
+        assertEquals("Edited payment obligation for Alice Pauline, gig 1, payment 1: Amount: 650.00; "
+                + "Due date: 2027-05-15", result.getFeedbackToUser());
+        assertEquals(new Fee("650"), model.getPaymentObligationList().get(0).getAmount());
+        assertEquals(new Deadline("2027-05-15"), model.getPaymentObligationList().get(0).getDueDate());
+        assertTrue(model.getPaymentObligationList().get(0).isPaid());
+        ReadOnlyGigabyteData restored = new JsonGigabyteDataStorage(temporaryFolder.resolve("gigabyteData.json"))
+                .readGigabyteData().orElseThrow();
+        assertEquals(model.getGigabyteData(), new GigabyteData(restored));
+        assertTrue(restored.getPaymentObligationList().get(0).isPaid());
+        assertSame(restored.getGigList().get(0), restored.getPaymentObligationList().get(0).getGig());
+    }
+
+    @Test
     public void execute_setGigStatus_usesFilteredClientsAndPersistsStatusAndPaymentLink() throws Exception {
         model.addClient(ALICE);
         model.addClient(AMY);
