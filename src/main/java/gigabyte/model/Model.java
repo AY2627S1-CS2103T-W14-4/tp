@@ -97,6 +97,6 @@ public interface Model {
      */
     void addPaymentObligation(PaymentObligation obligation);
 
-    /** Marks the exact stored payment obligation as paid, preserving its gig, amount, and due date. */
-    void markPaymentPaid(PaymentObligation obligation);
+    /** Sets the exact stored payment obligation's paid state, preserving its gig, amount, and due date. */
+    void setPaymentPaidState(PaymentObligation obligation, boolean isPaid);
 }

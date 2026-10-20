@@ -220,12 +220,12 @@ public class GigabyteData implements ReadOnlyGigabyteData {
         paymentObligations.add(obligation.withGig(gigs.get(index)));
     }
 
-    /** Replaces the exact stored obligation with its paid copy. */
-    public void markPaymentPaid(PaymentObligation obligation) {
+    /** Replaces the exact stored obligation with a copy having the requested paid state. */
+    public void setPaymentPaidState(PaymentObligation obligation, boolean isPaid) {
         requireNonNull(obligation);
         for (int index = 0; index < paymentObligations.size(); index++) {
             if (paymentObligations.get(index) == obligation) {
-                paymentObligations.set(index, obligation.withPaid(true));
+                paymentObligations.set(index, obligation.withPaid(isPaid));
                 return;
             }
         }

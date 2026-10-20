@@ -172,6 +172,22 @@ public class ModelManagerTest {
     }
 
     @Test
+    public void setPaymentPaidState_existingPayment_setsRequestedState() {
+        modelManager.addClient(ALICE);
+        modelManager.addGig(createGig(ALICE));
+        modelManager.addPaymentObligation(new PaymentObligation(modelManager.getGigList().get(0),
+                new Fee("500"), new Deadline("2027-02-28"), false));
+
+        modelManager.setPaymentPaidState(modelManager.getPaymentObligationList().get(0), true);
+
+        assertTrue(modelManager.getPaymentObligationList().get(0).isPaid());
+
+        modelManager.setPaymentPaidState(modelManager.getPaymentObligationList().get(0), false);
+
+        assertFalse(modelManager.getPaymentObligationList().get(0).isPaid());
+    }
+
+    @Test
     public void deleteClient_clientHasGig_throwsClientHasGigsException() {
         modelManager.addClient(ALICE);
         modelManager.addGig(createGig(ALICE));

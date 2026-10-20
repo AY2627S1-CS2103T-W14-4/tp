@@ -116,6 +116,48 @@ public class GigabyteDataTest {
     }
 
     @Test
+    public void setPaymentPaidState_duplicatePayments_updatesExactTargetAndPreservesDetails() {
+        gigabyteData.addClient(ALICE);
+        Gig gig = new Gig(ALICE, TITLE, GigStatus.NOT_STARTED, new Deadline("2026-12-31"), new Fee("100"));
+        gigabyteData.addGig(gig);
+        PaymentObligation first = new PaymentObligation(gig, new Fee("50"),
+                new Deadline("2026-11-30"), true);
+        PaymentObligation second = new PaymentObligation(gig, new Fee("50"),
+                new Deadline("2026-11-30"), true);
+        gigabyteData.addPaymentObligation(first);
+        gigabyteData.addPaymentObligation(second);
+        PaymentObligation storedFirst = gigabyteData.getPaymentObligationList().get(0);
+        PaymentObligation storedSecond = gigabyteData.getPaymentObligationList().get(1);
+
+        gigabyteData.setPaymentPaidState(storedSecond, false);
+
+        PaymentObligation updatedSecond = gigabyteData.getPaymentObligationList().get(1);
+        assertTrue(gigabyteData.getPaymentObligationList().get(0).isPaid());
+        assertFalse(updatedSecond.isPaid());
+        assertSame(storedFirst, gigabyteData.getPaymentObligationList().get(0));
+        assertSame(storedSecond.getGig(), updatedSecond.getGig());
+        assertEquals(storedSecond.getAmount(), updatedSecond.getAmount());
+        assertEquals(storedSecond.getDueDate(), updatedSecond.getDueDate());
+    }
+
+    @Test
+    public void setPaymentPaidState_missingTarget_throwsAndLeavesDataUnchanged() {
+        gigabyteData.addClient(ALICE);
+        Gig gig = new Gig(ALICE, TITLE, GigStatus.NOT_STARTED, new Deadline("2026-12-31"), new Fee("100"));
+        gigabyteData.addGig(gig);
+        gigabyteData.addPaymentObligation(new PaymentObligation(gig, new Fee("50"),
+                new Deadline("2026-11-30"), true));
+        PaymentObligation stored = gigabyteData.getPaymentObligationList().get(0);
+        PaymentObligation equalButUnstored = new PaymentObligation(stored.getGig(), stored.getAmount(),
+                stored.getDueDate(), true);
+
+        assertThrows(IllegalArgumentException.class, () ->
+                gigabyteData.setPaymentPaidState(equalButUnstored, false));
+
+        assertSame(stored, gigabyteData.getPaymentObligationList().get(0));
+    }
+
+    @Test
     public void setClient_withPaymentObligation_relinksObligationAtomically() {
         gigabyteData.addClient(ALICE);
         Gig gig = new Gig(ALICE, TITLE, GigStatus.NOT_STARTED, new Deadline("2026-12-31"), new Fee("100"));
