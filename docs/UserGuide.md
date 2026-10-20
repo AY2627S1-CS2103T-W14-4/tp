@@ -434,6 +434,18 @@ Examples:
 * `findgig website` finds titles containing the complete word `website`.
 * `findgig website redesign` finds titles containing either `website` or `redesign`.
 
+### Viewing a work and payment summary: `summary`
+
+Shows counts for all stored clients and gigs, followed by payment totals. The command ignores the current client
+filter and does not change any selection, filter, or stored data.
+
+Format: `summary`
+
+The payment section reports unpaid obligations as **Outstanding**, with **Of which overdue** explicitly identifying
+the subset whose due date is before today. Obligations due today are not overdue. **Marked paid** is the total of
+obligations recorded as paid; it is not revenue because Gigabyte does not record when money was received. All totals
+are calculated exactly to cents.
+
 ### Clearing all entries: `clear`
 
 Clears all clients, their gigs, and payment obligations.

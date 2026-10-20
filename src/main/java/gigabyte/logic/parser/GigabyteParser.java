@@ -26,6 +26,7 @@ import gigabyte.logic.commands.ListClientsCommand;
 import gigabyte.logic.commands.MarkPaymentPaidCommand;
 import gigabyte.logic.commands.OutstandingCommand;
 import gigabyte.logic.commands.SetGigStatusCommand;
+import gigabyte.logic.commands.SummaryCommand;
 import gigabyte.logic.parser.exceptions.ParseException;
 
 /**
@@ -82,6 +83,7 @@ public class GigabyteParser {
                 }
                 yield new OutstandingCommand();
             }
+            case SummaryCommand.COMMAND_WORD -> new SummaryCommand();
             case ExitCommand.COMMAND_WORD -> new ExitCommand();
             case HelpCommand.COMMAND_WORD -> new HelpCommand();
             default -> {

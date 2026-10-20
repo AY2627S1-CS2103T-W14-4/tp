@@ -108,7 +108,9 @@ public class CommandResult {
         return showDeadlineOverview;
     }
 
-    public GigTitleContainsKeywordsPredicate getGigTitleSearch() { return gigTitleSearch; }
+    public GigTitleContainsKeywordsPredicate getGigTitleSearch() {
+        return gigTitleSearch;
+    }
 
     @Override
     public boolean equals(Object other) {
