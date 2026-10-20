@@ -128,10 +128,10 @@ How the parsing works:
   `AddPaymentCommandParser` parses displayed client and per-client gig indexes plus `a/` and `d/` fields. Both reject
   missing or repeated single-valued prefixes before their commands update the model.
 * `SetGigStatusCommandParser` parses a displayed client index, a per-client gig index, and one `s/` field;
-  `MarkPaymentPaidCommandParser` parses the displayed client, gig, and payment indexes; and
-  `FilterGigsCommandParser` parses one `s/` field. `deadlines` needs no arguments, while `outstanding` explicitly
-  rejects arguments. Their commands return `CommandResult` view instructions that `MainWindow` applies without
-  changing the current client filter.
+  `MarkPaymentPaidCommandParser` and `MarkPaymentUnpaidCommandParser` parse the displayed client, gig, and payment
+  indexes; and `FilterGigsCommandParser` parses one `s/` field. `deadlines` needs no arguments, while `outstanding`
+  explicitly rejects arguments. Their commands return `CommandResult` view instructions that `MainWindow` applies
+  without changing the current client filter.
 
 ### Model component
 **API** : [`Model.java`](https://github.com/AY2627S1-CS2103T-W14-4/tp/tree/master/src/main/java/gigabyte/model/Model.java)
@@ -145,7 +145,8 @@ The `Model` component,
   payment obligations are exposed as unmodifiable observable lists.
 * stores the `Client` objects selected by the current filter, such as search results, in a separate _filtered_ list. It exposes this list as an unmodifiable `ObservableList<Client>` that the UI can observe and bind to, so the UI updates when the list changes.
 * uses stable UUIDs to preserve links from each gig to its client and from each payment obligation to its gig. Client
-  edits replace linked immutable objects while retaining those identifiers and links.
+  edits replace linked immutable objects while retaining those identifiers and links. Payment-status changes replace
+  the exact immutable obligation while retaining its gig, amount, and due date.
 * stores a `UserPrefs` object that represents the user’s preferences (currently, just the GUI settings). This is exposed to the outside as a `ReadOnlyUserPrefs` object.
 * does not depend on any of the other three components (as the `Model` represents data entities of the domain, they should make sense on their own without depending on other components)
 
@@ -212,6 +213,13 @@ When a client is edited, `GigabyteData#setClient` rebuilds that client's immutab
 relinks payment obligations to the replacement gig objects. `Gig#withClient` preserves the gig UUID and title, so
 editing contact details does not break payment links or discard gig information. During loading, storage resolves
 `clientUid` and `gigUid` against the saved UUIDs and rejects missing or invalid references.
+
+`MarkPaymentPaidCommand` and `MarkPaymentUnpaidCommand` resolve the displayed client, per-client gig, and
+due-date-ordered payment indexes before changing any data. They reject a request that already matches the stored paid
+state, then call `Model#setPaymentPaidState`. `GigabyteData` replaces the selected object by identity with
+`PaymentObligation#withPaid`, which preserves its gig, amount, and due date and keeps equal-valued obligations
+independent. The observable-list replacement refreshes selected-gig and outstanding views immediately, while normal
+storage saving persists the corrected state.
 
 ### \[Proposed\] Undo/redo feature
 
@@ -345,6 +353,7 @@ Priorities: High (must have) - `* * *`, Medium (nice to have) - `* *`, Low (unli
 | `* * *`  | user                                       | find a person by name                                                    | locate details of persons without having to go through the entire list |
 | `* * *`  | freelancer                                 | record a payment obligation linked to a gig, with an amount and due date | know what payment I expect and when                                    |
 | `* * *`  | freelancer                                 | mark a payment obligation as paid                                        | distinguish settled payments from money still owed                      |
+| `* * *`  | freelancer                                 | correct a payment that I accidentally marked as paid                     | keep my outstanding-payment list accurate                              |
 | `* * *`  | freelancer                                 | view a client’s details and associated gigs                              | understand my work with that client                                    |
 | `* * *`  | freelancer                                 | create a gig linked to a client with a title, status, deadline, and fee  | track each piece of work                                               |
 | `* * *`  | freelancer                                 | view upcoming gig deadlines in date order                                | prioritise my work                                                     |
@@ -436,6 +445,29 @@ For all use cases below, the **System** is the `Gigabyte` and the **Actor** is t
 
     * 8a1. Gigabyte informs the freelancer that no change was made.
     Use case ends.
+
+**Use case: Correct a payment marked as paid**
+
+**Preconditions:** The payment obligation exists and is marked as paid.
+
+**MSS**
+
+1. Freelancer identifies the displayed client index, the gig's position within that client's gig list, and the
+   payment's position in the gig's due-date-ordered payment list.
+2. Freelancer enters `markunpaid` with all three indexes.
+3. Gigabyte validates the indexes and confirms that the selected obligation is paid.
+4. Gigabyte saves the obligation as unpaid while preserving its gig, amount, and due date.
+5. Gigabyte refreshes the payment view and includes the obligation in `outstanding` as `OVERDUE` or `OUTSTANDING`
+   according to its due date and the current local date.
+
+    Use case ends.
+
+**Extensions**
+
+* 3a. Any index is invalid.
+  * 3a1. Gigabyte reports which displayed index is invalid without changing any obligation.
+* 3b. The selected obligation is already unpaid.
+  * 3b1. Gigabyte reports that no change was made.
 
 **Use case: Review active deadlines**
 
@@ -648,6 +680,50 @@ Start this section from a fresh test folder. Alex's sample gigs make `CLIENT_IND
    1. Repeat a valid command with each gig index: `0`, `-1`, `abc`, and `999`.<br>
       Expected: No obligation is recorded. The first three produce the command-format error; `999` reports that the
       gig index is invalid for this client.
+
+### Correcting payment status
+
+Start each test in this section from a fresh test folder unless the test says otherwise.
+
+1. **Mark a paid future payment as unpaid and refresh `outstanding`**
+   1. Input `addpayment 1 1 a/600 d/2099-12-31`, followed by `markpaid 1 1 2`.<br>
+      Expected: The `$600.00` obligation is payment 2 and displays `PAID`.
+   1. Input: `outstanding`.<br>
+      Expected: The paid `$600.00` obligation is absent.
+   1. Without leaving the overview, input: `markunpaid 1 1 2`.<br>
+      Expected: The `$600.00` obligation immediately appears as `OUTSTANDING`, without rerunning `outstanding`.
+
+1. **Mark a paid past-due payment as unpaid and reject a repeated attempt**
+   1. Input `addpayment 1 1 a/100 d/2000-01-01`, followed by `markpaid 1 1 1` and
+      `markunpaid 1 1 1`.<br>
+      Expected: Payment 1 keeps amount `$100.00` and due date `2000-01-01`, changes to unpaid, and displays `OVERDUE`.
+   1. Input: `markunpaid 1 1 1` again.<br>
+      Expected: The command is rejected because the obligation is already unpaid, and no payment changes.
+
+1. **Correct one of two equal-valued payments**
+   1. Input these commands in order:<br>
+      `addpayment 1 1 a/500 d/2099-11-30`<br>
+      `addpayment 1 1 a/500 d/2099-11-30`<br>
+      `markpaid 1 1 2`<br>
+      `markpaid 1 1 3`<br>
+      `markunpaid 1 1 3`<br>
+      Expected: Only payment 3 changes back to unpaid. Payment 2 remains paid, and both retain their original gig,
+      amount, and due date.
+
+1. **Use filtered client indexes**
+   1. Input `find Bernice`, followed by `markpaid 1 1 1` and `markunpaid 1 1 1`.<br>
+      Expected: Bernice's first gig's payment changes back to unpaid. No payment belonging to a hidden client changes.
+
+1. **Reject invalid indexes**
+   1. Repeat `markunpaid CLIENT_INDEX GIG_INDEX PAYMENT_INDEX` with `0`, `-1`, `abc`, and `999` in each index
+      position, using Alex's sample paid payment as the target when the other indexes are valid.<br>
+      Expected: No payment changes. Zero, negative, and non-numeric values produce the command-format error; `999`
+      identifies the client, gig, or payment index that is out of range.
+
+1. **Persist the corrected state**
+   1. Input `markunpaid 1 1 1`, exit, and relaunch Gigabyte from the same folder.<br>
+      Expected: Alex's sample payment remains unpaid, retains its gig, amount, and due date, and appears in
+      `outstanding` with the display state derived from the relaunch date.
 
 ### Viewing payment obligations
 
