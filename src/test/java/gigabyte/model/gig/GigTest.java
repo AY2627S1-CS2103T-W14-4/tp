@@ -74,6 +74,21 @@ public class GigTest {
     }
 
     @Test
+    public void withDetails_preservesIdentityClientAndStatusAndRejectsNulls() {
+        Gig original = new Gig(ALICE, TITLE, GigStatus.COMPLETED, DEADLINE, FEE);
+        Gig edited = original.withDetails(new GigTitle("New title"), new Deadline("2027-04-30"), new Fee("1800"));
+        assertEquals(original.getUid(), edited.getUid());
+        assertSame(ALICE, edited.getClient());
+        assertEquals(GigStatus.COMPLETED, edited.getStatus());
+        assertEquals(new GigTitle("New title"), edited.getTitle());
+        assertEquals(new Deadline("2027-04-30"), edited.getDeadline());
+        assertEquals(new Fee("1800"), edited.getAgreedFee());
+        assertThrows(NullPointerException.class, () -> original.withDetails(null, DEADLINE, FEE));
+        assertThrows(NullPointerException.class, () -> original.withDetails(TITLE, null, FEE));
+        assertThrows(NullPointerException.class, () -> original.withDetails(TITLE, DEADLINE, null));
+    }
+
+    @Test
     public void withNewUid_returnsCopyWithReplacementUidAndSameTitle() {
         Gig original = new Gig(ALICE, TITLE, GigStatus.IN_PROGRESS, DEADLINE, FEE);
 
