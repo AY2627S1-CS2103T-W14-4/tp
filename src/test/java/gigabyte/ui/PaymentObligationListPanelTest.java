@@ -121,13 +121,15 @@ public class PaymentObligationListPanelTest {
         model.addGig(FIRST_GIG);
         Gig storedGig = model.getGigList().get(0);
         model.addPaymentObligation(createPayment(storedGig, "100", "2026-10-10", true));
-        model.addPaymentObligation(createPayment(storedGig, "200", "2026-10-12", true));
+        model.addPaymentObligation(createPayment(storedGig, "200", "2026-10-11", true));
+        model.addPaymentObligation(createPayment(storedGig, "300", "2026-10-12", true));
         PaymentObligationListPanel gigPanel = createPanel(model.getPaymentObligationList());
         PaymentObligationListPanel outstandingPanel = createPanel(model.getPaymentObligationList());
         gigPanel.showPaymentsFor(storedGig);
         outstandingPanel.showOutstandingPayments();
         Index first = Index.fromOneBased(1);
         Index second = Index.fromOneBased(2);
+        Index third = Index.fromOneBased(3);
 
         new MarkPaymentUnpaidCommand(first, first, first).execute(model);
 
@@ -139,10 +141,21 @@ public class PaymentObligationListPanelTest {
 
         new MarkPaymentUnpaidCommand(first, first, second).execute(model);
 
+        assertEquals(List.of(model.getPaymentObligationList().get(0), model.getPaymentObligationList().get(1)),
+                outstandingPanel.getPaymentListView().getItems());
+        ListCell<PaymentObligation> todayCell = renderCells(outstandingPanel).get(1);
+        assertTrue(todayCell.getText().contains("OUTSTANDING"));
+        assertTrue(todayCell.getStyleClass().contains("payment-outstanding"));
+        assertFalse(todayCell.getStyleClass().contains("payment-overdue"));
         assertTrue(renderCells(gigPanel).get(1).getText().contains("OUTSTANDING"));
         assertTrue(renderCells(gigPanel).get(1).getStyleClass().contains("payment-outstanding"));
+
+        new MarkPaymentUnpaidCommand(first, first, third).execute(model);
+
+        assertTrue(renderCells(gigPanel).get(2).getText().contains("OUTSTANDING"));
+        assertTrue(renderCells(gigPanel).get(2).getStyleClass().contains("payment-outstanding"));
         assertEquals(model.getPaymentObligationList(), outstandingPanel.getPaymentListView().getItems());
-        assertTrue(renderCells(outstandingPanel).get(1).getText().contains("OUTSTANDING"));
+        assertTrue(renderCells(outstandingPanel).get(2).getText().contains("OUTSTANDING"));
     }
 
     @Test
