@@ -6,6 +6,7 @@ import java.util.Objects;
 
 import gigabyte.commons.util.ToStringBuilder;
 import gigabyte.model.gig.GigStatus;
+import gigabyte.model.gig.GigTitleContainsKeywordsPredicate;
 
 /**
  * Represents the result of a command execution.
@@ -28,29 +29,32 @@ public class CommandResult {
      * Unpaid obligations across all clients should be shown.
      */
     private final boolean showOutstandingPayments;
+    private final GigTitleContainsKeywordsPredicate gigTitleSearch;
 
     /**
      * Constructs a {@code CommandResult} with the specified fields.
      */
     public CommandResult(String feedbackToUser, boolean showHelp, boolean exit) {
-        this(feedbackToUser, showHelp, exit, null, false, false);
+        this(feedbackToUser, showHelp, exit, null, false, false, null);
     }
 
     private CommandResult(String feedbackToUser, boolean showHelp, boolean exit, GigStatus gigStatusFilter,
-            boolean showDeadlineOverview, boolean showOutstandingPayments) {
+            boolean showDeadlineOverview, boolean showOutstandingPayments,
+            GigTitleContainsKeywordsPredicate gigTitleSearch) {
         this.feedbackToUser = requireNonNull(feedbackToUser);
         this.showHelp = showHelp;
         this.exit = exit;
         this.gigStatusFilter = gigStatusFilter;
         this.showOutstandingPayments = showOutstandingPayments;
         this.showDeadlineOverview = showDeadlineOverview;
+        this.gigTitleSearch = gigTitleSearch;
     }
 
     /**
      * Constructs a result requesting a gig-status view across all clients.
      */
     public CommandResult(String feedbackToUser, GigStatus gigStatusFilter) {
-        this(feedbackToUser, false, false, requireNonNull(gigStatusFilter), false, false);
+        this(feedbackToUser, false, false, requireNonNull(gigStatusFilter), false, false, null);
     }
 
     /**
@@ -65,14 +69,19 @@ public class CommandResult {
      * Creates a result requesting an outstanding-payment view across all clients.
      */
     public static CommandResult forOutstandingPayments(String feedbackToUser) {
-        return new CommandResult(feedbackToUser, false, false, null, false, true);
+        return new CommandResult(feedbackToUser, false, false, null, false, true, null);
     }
 
     /**
      * Constructs a result requesting the active deadline overview.
      */
     public static CommandResult deadlineOverview(String feedbackToUser) {
-        return new CommandResult(requireNonNull(feedbackToUser), false, false, null, true, false);
+        return new CommandResult(requireNonNull(feedbackToUser), false, false, null, true, false, null);
+    }
+
+    public static CommandResult forGigTitleSearch(String feedbackToUser,
+            GigTitleContainsKeywordsPredicate predicate) {
+        return new CommandResult(feedbackToUser, false, false, null, false, false, requireNonNull(predicate));
     }
 
     public String getFeedbackToUser() {
@@ -99,6 +108,8 @@ public class CommandResult {
         return showDeadlineOverview;
     }
 
+    public GigTitleContainsKeywordsPredicate getGigTitleSearch() { return gigTitleSearch; }
+
     @Override
     public boolean equals(Object other) {
         if (other == this) {
@@ -115,13 +126,14 @@ public class CommandResult {
                 && exit == otherCommandResult.exit
                 && gigStatusFilter == otherCommandResult.gigStatusFilter
                 && showOutstandingPayments == otherCommandResult.showOutstandingPayments
-                && showDeadlineOverview == otherCommandResult.showDeadlineOverview;
+                && showDeadlineOverview == otherCommandResult.showDeadlineOverview
+                && Objects.equals(gigTitleSearch, otherCommandResult.gigTitleSearch);
     }
 
     @Override
     public int hashCode() {
         return Objects.hash(feedbackToUser, showHelp, exit, gigStatusFilter,
-                showOutstandingPayments, showDeadlineOverview);
+                showOutstandingPayments, showDeadlineOverview, gigTitleSearch);
     }
 
     @Override
