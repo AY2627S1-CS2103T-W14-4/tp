@@ -19,6 +19,9 @@ import java.util.UUID;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+import gigabyte.commons.core.index.Index;
+import gigabyte.logic.commands.MarkPaymentUnpaidCommand;
+import gigabyte.model.ModelManager;
 import gigabyte.model.gig.Deadline;
 import gigabyte.model.gig.Fee;
 import gigabyte.model.gig.Gig;
@@ -107,6 +110,37 @@ public class PaymentObligationListPanelTest {
         assertTrue(renderCells(panel).get(0).getText().contains("PAID"));
         panel.showPaymentsFor(null);
         assertEquals("Select a gig to view its payment obligations.", panel.getEmptyState().getText());
+    }
+
+    @Test
+    public void markUnpaid_paidPayments_refreshesGigAndOutstandingViews() throws Exception {
+        ModelManager model = new ModelManager();
+        model.addClient(ALICE);
+        model.addGig(FIRST_GIG);
+        Gig storedGig = model.getGigList().get(0);
+        model.addPaymentObligation(createPayment(storedGig, "100", "2026-10-10", true));
+        model.addPaymentObligation(createPayment(storedGig, "200", "2026-10-12", true));
+        PaymentObligationListPanel gigPanel = createPanel(model.getPaymentObligationList());
+        PaymentObligationListPanel outstandingPanel = createPanel(model.getPaymentObligationList());
+        gigPanel.showPaymentsFor(storedGig);
+        outstandingPanel.showOutstandingPayments();
+        Index first = Index.fromOneBased(1);
+        Index second = Index.fromOneBased(2);
+
+        new MarkPaymentUnpaidCommand(first, first, first).execute(model);
+
+        assertTrue(renderCells(gigPanel).get(0).getText().contains("OVERDUE"));
+        assertTrue(renderCells(gigPanel).get(0).getStyleClass().contains("payment-overdue"));
+        assertEquals(List.of(model.getPaymentObligationList().get(0)),
+                outstandingPanel.getPaymentListView().getItems());
+        assertTrue(renderCells(outstandingPanel).get(0).getText().contains("OVERDUE"));
+
+        new MarkPaymentUnpaidCommand(first, first, second).execute(model);
+
+        assertTrue(renderCells(gigPanel).get(1).getText().contains("OUTSTANDING"));
+        assertTrue(renderCells(gigPanel).get(1).getStyleClass().contains("payment-outstanding"));
+        assertEquals(model.getPaymentObligationList(), outstandingPanel.getPaymentListView().getItems());
+        assertTrue(renderCells(outstandingPanel).get(1).getText().contains("OUTSTANDING"));
     }
 
     @Test
