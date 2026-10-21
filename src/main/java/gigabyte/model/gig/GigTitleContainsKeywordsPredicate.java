@@ -9,6 +9,7 @@ import gigabyte.commons.util.StringUtil;
 public class GigTitleContainsKeywordsPredicate implements Predicate<Gig> {
     private final List<String> keywords;
 
+    /** Creates a predicate that matches gig titles against any supplied keyword. */
     public GigTitleContainsKeywordsPredicate(List<String> keywords) {
         this.keywords = List.copyOf(keywords);
     }

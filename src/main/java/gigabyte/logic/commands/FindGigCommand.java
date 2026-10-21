@@ -16,6 +16,7 @@ public class FindGigCommand extends Command {
 
     private final GigTitleContainsKeywordsPredicate predicate;
 
+    /** Creates a command that finds gigs whose titles match {@code predicate}. */
     public FindGigCommand(GigTitleContainsKeywordsPredicate predicate) {
         this.predicate = requireNonNull(predicate);
     }

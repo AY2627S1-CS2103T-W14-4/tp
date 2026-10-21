@@ -7,9 +7,12 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.List;
+
 import org.junit.jupiter.api.Test;
 
 import gigabyte.model.gig.GigStatus;
+import gigabyte.model.gig.GigTitleContainsKeywordsPredicate;
 
 public class CommandResultTest {
     @Test
@@ -100,7 +103,19 @@ public class CommandResultTest {
         String expected = CommandResult.class.getCanonicalName() + "{feedbackToUser="
                 + commandResult.getFeedbackToUser() + ", showHelp=" + commandResult.isShowHelp()
                 + ", exit=" + commandResult.isExit()
-                + ", gigStatusFilter=null, showOutstandingPayments=false, showDeadlineOverview=false}";
+                + ", gigStatusFilter=null, showOutstandingPayments=false, showDeadlineOverview=false, "
+                + "gigTitleSearch=null}";
+        assertEquals(expected, commandResult.toString());
+    }
+
+    @Test
+    public void toString_gigTitleSearch_includesSearchState() {
+        CommandResult commandResult = CommandResult.createGigTitleSearchResult("feedback",
+                new GigTitleContainsKeywordsPredicate(List.of("website")));
+        String expected = CommandResult.class.getCanonicalName() + "{feedbackToUser=feedback, showHelp=false, "
+                + "exit=false, gigStatusFilter=null, showOutstandingPayments=false, showDeadlineOverview=false, "
+                + "gigTitleSearch=gigabyte.model.gig.GigTitleContainsKeywordsPredicate{keywords=[website]}}";
+
         assertEquals(expected, commandResult.toString());
     }
 }

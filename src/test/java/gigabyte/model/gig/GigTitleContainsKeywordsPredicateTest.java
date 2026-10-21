@@ -9,7 +9,7 @@ import java.util.List;
 import org.junit.jupiter.api.Test;
 
 public class GigTitleContainsKeywordsPredicateTest {
-    private static Gig gig(String title) {
+    private static Gig createGig(String title) {
         return new Gig(ALICE, new GigTitle(title), GigStatus.IN_PROGRESS,
                 new Deadline("2027-01-01"), new Fee("100"));
     }
@@ -19,9 +19,9 @@ public class GigTitleContainsKeywordsPredicateTest {
         GigTitleContainsKeywordsPredicate predicate =
                 new GigTitleContainsKeywordsPredicate(List.of("WEBSITE", "logo"));
 
-        assertTrue(predicate.test(gig("Website redesign")));
-        assertTrue(predicate.test(gig("Brand logo")));
-        assertFalse(predicate.test(gig("Mobile application")));
+        assertTrue(predicate.test(createGig("Website redesign")));
+        assertTrue(predicate.test(createGig("Brand logo")));
+        assertFalse(predicate.test(createGig("Mobile application")));
     }
 
     @Test
@@ -29,7 +29,7 @@ public class GigTitleContainsKeywordsPredicateTest {
         GigTitleContainsKeywordsPredicate predicate =
                 new GigTitleContainsKeywordsPredicate(List.of("site"));
 
-        assertFalse(predicate.test(gig("Website redesign")));
-        assertTrue(new GigTitleContainsKeywordsPredicate(List.of("website")).test(gig("Website redesign")));
+        assertFalse(predicate.test(createGig("Website redesign")));
+        assertTrue(new GigTitleContainsKeywordsPredicate(List.of("website")).test(createGig("Website redesign")));
     }
 }

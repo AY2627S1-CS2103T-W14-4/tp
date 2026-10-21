@@ -18,6 +18,7 @@ public class SummaryCommand extends Command {
     public static final String COMMAND_WORD = "summary";
     private final Clock clock;
 
+    /** Creates a summary command using the system's default time zone. */
     public SummaryCommand() {
         this(Clock.systemDefaultZone());
     }

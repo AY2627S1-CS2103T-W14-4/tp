@@ -150,6 +150,7 @@ public class CommandResult {
                 .add("gigStatusFilter", gigStatusFilter)
                 .add("showOutstandingPayments", showOutstandingPayments)
                 .add("showDeadlineOverview", showDeadlineOverview)
+                .add("gigTitleSearch", gigTitleSearch)
                 .toString();
     }
 
