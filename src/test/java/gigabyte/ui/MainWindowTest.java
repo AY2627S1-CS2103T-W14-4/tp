@@ -159,6 +159,45 @@ public class MainWindowTest {
     }
 
     @Test
+    public void findGigCommand_filtersAcrossClientsAndSelectionShowsPayments() throws Exception {
+        Model model = new ModelManager();
+        model.addClient(ALICE);
+        model.addClient(BENSON);
+        model.addGig(ALICE_GIG);
+        model.addGig(BENSON_GIG);
+        model.addPaymentObligation(ALICE_PAYMENT);
+        model.addPaymentObligation(BENSON_PAYMENT);
+        Logic logic = new LogicManager(model, new StorageManager(
+                new JsonGigabyteDataStorage(temporaryFolder.resolve("findgig-data.json")),
+                new JsonUserPrefsStorage(temporaryFolder.resolve("findgig-preferences.json"))));
+        MainWindow window = callOnJavaFxThread(() -> {
+            MainWindow mainWindow = new MainWindow(new Stage(), logic, temporaryFolder.resolve("findgig-data.json"));
+            mainWindow.fillInnerParts();
+            return mainWindow;
+        });
+
+        try {
+            callOnJavaFxThread(() -> {
+                window.getClientListPanel().getClientListView().getSelectionModel().select(0);
+                enterCommand(window, "findgig redesign identity");
+                assertEquals(List.of(ALICE_GIG, BENSON_GIG), window.getGigListPanel().getGigListView().getItems());
+                assertEquals(List.of(ALICE, BENSON), model.getFilteredClientList());
+                assertEquals(0, window.getPaymentObligationListPanel().getPaymentListView().getItems().size());
+
+                window.getGigListPanel().getGigListView().getSelectionModel().select(1);
+                assertEquals(List.of(BENSON_PAYMENT), window.getPaymentObligationListPanel()
+                        .getPaymentListView().getItems());
+                return null;
+            });
+        } finally {
+            callOnJavaFxThread(() -> {
+                window.getPrimaryStage().hide();
+                return null;
+            });
+        }
+    }
+
+    @Test
     public void markPaidCommand_refreshesDisplayedPaymentImmediately() throws Exception {
         Model model = new ModelManager();
         model.addClient(ALICE);

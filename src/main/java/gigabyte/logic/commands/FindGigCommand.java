@@ -25,7 +25,7 @@ public class FindGigCommand extends Command {
         requireNonNull(model);
         long count = model.getGigList().stream().filter(predicate).count();
         String feedback = count == 0 ? MESSAGE_NO_MATCHES : count + " gig(s) listed!";
-        return CommandResult.forGigTitleSearch(feedback, predicate);
+        return CommandResult.createGigTitleSearchResult(feedback, predicate);
     }
 
     @Override
