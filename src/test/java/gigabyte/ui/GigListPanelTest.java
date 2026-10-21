@@ -27,6 +27,7 @@ import gigabyte.model.gig.Fee;
 import gigabyte.model.gig.Gig;
 import gigabyte.model.gig.GigStatus;
 import gigabyte.model.gig.GigTitle;
+import gigabyte.model.gig.GigTitleContainsKeywordsPredicate;
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -64,6 +65,35 @@ public class GigListPanelTest {
 
         assertEquals(1, panel.getGigListView().getItems().size());
         assertEquals(ALICE_GIG, panel.getGigListView().getItems().get(0));
+    }
+
+    @Test
+    public void showGigsMatchingTitle_filtersAcrossClientsAndTracksAddedOrEditedGigs() {
+        ObservableList<Gig> gigs = FXCollections.observableArrayList(ALICE_GIG, BENSON_GIG);
+        GigListPanel panel = new GigListPanel(gigs);
+        panel.showGigsMatchingTitle(new GigTitleContainsKeywordsPredicate(List.of("design")));
+
+        assertEquals(List.of(BENSON_GIG), panel.getGigListView().getItems());
+        Gig added = new Gig(ALICE, new GigTitle("Website design"), GigStatus.NOT_STARTED,
+                new Deadline("2027-02-01"), new Fee("300"));
+        gigs.add(added);
+        assertEquals(List.of(BENSON_GIG, added), panel.getGigListView().getItems());
+
+        gigs.set(1, new Gig(BENSON, new GigTitle("Brand identity"), GigStatus.COMPLETED,
+                new Deadline("2027-01-31"), new Fee("200")));
+        assertEquals(List.of(added), panel.getGigListView().getItems());
+    }
+
+    @Test
+    public void showGigsMatchingTitle_noMatch_showsEmptyStateAndSelectionClears() {
+        GigListPanel panel = createPanel();
+        panel.showGigsFor(ALICE);
+        panel.getGigListView().getSelectionModel().select(0);
+        panel.showGigsMatchingTitle(new GigTitleContainsKeywordsPredicate(List.of("missing")));
+
+        assertTrue(panel.getGigListView().getItems().isEmpty());
+        assertEquals("No gigs match the supplied title keywords.", panel.getEmptyState().getText());
+        assertNull(panel.getGigListView().getSelectionModel().getSelectedItem());
     }
 
     @Test
