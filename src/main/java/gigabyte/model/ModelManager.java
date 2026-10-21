@@ -136,6 +136,12 @@ public class ModelManager implements Model {
         requireNonNull(obligation);
         gigabyteData.deletePaymentObligation(obligation);
     }
+    
+    @Override
+    public void setPaymentObligation(PaymentObligation target, PaymentObligation replacement) {
+        requireAllNonNull(target, replacement);
+        gigabyteData.setPaymentObligation(target, replacement);
+    }
 
     //=========== Filtered Client List Accessors =============================================================
 

@@ -105,4 +105,7 @@ public interface Model {
      * @throws IllegalArgumentException if the obligation is not a stored instance
      */
     void deletePaymentObligation(PaymentObligation obligation);
+  
+    /** Replaces a payment obligation while preserving its gig association and paid state. */
+    void setPaymentObligation(PaymentObligation target, PaymentObligation replacement);
 }

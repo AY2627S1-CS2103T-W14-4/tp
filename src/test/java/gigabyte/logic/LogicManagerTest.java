@@ -11,6 +11,7 @@ import static gigabyte.testutil.Assert.assertThrows;
 import static gigabyte.testutil.TypicalClients.ALICE;
 import static gigabyte.testutil.TypicalClients.AMY;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -28,6 +29,7 @@ import gigabyte.logic.commands.AddClientCommand;
 import gigabyte.logic.commands.AddPaymentCommand;
 import gigabyte.logic.commands.CommandResult;
 import gigabyte.logic.commands.DeletePaymentCommand;
+import gigabyte.logic.commands.EditGigCommand;
 import gigabyte.logic.commands.ListClientsCommand;
 import gigabyte.logic.commands.OutstandingCommand;
 import gigabyte.logic.commands.SetGigStatusCommand;
@@ -259,6 +261,65 @@ public class LogicManagerTest {
 
         assertEquals(before, model.getGigabyteData());
         assertEquals(savedData, Files.readString(path));
+    }
+  
+    @Test
+    public void execute_editPayment_savesEditedDetailsForReload() throws Exception {
+        model.addClient(ALICE);
+        model.addGig(new Gig(ALICE, new GigTitle("Website redesign"), GigStatus.IN_PROGRESS,
+                new Deadline("2027-01-31"), new Fee("100")));
+        logic.execute("addpayment 1 1 a/50.25 d/2027-02-28");
+        logic.execute("markpaid 1 1 1");
+
+        CommandResult result = logic.execute("editpayment 1 1 1 a/650 d/2027-05-15");
+
+        assertEquals("Edited payment obligation for Alice Pauline, gig 1, payment 1: Amount: 650.00; "
+                + "Due date: 2027-05-15", result.getFeedbackToUser());
+        assertEquals(new Fee("650"), model.getPaymentObligationList().get(0).getAmount());
+        assertEquals(new Deadline("2027-05-15"), model.getPaymentObligationList().get(0).getDueDate());
+        assertTrue(model.getPaymentObligationList().get(0).isPaid());
+        ReadOnlyGigabyteData restored = new JsonGigabyteDataStorage(temporaryFolder.resolve("gigabyteData.json"))
+                .readGigabyteData().orElseThrow();
+        assertEquals(model.getGigabyteData(), new GigabyteData(restored));
+        assertTrue(restored.getPaymentObligationList().get(0).isPaid());
+        assertSame(restored.getGigList().get(0), restored.getPaymentObligationList().get(0).getGig());
+    }
+
+    @Test
+    public void execute_editGig_rejectsInvalidEditsAtomicallyAndPersistsLinkedPayments() throws Exception {
+        model.addClient(ALICE);
+        logic.execute("addgig 1 t/Website s/IN_PROGRESS d/2027-01-31 f/100");
+        logic.execute("addpayment 1 1 a/50 d/2027-02-28");
+        logic.execute("markpaid 1 1 1");
+        logic.execute("addpayment 1 1 a/25 d/2027-03-31");
+        Gig original = model.getGigList().get(0);
+        GigabyteData before = new GigabyteData(model.getGigabyteData());
+        Path path = temporaryFolder.resolve("gigabyteData.json");
+        String saved = Files.readString(path);
+
+        assertParseException("editgig 1 1 t/Updated d/2027-02-29", Deadline.MESSAGE_CONSTRAINTS);
+        assertParseException("editgig 1 1 t/Updated f/0", Fee.MESSAGE_CONSTRAINTS);
+        assertParseException("editgig 1 1 t/Updated s/COMPLETED",
+                String.format(MESSAGE_INVALID_COMMAND_FORMAT, EditGigCommand.MESSAGE_USAGE));
+        assertCommandException("editgig 9 1 t/Updated", MESSAGE_INVALID_CLIENT_DISPLAYED_INDEX);
+        assertCommandException("editgig 1 9 t/Updated", EditGigCommand.MESSAGE_INVALID_GIG_INDEX);
+        assertCommandException("editgig 1 1 t/ Website f/100.00", EditGigCommand.MESSAGE_NOT_EDITED);
+        assertEquals(before, model.getGigabyteData());
+        assertEquals(saved, Files.readString(path));
+
+        logic.execute("editgig 1 1 t/ Updated website d/2027-04-30 f/1800");
+        ReadOnlyGigabyteData restored = new JsonGigabyteDataStorage(path).readGigabyteData().orElseThrow();
+        assertEquals(model.getGigabyteData(), new GigabyteData(restored));
+        Gig edited = restored.getGigList().get(0);
+        assertEquals(original.getUid(), edited.getUid());
+        assertEquals(original.getStatus(), edited.getStatus());
+        assertEquals(new GigTitle("Updated website"), edited.getTitle());
+        assertEquals(new Deadline("2027-04-30"), edited.getDeadline());
+        assertEquals(new Fee("1800"), edited.getAgreedFee());
+        assertSame(edited, restored.getPaymentObligationList().get(0).getGig());
+        assertSame(edited, restored.getPaymentObligationList().get(1).getGig());
+        assertTrue(restored.getPaymentObligationList().get(0).isPaid());
+        assertFalse(restored.getPaymentObligationList().get(1).isPaid());
     }
 
     @Test

@@ -37,6 +37,7 @@ public class MainApp extends Application {
     private static final Logger logger = LogsCenter.getLogger(MainApp.class);
     private static final Path USER_PREFS_FILE_PATH = Paths.get("preferences.json");
     private static final Path GIGABYTE_DATA_FILE_PATH = Paths.get("data", "gigabyte.json");
+    private static final Path LEGACY_DATA_FILE_PATH = Paths.get("data", "addressbook.json");
 
     protected Ui ui;
     protected Logic logic;
@@ -51,6 +52,8 @@ public class MainApp extends Application {
         JsonUserPrefsStorage userPrefsStorage = new JsonUserPrefsStorage(USER_PREFS_FILE_PATH);
         UserPrefs userPrefs = initPrefs(userPrefsStorage);
         JsonGigabyteDataStorage gigabyteDataStorage = new JsonGigabyteDataStorage(GIGABYTE_DATA_FILE_PATH);
+        // Let migration failures stop startup so existing data is not replaced with sample data.
+        gigabyteDataStorage.migrateLegacyDataFile(LEGACY_DATA_FILE_PATH);
         storage = new StorageManager(gigabyteDataStorage, userPrefsStorage);
 
         model = initModelManager(storage, userPrefs);

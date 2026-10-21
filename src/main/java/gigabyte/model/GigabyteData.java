@@ -206,7 +206,7 @@ public class GigabyteData implements ReadOnlyGigabyteData {
         List<PaymentObligation> replacementObligations = linkPaymentObligations(
                 gigs, replacementGigs, paymentObligations);
 
-        gigs.setAll(replacementGigs);
+        gigs.set(targetIndex, storedReplacement);
         paymentObligations.setAll(replacementObligations);
     }
 
@@ -218,6 +218,27 @@ public class GigabyteData implements ReadOnlyGigabyteData {
             throw new GigNotFoundException();
         }
         paymentObligations.add(obligation.withGig(gigs.get(index)));
+    }
+
+    /**
+     * Replaces {@code target} with {@code replacement}, preserving its gig association and paid state.
+     */
+    public void setPaymentObligation(PaymentObligation target, PaymentObligation replacement) {
+        requireAllNonNull(target, replacement);
+
+        int targetIndex = findPaymentObligationIndex(target);
+        if (targetIndex < 0) {
+            throw new IllegalArgumentException("Payment obligation must belong to this Gigabyte data.");
+        }
+
+        PaymentObligation storedTarget = paymentObligations.get(targetIndex);
+        boolean changesGig = !storedTarget.getGig().hasSameUid(replacement.getGig());
+        boolean changesPaidState = storedTarget.isPaid() != replacement.isPaid();
+        if (changesGig || changesPaidState) {
+            throw new IllegalArgumentException("A replacement payment must preserve its gig and paid state.");
+        }
+
+        paymentObligations.set(targetIndex, replacement.withGig(storedTarget.getGig()));
     }
 
     /** Replaces the exact stored obligation with its paid copy. */
@@ -245,7 +266,23 @@ public class GigabyteData implements ReadOnlyGigabyteData {
                 return;
             }
         }
-        throw new IllegalArgumentException("Payment obligation must belong to this Gigabyte data.");
+        throw new IllegalArgumentException("Payment obligation must belong to this Gigabyte data."); 
+    }
+  
+    /** Finds {@code target} by identity before matching its gig identity and value. */
+    private int findPaymentObligationIndex(PaymentObligation target) {
+        for (int index = 0; index < paymentObligations.size(); index++) {
+            if (paymentObligations.get(index) == target) {
+                return index;
+            }
+        }
+        for (int index = 0; index < paymentObligations.size(); index++) {
+            PaymentObligation candidate = paymentObligations.get(index);
+            if (candidate.getGig().hasSameUid(target.getGig()) && candidate.equals(target)) {
+                return index;
+            }
+        }
+        return -1;
     }
 
     //// accessors

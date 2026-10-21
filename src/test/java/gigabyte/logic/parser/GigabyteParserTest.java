@@ -8,6 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 import org.junit.jupiter.api.Test;
@@ -21,6 +22,8 @@ import gigabyte.logic.commands.DeadlinesCommand;
 import gigabyte.logic.commands.DeleteClientCommand;
 import gigabyte.logic.commands.DeletePaymentCommand;
 import gigabyte.logic.commands.EditClientCommand;
+import gigabyte.logic.commands.EditGigCommand;
+import gigabyte.logic.commands.EditPaymentCommand;
 import gigabyte.logic.commands.ExitCommand;
 import gigabyte.logic.commands.FilterGigsCommand;
 import gigabyte.logic.commands.FindClientCommand;
@@ -43,6 +46,13 @@ import gigabyte.testutil.EditClientDescriptorBuilder;
 public class GigabyteParserTest {
 
     private final GigabyteParser parser = new GigabyteParser();
+
+    @Test
+    public void parseCommand_editGig() throws Exception {
+        assertEquals(new EditGigCommand(INDEX_FIRST_CLIENT, INDEX_FIRST_CLIENT,
+                Optional.of(new GigTitle("Updated website")), Optional.empty(),
+                Optional.empty()), parser.parseCommand("editgig 1 1 t/Updated website"));
+    }
 
     @Test
     public void parseCommand_outstanding_acceptsNoArgumentsAndRejectsExtraInput() throws Exception {
@@ -96,6 +106,13 @@ public class GigabyteParserTest {
         assertThrows(ParseException.class,
                 String.format(MESSAGE_INVALID_COMMAND_FORMAT, DeletePaymentCommand.MESSAGE_USAGE), () ->
                         parser.parseCommand("deletepayment 1 2"));
+    }
+  
+    @Test
+    public void parseCommand_editPayment() throws Exception {
+        assertEquals(new EditPaymentCommand(INDEX_FIRST_CLIENT, INDEX_FIRST_CLIENT, Index.fromOneBased(3),
+                Optional.of(new Fee("650")), Optional.of(new Deadline("2027-05-15"))),
+                parser.parseCommand("editpayment 1 1 3 a/650 d/2027-05-15"));
     }
 
     @Test

@@ -41,6 +41,8 @@
 
    * `addpayment 1 1 a/500.00 d/2027-02-15` : Records an unpaid obligation for that client's first gig.
 
+   * `editpayment 1 1 1 a/650.00` : Changes the first displayed payment's amount to `$650.00`.
+
    * `markpaid 1 1 1` : Marks the first displayed payment for the first displayed client's first gig as paid.
 
    * `clear` : Deletes all clients.
@@ -111,7 +113,7 @@ Gigabyte uses one-based indexes: the first displayed item is `1`, the second is 
 numbers, decimals, text, and indexes larger than the displayed list are invalid.
 
 * A **client index** always refers to the numbered client in the list currently shown on the left. Commands such as
-  `addgig`, `addpayment`, `markpaid`, `deletepayment`, `edit`, and `delete` use this displayed list.
+  `addgig`, `addpayment`, `markpaid`, `deletepayment`, `editpayment`, `edit`, and `delete` use this displayed list.
 * `find` replaces the displayed client list with its matching results. A later command therefore uses the numbers in
   those results, not the numbers from the earlier full list. Run `list` to restore the full client list.
 * A **gig index** is the gig's one-based position among the chosen client's gigs. It is not an index into all gigs in
@@ -129,7 +131,9 @@ client might have a different index.
 Select a client in the client list to show only that client's gigs in the **Gigs** panel. Select a gig to show only
 its payment obligations in the **Payment obligations** panel beneath the gig list. Payment obligations are numbered
 from 1 and ordered by due date, earliest first. Obligations with the same due date retain the order in which they were
-recorded. These displayed payment indexes restart from 1 for each selected gig; `markpaid` and `deletepayment` use them.
+recorded. These displayed payment indexes restart from 1 for each selected gig; `markpaid` and `deletepayment` uses them.
+`editpayment` uses the same indexes. It resolves the selected payment before applying a due-date change that might
+move the payment to a new displayed position.
 
 Each payment row shows its amount, due date, and current display state:
 
@@ -153,10 +157,10 @@ gig title, amount, due date, and payment state. Results sort by due date, earlie
   refreshes at local midnight without changing records.
 * Paid obligations are excluded. The empty state is `No outstanding payment obligations.`.
 * Results wrap and scroll vertically. Selecting a client and gig restores that gig's payment view.
-  Overview row numbers are not `markpaid` or `deletepayment` payment indexes; select the client and gig to check
-  the per-gig indexes.
-* An open overview refreshes immediately when an obligation is marked paid or deleted. Displaying results does
-  not change records or the client list. The command takes no arguments; `outstanding extra` is rejected.
+  Overview row numbers are not `editpayment` or `markpaid` payment indexes; select the client and gig to check the
+  per-gig indexes.
+* Re-run `outstanding` after an obligation is marked paid to confirm it is excluded. Displaying results does not
+  change records or the client list. The command takes no arguments; `outstanding extra` is rejected.
 
 ### Filtering gigs by status: `gigs`
 
@@ -169,7 +173,7 @@ client name, status, deadline, and agreed fee. Results keep the order in which g
 * Supply exactly one `s/` argument. Missing, unsupported, repeated, or extra arguments are rejected.
 * No matches displays `No gigs with status STATUS.`. Filtering does not modify stored records or the client list.
 * Running `gigs` clears client/gig selections and the payment panel. Select a result to view its payments, or select
-  a client to return to that client's gigs. `addpayment`, `markpaid`, and `deletepayment` use that client's gig order,
+  a client to return to that client's gigs. `addpayment`, `editpayment`, `deletepayment` and `markpaid` use that client's gig order,
   not this status view.
 
 Examples: `gigs s/IN_PROGRESS`, `gigs s/completed`. Invalid examples: `gigs`, `gigs s/WAITING`,
@@ -224,6 +228,27 @@ Command | Why it is rejected
 `addgig 1 t/Website redesign s/NOT_STARTED d/2027-01-31 f/0` | Fees must be greater than zero.
 `addgig 1 t/Website redesign t/Second title s/NOT_STARTED d/2027-01-31 f/1250.00` | The single-valued `t/` prefix is repeated.
 `addgig 0 t/Website redesign s/NOT_STARTED d/2027-01-31 f/1250.00` | Client indexes start at 1.
+
+### Editing a gig: `editgig`
+
+Corrects a gig's title, deadline, agreed fee, or any combination of these fields and saves the result automatically.
+
+Format: `editgig CLIENT_INDEX GIG_INDEX [t/TITLE] [d/DEADLINE] [f/FEE]`
+
+* `CLIENT_INDEX` uses the currently displayed client list, including `find` results. `GIG_INDEX` is the position in
+  that client's normal gig list, even while a status filter or the deadline overview is visible.
+* Provide at least one field, in any order, with each prefix appearing once. Title, deadline, and fee follow the same
+  validation rules as `addgig`; surrounding title whitespace is trimmed. Use `setstatus` for status changes:
+  `s/STATUS` is rejected by `editgig`.
+* The gig retains its UID, client, status, and all payment obligations, including their paid states and amounts.
+  Correcting the agreed fee does not change recorded payment amounts.
+* All fields are validated before any change. Missing fields, invalid indexes or values, repeated prefixes, and
+  edits that would leave the gig unchanged are rejected without changing records.
+* Client and status views refresh immediately. Changing a deadline reorders the deadline overview; changing a title
+  can also change the order when deadlines are equal. Both indexes are resolved before the edit is applied.
+
+Examples: `editgig 1 2 t/Updated landing page`, `editgig 1 2 d/2027-04-30 f/1800.00`.
+After `find Bernice`, `editgig 1 1 t/Revised branding` edits the first matching client's first gig.
 
 ### Updating a gig's status: `setstatus`
 
@@ -293,6 +318,42 @@ Command | Why it is rejected
 
 The confirmation names the client and gig position, amount, and due date. To see the saved obligation, select the
 client and gig in the application; the **Payment obligations** panel refreshes immediately.
+
+### Editing a payment obligation: `editpayment`
+
+Corrects the amount, due date, or both fields of an existing payment obligation and saves the change automatically.
+
+Format: `editpayment CLIENT_INDEX GIG_INDEX PAYMENT_INDEX [a/AMOUNT] [d/DUE_DATE]`
+
+* `CLIENT_INDEX` is the positive index in the currently displayed client list, including `find` results.
+* `GIG_INDEX` is the positive position in that client's normal gig list, in the order shown in the **Gigs** panel.
+* `PAYMENT_INDEX` is the positive position in that gig's payment list, ordered by due date and then by recorded order.
+* At least one of `a/AMOUNT` or `d/DUE_DATE` is required. Each may appear at most once and in either order.
+* `AMOUNT` and `DUE_DATE` follow the same validation rules as `addpayment`.
+* Gigabyte resolves all three indexes before changing anything. If a due-date edit changes the payment's displayed
+  position, the edit still applies to the payment that occupied `PAYMENT_INDEX` when the command began.
+* The payment remains attached to the same gig and keeps its paid or unpaid state. Paid payments can be corrected.
+* A command that would leave both details unchanged is rejected. Invalid input leaves all payment data unchanged.
+* The selected gig's payment panel refreshes and reorders immediately. If the outstanding overview is visible, it
+  refreshes immediately too, including overdue styling derived from the new due date.
+
+Successful examples:
+
+* `editpayment 1 2 1 a/650.00` changes only the amount of payment 1.
+* `editpayment 1 2 1 d/2027-05-15` changes only its due date and may move the row.
+* `editpayment 1 2 1 a/650.00 d/2027-05-15` changes both details atomically.
+
+Unsuccessful examples:
+
+Command | Why it is rejected
+--------|-------------------
+`editpayment 1 2 1` | At least one editable field is required.
+`editpayment 1 2 a/650.00` | Exactly three indexes are required.
+`editpayment 1 2 99 a/650.00` | The selected gig has no payment at position 99.
+`editpayment 1 2 1 a/0` | Amounts must be positive numbers.
+`editpayment 1 2 1 d/2027-02-29` | The due date must be a valid `yyyy-MM-dd` calendar date.
+`editpayment 1 2 1 a/650 a/700` | The single-valued `a/` prefix is repeated.
+`editpayment 1 2 1 a/650` when its amount is already `$650.00` | The resulting payment would be unchanged.
 
 ### Marking a payment as paid: `markpaid`
 
@@ -444,6 +505,11 @@ Format: `exit`
 Gigabyte automatically saves data after every successfully executed command. You do not need to save manually.
 Client, gig, and payment-obligation data is restored when you next launch the app from the same home folder.
 
+When upgrading from a version that saved to `data/addressbook.json`, Gigabyte automatically renames that file to
+`data/gigabyte.json` on startup if `data/gigabyte.json` does not already exist. Its contents are preserved, and future
+changes are saved to `data/gigabyte.json`. If both files exist, Gigabyte uses `data/gigabyte.json` and leaves
+`data/addressbook.json` untouched. If the rename fails, startup stops and the error is reported in the console.
+
 ### Editing the data file
 
 Gigabyte data is saved automatically as a JSON file `[JAR file location]/data/gigabyte.json`. Advanced users are welcome to update data directly by editing that data file.
@@ -457,7 +523,7 @@ its `uid`, `clientUid`, `title`, `status`, `deadline`, and `feeCents`. Each paym
 
 Only the current save format is supported. Older files using `persons`, missing UUIDs or titles, client-name links,
 decimal `fee`/`amount` strings, or `gigIndex` references cannot be loaded. Unknown fields and missing required fields
-are rejected; Gigabyte does not upgrade older save files.
+are rejected. The automatic filename migration does not convert older JSON formats.
 
 <box type="warning" seamless>
 
@@ -492,12 +558,14 @@ Action     | Format, Examples
 **Add**    | `add n/NAME p/PHONE_NUMBER e/EMAIL a/ADDRESS [t/TAG]... ` <br> e.g., `add n/James Ho p/22224444 e/jamesho@example.com a/123, Clementi Rd, 1234665 t/friend t/colleague`
 **Add gig** | `addgig INDEX t/TITLE s/STATUS d/DEADLINE f/FEE` <br> e.g., `addgig 1 t/Website redesign s/NOT_STARTED d/2027-01-31 f/1250.00`
 **Add payment** | `addpayment CLIENT_INDEX GIG_INDEX a/AMOUNT d/DUE_DATE` <br> e.g., `addpayment 1 2 a/500.00 d/2027-01-31`
+**Edit payment** | `editpayment CLIENT_INDEX GIG_INDEX PAYMENT_INDEX [a/AMOUNT] [d/DUE_DATE]` <br> e.g., `editpayment 1 2 1 a/650.00 d/2027-05-15`
 **Mark payment paid** | `markpaid CLIENT_INDEX GIG_INDEX PAYMENT_INDEX` <br> e.g., `markpaid 2 1 3`
 **Delete payment permanently** | `deletepayment CLIENT_INDEX GIG_INDEX PAYMENT_INDEX` <br> e.g., `deletepayment 1 2 3`
 **Set gig status** | `setstatus CLIENT_INDEX GIG_INDEX s/STATUS` <br> e.g., `setstatus 1 2 s/COMPLETED`
 **Clear**  | `clear`
 **Delete** | `delete INDEX`<br> e.g., `delete 3`
 **Edit**   | `edit INDEX [n/NAME] [p/PHONE_NUMBER] [e/EMAIL] [a/ADDRESS] [t/TAG]... `<br> e.g.,`edit 2 n/James Lee e/jameslee@example.com`
+**Edit gig** | `editgig CLIENT_INDEX GIG_INDEX [t/TITLE] [d/DEADLINE] [f/FEE]`<br> e.g., `editgig 1 2 t/Updated landing page f/1800.00`
 **Exit**   | `exit`
 **Find**   | `find KEYWORD [MORE_KEYWORDS]`<br> e.g., `find James Jake`
 **Filter gigs** | `gigs s/STATUS`<br> e.g., `gigs s/IN_PROGRESS`
