@@ -26,6 +26,7 @@ import gigabyte.logic.commands.EditPaymentCommand;
 import gigabyte.logic.commands.ExitCommand;
 import gigabyte.logic.commands.FilterGigsCommand;
 import gigabyte.logic.commands.FindClientCommand;
+import gigabyte.logic.commands.FindGigCommand;
 import gigabyte.logic.commands.HelpCommand;
 import gigabyte.logic.commands.ListClientsCommand;
 import gigabyte.logic.commands.MarkPaymentPaidCommand;
@@ -38,6 +39,7 @@ import gigabyte.model.gig.Deadline;
 import gigabyte.model.gig.Fee;
 import gigabyte.model.gig.GigStatus;
 import gigabyte.model.gig.GigTitle;
+import gigabyte.model.gig.GigTitleContainsKeywordsPredicate;
 import gigabyte.testutil.ClientBuilder;
 import gigabyte.testutil.ClientUtil;
 import gigabyte.testutil.EditClientDescriptorBuilder;
@@ -145,6 +147,18 @@ public class GigabyteParserTest {
         FindClientCommand command = (FindClientCommand) parser.parseCommand(
                 FindClientCommand.COMMAND_WORD + " " + keywords.stream().collect(Collectors.joining(" ")));
         assertEquals(new FindClientCommand(new ClientNameContainsKeywordsPredicate(keywords)), command);
+    }
+
+    @Test
+    public void parseCommand_findgig() throws Exception {
+        List<String> keywords = List.of("website", "redesign");
+        assertEquals(new FindGigCommand(new GigTitleContainsKeywordsPredicate(keywords)),
+                parser.parseCommand("findgig website redesign"));
+    }
+
+    @Test
+    public void parseCommand_findgigWithoutKeywords_throwsParseException() {
+        assertThrows(ParseException.class, () -> parser.parseCommand("findgig   "));
     }
 
     @Test

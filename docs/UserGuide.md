@@ -437,6 +437,24 @@ Examples:
 * `list` followed by `delete 3` deletes the 3rd sample client, who has no associated gigs.
 * `find David` followed by `delete 1` deletes the 1st client in the results of the `find` command.
 
+### Locating gigs by title: `findgig`
+
+Finds gigs whose titles contain any of the supplied keywords.
+
+Format: `findgig KEYWORD [MORE_KEYWORDS]`
+
+* The search is case-insensitive and considers gig titles only.
+* Each keyword must match a complete word; for example, `site` does not match `website`.
+* Multiple keywords use OR semantics: a gig is shown when its title contains at least one keyword.
+* Duplicate keywords do not duplicate results.
+* Results include gigs for all clients, even when the client list is filtered, and retain the original gig order.
+* Selecting a result displays that gig's payment obligations. Selecting a client returns to that client's normal gig list.
+* An empty query is rejected. If there are no matches, the panel displays `No gigs match the supplied title keywords.`
+
+Examples:
+* `findgig website` finds titles containing the complete word `website`.
+* `findgig website redesign` finds titles containing either `website` or `redesign`.
+
 ### Clearing all entries: `clear`
 
 Clears all clients, their gigs, and payment obligations.
