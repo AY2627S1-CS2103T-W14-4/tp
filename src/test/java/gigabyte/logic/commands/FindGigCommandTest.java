@@ -21,9 +21,9 @@ import gigabyte.model.gig.GigTitleContainsKeywordsPredicate;
 public class FindGigCommandTest {
     @Test
     public void execute_searchesAllClientsAndKeepsSourceOrder() {
-        Gig first = gig(ALICE, "Website redesign");
-        Gig second = gig(BENSON, "Logo design");
-        Gig third = gig(ALICE, "Mobile application");
+        Gig first = createGig(ALICE, "Website redesign");
+        Gig second = createGig(BENSON, "Logo design");
+        Gig third = createGig(ALICE, "Mobile application");
         GigabyteData data = new GigabyteData();
         data.addClient(ALICE);
         data.addClient(BENSON);
@@ -51,7 +51,7 @@ public class FindGigCommandTest {
         assertEquals(FindGigCommand.MESSAGE_NO_MATCHES, result.getFeedbackToUser());
     }
 
-    private static Gig gig(gigabyte.model.client.Client client, String title) {
+    private static Gig createGig(gigabyte.model.client.Client client, String title) {
         return new Gig(client, new GigTitle(title), GigStatus.IN_PROGRESS,
                 new Deadline("2027-01-01"), new Fee("100"));
     }
