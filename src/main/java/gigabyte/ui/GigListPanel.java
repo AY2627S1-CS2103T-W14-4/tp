@@ -41,7 +41,7 @@ public class GigListPanel extends UiPart<Region> {
     private Client selectedClient;
     private GigStatus selectedStatus;
     private boolean deadlineOverview;
-    private boolean titleSearch;
+    private boolean isTitleSearchActive;
     @javafx.fxml.FXML private Label emptyState;
     @javafx.fxml.FXML private ListView<Gig> gigListView;
 
@@ -92,7 +92,7 @@ public class GigListPanel extends UiPart<Region> {
         selectedClient = client;
         selectedStatus = null;
         deadlineOverview = false;
-        titleSearch = false;
+        isTitleSearchActive = false;
         getSortedGigs().setComparator(null);
         filteredGigs.setPredicate(gig -> isGigForClient(gig, client));
         updateEmptyState();
@@ -107,7 +107,7 @@ public class GigListPanel extends UiPart<Region> {
         selectedClient = null;
         selectedStatus = status;
         deadlineOverview = false;
-        titleSearch = false;
+        isTitleSearchActive = false;
         getSortedGigs().setComparator(null);
         filteredGigs.setPredicate(gig -> gig.getStatus() == status);
         updateEmptyState();
@@ -119,7 +119,7 @@ public class GigListPanel extends UiPart<Region> {
         deadlineOverview = true;
         selectedClient = null;
         selectedStatus = null;
-        titleSearch = false;
+        isTitleSearchActive = false;
         filteredGigs.setPredicate(gig -> gig.getStatus() != GigStatus.COMPLETED);
         getSortedGigs().setComparator(DEADLINE_COMPARATOR);
         updateEmptyState();
@@ -132,7 +132,7 @@ public class GigListPanel extends UiPart<Region> {
         selectedClient = null;
         selectedStatus = null;
         deadlineOverview = false;
-        titleSearch = true;
+        isTitleSearchActive = true;
         getSortedGigs().setComparator(null);
         filteredGigs.setPredicate(predicate);
         updateEmptyState();
@@ -185,7 +185,7 @@ public class GigListPanel extends UiPart<Region> {
             emptyState.setText(filteredGigs.isEmpty() ? NO_DEADLINES : "");
             return;
         }
-        if (titleSearch) {
+        if (isTitleSearchActive) {
             emptyState.setText(filteredGigs.isEmpty() ? "No gigs match the supplied title keywords." : "");
             return;
         }

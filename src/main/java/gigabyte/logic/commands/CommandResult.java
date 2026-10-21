@@ -79,7 +79,10 @@ public class CommandResult {
         return new CommandResult(requireNonNull(feedbackToUser), false, false, null, true, false, null);
     }
 
-    public static CommandResult forGigTitleSearch(String feedbackToUser,
+    /**
+     * Creates a result requesting a gig-title search view using {@code predicate}.
+     */
+    public static CommandResult createGigTitleSearchResult(String feedbackToUser,
             GigTitleContainsKeywordsPredicate predicate) {
         return new CommandResult(feedbackToUser, false, false, null, false, false, requireNonNull(predicate));
     }

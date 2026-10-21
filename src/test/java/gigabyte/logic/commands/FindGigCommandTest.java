@@ -33,9 +33,11 @@ public class FindGigCommandTest {
         ModelManager model = new ModelManager(data, new UserPrefs());
         model.updateFilteredClientList(client -> client.equals(ALICE));
 
-        new FindGigCommand(new GigTitleContainsKeywordsPredicate(List.of("design", "MOBILE", "design")))
-                .execute(model);
+        CommandResult result = new FindGigCommand(
+                new GigTitleContainsKeywordsPredicate(List.of("design", "MOBILE", "design"))).execute(model);
 
+        assertEquals(CommandResult.createGigTitleSearchResult("2 gig(s) listed!",
+                new GigTitleContainsKeywordsPredicate(List.of("design", "MOBILE", "design"))), result);
         assertEquals(List.of(first, second, third), model.getGigList());
         assertEquals(List.of(ALICE), model.getFilteredClientList());
     }

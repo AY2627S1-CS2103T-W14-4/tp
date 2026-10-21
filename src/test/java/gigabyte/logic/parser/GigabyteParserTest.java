@@ -31,6 +31,7 @@ import gigabyte.logic.commands.ListClientsCommand;
 import gigabyte.logic.commands.MarkPaymentPaidCommand;
 import gigabyte.logic.commands.OutstandingCommand;
 import gigabyte.logic.commands.SetGigStatusCommand;
+import gigabyte.logic.commands.SummaryCommand;
 import gigabyte.logic.parser.exceptions.ParseException;
 import gigabyte.model.client.Client;
 import gigabyte.model.client.ClientNameContainsKeywordsPredicate;
@@ -151,6 +152,11 @@ public class GigabyteParserTest {
     @Test
     public void parseCommand_findgigWithoutKeywords_throwsParseException() {
         assertThrows(ParseException.class, () -> parser.parseCommand("findgig   "));
+    }
+
+    @Test
+    public void parseCommand_summary() throws Exception {
+        assertTrue(parser.parseCommand(SummaryCommand.COMMAND_WORD) instanceof SummaryCommand);
     }
 
     @Test
