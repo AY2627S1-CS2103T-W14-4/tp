@@ -48,11 +48,11 @@ public class SummaryCommandTest {
         Gig second = addGig(model, BENSON, "Logo", GigStatus.IN_PROGRESS);
         addGig(model, ALICE, "Branding", GigStatus.IN_PROGRESS);
         addGig(model, BENSON, "Portfolio", GigStatus.COMPLETED);
-        model.addPaymentObligation(payment(first, "499.99", "2026-10-20", false));
-        model.addPaymentObligation(payment(second, "100.01", "2026-10-21", false));
-        model.addPaymentObligation(payment(second, "2000", "2026-10-22", false));
-        model.addPaymentObligation(payment(first, "300.50", "2026-10-01", true));
-        model.addPaymentObligation(payment(second, "50.25", "2026-11-01", true));
+        model.addPaymentObligation(createPayment(first, "499.99", "2026-10-20", false));
+        model.addPaymentObligation(createPayment(second, "100.01", "2026-10-21", false));
+        model.addPaymentObligation(createPayment(second, "2000", "2026-10-22", false));
+        model.addPaymentObligation(createPayment(first, "300.50", "2026-10-01", true));
+        model.addPaymentObligation(createPayment(second, "50.25", "2026-11-01", true));
         model.updateFilteredClientList(new ClientNameContainsKeywordsPredicate(List.of("Alice")));
         List<?> filteredClientsBefore = List.copyOf(model.getFilteredClientList());
 
@@ -75,8 +75,8 @@ public class SummaryCommandTest {
         ModelManager model = new ModelManager();
         model.addClient(ALICE);
         Gig gig = addGig(model, ALICE, "Large contract", GigStatus.IN_PROGRESS);
-        model.addPaymentObligation(payment(gig, "99999999999999999999999999.99", "2026-10-20", false));
-        model.addPaymentObligation(payment(gig, "10000000000000000000000000.01", "2026-10-21", true));
+        model.addPaymentObligation(createPayment(gig, "99999999999999999999999999.99", "2026-10-20", false));
+        model.addPaymentObligation(createPayment(gig, "10000000000000000000000000.01", "2026-10-21", true));
 
         CommandResult result = new SummaryCommand(TEST_CLOCK).execute(model);
 
@@ -100,7 +100,7 @@ public class SummaryCommandTest {
         return model.getGigList().get(model.getGigList().size() - 1);
     }
 
-    private static PaymentObligation payment(Gig gig, String amount, String dueDate, boolean paid) {
-        return new PaymentObligation(gig, new Fee(amount), new Deadline(dueDate), paid);
+    private static PaymentObligation createPayment(Gig gig, String amount, String dueDate, boolean isPaid) {
+        return new PaymentObligation(gig, new Fee(amount), new Deadline(dueDate), isPaid);
     }
 }
