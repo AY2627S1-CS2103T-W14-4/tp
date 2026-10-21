@@ -206,7 +206,7 @@ public class GigabyteData implements ReadOnlyGigabyteData {
         List<PaymentObligation> replacementObligations = linkPaymentObligations(
                 gigs, replacementGigs, paymentObligations);
 
-        gigs.setAll(replacementGigs);
+        gigs.set(targetIndex, storedReplacement);
         paymentObligations.setAll(replacementObligations);
     }
 

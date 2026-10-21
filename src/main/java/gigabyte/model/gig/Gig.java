@@ -80,6 +80,13 @@ public class Gig {
         return new Gig(uid, client, title, replacementStatus, deadline, agreedFee);
     }
 
+    /**
+     * Returns a copy with new details, preserving identity, client, and status.
+     */
+    public Gig withDetails(GigTitle title, Deadline deadline, Fee agreedFee) {
+        return new Gig(uid, client, title, status, deadline, agreedFee);
+    }
+
     /** Returns a copy with a new stable identifier. */
     public Gig withNewUid() {
         return new Gig(UUID.randomUUID(), client, title, status, deadline, agreedFee);

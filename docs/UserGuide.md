@@ -121,7 +121,7 @@ numbers, decimals, text, and indexes larger than the displayed list are invalid.
   client is not required before running `addpayment`.
 * `addpayment` takes only the client index and that client's gig index. `editpayment` and `markpaid` also take the
   payment's index in the selected gig's due-date-ordered payment list.
-* `setstatus` uses the same client and gig index rules as `addpayment`.
+* `editgig` and `setstatus` use the same client and gig index rules as `addpayment`.
 
 Example: after `find Bernice`, `addgig 1 ...` targets the first client in the filtered results. After `list`, the same
 client might have a different index.
@@ -228,6 +228,27 @@ Command | Why it is rejected
 `addgig 1 t/Website redesign s/NOT_STARTED d/2027-01-31 f/0` | Fees must be greater than zero.
 `addgig 1 t/Website redesign t/Second title s/NOT_STARTED d/2027-01-31 f/1250.00` | The single-valued `t/` prefix is repeated.
 `addgig 0 t/Website redesign s/NOT_STARTED d/2027-01-31 f/1250.00` | Client indexes start at 1.
+
+### Editing a gig: `editgig`
+
+Corrects a gig's title, deadline, agreed fee, or any combination of these fields and saves the result automatically.
+
+Format: `editgig CLIENT_INDEX GIG_INDEX [t/TITLE] [d/DEADLINE] [f/FEE]`
+
+* `CLIENT_INDEX` uses the currently displayed client list, including `find` results. `GIG_INDEX` is the position in
+  that client's normal gig list, even while a status filter or the deadline overview is visible.
+* Provide at least one field, in any order, with each prefix appearing once. Title, deadline, and fee follow the same
+  validation rules as `addgig`; surrounding title whitespace is trimmed. Use `setstatus` for status changes:
+  `s/STATUS` is rejected by `editgig`.
+* The gig retains its UID, client, status, and all payment obligations, including their paid states and amounts.
+  Correcting the agreed fee does not change recorded payment amounts.
+* All fields are validated before any change. Missing fields, invalid indexes or values, repeated prefixes, and
+  edits that would leave the gig unchanged are rejected without changing records.
+* Client and status views refresh immediately. Changing a deadline reorders the deadline overview; changing a title
+  can also change the order when deadlines are equal. Both indexes are resolved before the edit is applied.
+
+Examples: `editgig 1 2 t/Updated landing page`, `editgig 1 2 d/2027-04-30 f/1800.00`.
+After `find Bernice`, `editgig 1 1 t/Revised branding` edits the first matching client's first gig.
 
 ### Updating a gig's status: `setstatus`
 
@@ -510,6 +531,7 @@ Action     | Format, Examples
 **Clear**  | `clear`
 **Delete** | `delete INDEX`<br> e.g., `delete 3`
 **Edit**   | `edit INDEX [n/NAME] [p/PHONE_NUMBER] [e/EMAIL] [a/ADDRESS] [t/TAG]... `<br> e.g.,`edit 2 n/James Lee e/jameslee@example.com`
+**Edit gig** | `editgig CLIENT_INDEX GIG_INDEX [t/TITLE] [d/DEADLINE] [f/FEE]`<br> e.g., `editgig 1 2 t/Updated landing page f/1800.00`
 **Exit**   | `exit`
 **Find**   | `find KEYWORD [MORE_KEYWORDS]`<br> e.g., `find James Jake`
 **Filter gigs** | `gigs s/STATUS`<br> e.g., `gigs s/IN_PROGRESS`
