@@ -14,6 +14,7 @@ import java.time.Instant;
 import java.time.ZoneId;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.FutureTask;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
@@ -21,12 +22,16 @@ import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+import gigabyte.commons.core.index.Index;
+import gigabyte.logic.commands.EditGigCommand;
 import gigabyte.model.GigabyteData;
+import gigabyte.model.ModelManager;
 import gigabyte.model.gig.Deadline;
 import gigabyte.model.gig.Fee;
 import gigabyte.model.gig.Gig;
 import gigabyte.model.gig.GigStatus;
 import gigabyte.model.gig.GigTitle;
+import gigabyte.model.gig.PaymentObligation;
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -85,6 +90,46 @@ public class GigListPanelTest {
         @SuppressWarnings("unchecked")
         ListCell<Gig> cell = (ListCell<Gig>) panel.getGigListView().lookup(".list-cell");
         assertTrue(cell.getText().contains("Status: COMPLETED"));
+    }
+
+    @Test
+    public void editGig_refreshesClientStatusAndDeadlineViewsWithoutClearingSelectedPayments() throws Exception {
+        ModelManager model = new ModelManager();
+        model.addClient(ALICE);
+        model.addClient(BENSON);
+        model.addGig(ALICE_GIG);
+        model.addGig(ALICE_GIG.withNewUid());
+        model.addGig(ALICE_GIG.withClient(BENSON).withNewUid());
+        Gig target = model.getGigList().get(1);
+        model.addPaymentObligation(new PaymentObligation(target, new Fee("50"), new Deadline("2027-01-31"), false));
+        PaymentObligationListPanel payments = new PaymentObligationListPanel(model.getPaymentObligationList());
+        GigListPanel clientView = new GigListPanel(model.getGigList(), payments::showPaymentsFor);
+        GigListPanel statusView = new GigListPanel(model.getGigList());
+        GigListPanel deadlinesView = new GigListPanel(model.getGigList());
+        clientView.showGigsFor(ALICE);
+        clientView.getGigListView().getSelectionModel().select(1);
+        statusView.showGigsWithStatus(GigStatus.IN_PROGRESS);
+        deadlinesView.showDeadlineOverview();
+
+        new EditGigCommand(Index.fromOneBased(1), Index.fromOneBased(2),
+                Optional.of(new GigTitle("Edited title")),
+                Optional.of(new Deadline("2026-01-01")),
+                Optional.of(new Fee("1800"))).execute(model);
+
+        Gig edited = model.getGigList().get(1);
+        assertEquals(edited, clientView.getGigListView().getSelectionModel().getSelectedItem());
+        assertEquals(edited.getUid(), payments.getPaymentListView().getItems().get(0).getGig().getUid());
+        assertEquals(edited, statusView.getGigListView().getItems().get(1));
+        assertEquals(edited.getUid(), deadlinesView.getGigListView().getItems().get(0).getUid());
+        for (GigListPanel view : List.of(clientView, statusView, deadlinesView)) {
+            new Scene(view.getRoot(), 500, 300);
+            view.getRoot().applyCss();
+            view.getRoot().layout();
+            assertTrue(view.getGigListView().lookupAll(".list-cell").stream().anyMatch(node ->
+                    node instanceof ListCell<?> cell && !cell.isEmpty()
+                    && cell.getText().contains("Edited title") && cell.getText().contains("1800.00")
+                    && cell.getText().contains("2026-01-01")));
+        }
     }
 
     @Test

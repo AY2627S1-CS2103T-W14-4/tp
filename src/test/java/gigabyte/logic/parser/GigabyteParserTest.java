@@ -21,6 +21,7 @@ import gigabyte.logic.commands.ClearClientsCommand;
 import gigabyte.logic.commands.DeadlinesCommand;
 import gigabyte.logic.commands.DeleteClientCommand;
 import gigabyte.logic.commands.EditClientCommand;
+import gigabyte.logic.commands.EditGigCommand;
 import gigabyte.logic.commands.EditPaymentCommand;
 import gigabyte.logic.commands.ExitCommand;
 import gigabyte.logic.commands.FilterGigsCommand;
@@ -44,6 +45,13 @@ import gigabyte.testutil.EditClientDescriptorBuilder;
 public class GigabyteParserTest {
 
     private final GigabyteParser parser = new GigabyteParser();
+
+    @Test
+    public void parseCommand_editGig() throws Exception {
+        assertEquals(new EditGigCommand(INDEX_FIRST_CLIENT, INDEX_FIRST_CLIENT,
+                Optional.of(new GigTitle("Updated website")), Optional.empty(),
+                Optional.empty()), parser.parseCommand("editgig 1 1 t/Updated website"));
+    }
 
     @Test
     public void parseCommand_outstanding_acceptsNoArgumentsAndRejectsExtraInput() throws Exception {
