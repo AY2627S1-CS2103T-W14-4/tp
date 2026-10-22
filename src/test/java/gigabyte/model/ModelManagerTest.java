@@ -132,6 +132,21 @@ public class ModelManagerTest {
     }
 
     @Test
+    public void deleteGig_lastGig_keepsClientAndAllowsClientDeletion() {
+        modelManager.addClient(ALICE);
+        modelManager.addGig(createGig(ALICE));
+        List<Gig> liveGigs = modelManager.getGigList();
+
+        modelManager.deleteGig(liveGigs.get(0));
+
+        assertTrue(liveGigs.isEmpty());
+        assertEquals(List.of(ALICE), modelManager.getFilteredClientList());
+        modelManager.deleteClient(ALICE);
+        assertTrue(modelManager.getFilteredClientList().isEmpty());
+        assertThrows(NullPointerException.class, () -> modelManager.deleteGig(null));
+    }
+
+    @Test
     public void addGig_nonexistentClient_throwsGigClientNotFoundException() {
         Gig gig = createGig(ALICE);
 

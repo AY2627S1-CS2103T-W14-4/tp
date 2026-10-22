@@ -104,6 +104,11 @@ public class ModelManager implements Model {
     }
 
     @Override
+    public void deleteGig(Gig target) {
+        gigabyteData.removeGig(target);
+    }
+
+    @Override
     public void setGig(Gig target, Gig replacement) {
         requireAllNonNull(target, replacement);
         gigabyteData.setGig(target, replacement);

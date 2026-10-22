@@ -16,6 +16,7 @@ import gigabyte.model.gig.Gig;
 import gigabyte.model.gig.PaymentObligation;
 import gigabyte.model.gig.exceptions.ClientHasGigsException;
 import gigabyte.model.gig.exceptions.GigClientNotFoundException;
+import gigabyte.model.gig.exceptions.GigHasPaymentsException;
 import gigabyte.model.gig.exceptions.GigNotFoundException;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -208,6 +209,24 @@ public class GigabyteData implements ReadOnlyGigabyteData {
 
         gigs.set(targetIndex, storedReplacement);
         paymentObligations.setAll(replacementObligations);
+    }
+
+    /**
+     * Removes the gig with {@code target}'s UID without deleting its payment obligations.
+     *
+     * @throws GigNotFoundException if the UID is not stored.
+     * @throws GigHasPaymentsException if any paid or unpaid obligation refers to the gig.
+     */
+    public void removeGig(Gig target) {
+        requireNonNull(target);
+        int index = findGigIndexByUid(gigs, target);
+        if (index < 0) {
+            throw new GigNotFoundException();
+        }
+        if (paymentObligations.stream().anyMatch(payment -> payment.getGig().hasSameUid(target))) {
+            throw new GigHasPaymentsException();
+        }
+        gigs.remove(index);
     }
 
     /** Adds a payment obligation linked to an existing gig. */

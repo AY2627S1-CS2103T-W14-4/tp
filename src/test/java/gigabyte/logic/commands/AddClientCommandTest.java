@@ -156,6 +156,11 @@ public class AddClientCommandTest {
         }
 
         @Override
+        public void deleteGig(Gig target) {
+            throw new AssertionError("This method should not be called.");
+        }
+
+        @Override
         public ObservableList<Gig> getGigList() {
             throw new AssertionError("This method should not be called.");
         }

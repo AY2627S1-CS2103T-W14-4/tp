@@ -78,6 +78,11 @@ public interface Model {
     void addGig(Gig gig);
 
     /**
+     * Deletes the gig with {@code target}'s UID only if it has no payment obligations.
+     */
+    void deleteGig(Gig target);
+
+    /**
      * Replaces {@code target} with {@code replacement}, preserving the gig's UID and client association.
      */
     void setGig(Gig target, Gig replacement);
