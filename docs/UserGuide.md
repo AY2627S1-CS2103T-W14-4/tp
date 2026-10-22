@@ -115,16 +115,16 @@ Gigabyte uses one-based indexes: the first displayed item is `1`, the second is 
 numbers, decimals, text, and indexes larger than the displayed list are invalid.
 
 * A **client index** always refers to the numbered client in the list currently shown on the left. Commands such as
-  `addgig`, `addpayment`, `editpayment`, `markpaid`, `markunpaid`, `edit`, and `delete` use this displayed list.
+  `addgig`, `addpayment`, `editpayment`, `markpaid`, `markunpaid`, `edit`, `deletegig`, and `delete` use this displayed list.
 * `find` replaces the displayed client list with its matching results. A later command therefore uses the numbers in
   those results, not the numbers from the earlier full list. Run `list` to restore the full client list.
 * A **gig index** is the gig's one-based position among the chosen client's gigs. It is not an index into all gigs in
   Gigabyte. Selecting that client in the UI lets you confirm the order shown in the **Gigs** panel, but clicking the
   client is not required before running `addpayment`.
-* `addpayment` takes only the client index and that client's gig index. `editpayment`, `markpaid`, and `markunpaid`
-  also take the
-  payment's index in the selected gig's due-date-ordered payment list.
-* `setstatus` uses the same client and gig index rules as `addpayment`.
+* `addpayment` takes the client index and that client's gig index, in that order.
+  `editpayment`, `markpaid`, and `deletepayment` take a third index: the payment's position in that gig's
+  payment list, ordered by due date and recorded order.
+* `editgig`, `deletegig`, and `setstatus` use the same client and gig index rules as `addpayment`.
 
 Example: after `find Bernice`, `addgig 1 ...` targets the first client in the filtered results. After `list`, the same
 client might have a different index.
@@ -134,7 +134,7 @@ client might have a different index.
 Select a client in the client list to show only that client's gigs in the **Gigs** panel. Select a gig to show only
 its payment obligations in the **Payment obligations** panel beneath the gig list. Payment obligations are numbered
 from 1 and ordered by due date, earliest first. Obligations with the same due date retain the order in which they were
-recorded. These displayed payment indexes restart from 1 for each selected gig; `editpayment`, `markpaid`, and
+recorded. These displayed payment indexes restart from 1 for each selected gig; `editpayment`, `markpaid`, `deletepayment` and
 `markunpaid` use them. `editpayment` resolves the selected payment before applying a due-date change that might move
 the payment to a new displayed position.
 
@@ -180,9 +180,8 @@ client name, status, deadline, and agreed fee. Results keep the order in which g
 * Supply exactly one `s/` argument. Missing, unsupported, repeated, or extra arguments are rejected.
 * No matches displays `No gigs with status STATUS.`. Filtering does not modify stored records or the client list.
 * Running `gigs` clears client/gig selections and the payment panel. Select a result to view its payments, or select
-  a client to return to that client's gigs. `addpayment`, `editpayment`, `markpaid`, and `markunpaid` use that
+  a client to return to that client's gigs. `addpayment`, `editpayment`, `markpaid`, `deletepayment`, and `markunpaid` use that
   client's gig order,
-  not this status view.
 
 Examples: `gigs s/IN_PROGRESS`, `gigs s/completed`. Invalid examples: `gigs`, `gigs s/WAITING`,
 `gigs s/IN_PROGRESS s/COMPLETED`.
@@ -236,6 +235,47 @@ Command | Why it is rejected
 `addgig 1 t/Website redesign s/NOT_STARTED d/2027-01-31 f/0` | Fees must be greater than zero.
 `addgig 1 t/Website redesign t/Second title s/NOT_STARTED d/2027-01-31 f/1250.00` | The single-valued `t/` prefix is repeated.
 `addgig 0 t/Website redesign s/NOT_STARTED d/2027-01-31 f/1250.00` | Client indexes start at 1.
+
+### Editing a gig: `editgig`
+
+Corrects a gig's title, deadline, agreed fee, or any combination of these fields and saves the result automatically.
+
+Format: `editgig CLIENT_INDEX GIG_INDEX [t/TITLE] [d/DEADLINE] [f/FEE]`
+
+* `CLIENT_INDEX` uses the currently displayed client list, including `find` results. `GIG_INDEX` is the position in
+  that client's normal gig list, even while a status filter or the deadline overview is visible.
+* Provide at least one field, in any order, with each prefix appearing once. Title, deadline, and fee follow the same
+  validation rules as `addgig`; surrounding title whitespace is trimmed. Use `setstatus` for status changes:
+  `s/STATUS` is rejected by `editgig`.
+* The gig retains its UID, client, status, and all payment obligations, including their paid states and amounts.
+  Correcting the agreed fee does not change recorded payment amounts.
+* All fields are validated before any change. Missing fields, invalid indexes or values, repeated prefixes, and
+  edits that would leave the gig unchanged are rejected without changing records.
+* Client and status views refresh immediately. Changing a deadline reorders the deadline overview; changing a title
+  can also change the order when deadlines are equal. Both indexes are resolved before the edit is applied.
+
+Examples: `editgig 1 2 t/Updated landing page`, `editgig 1 2 d/2027-04-30 f/1800.00`.
+After `find Bernice`, `editgig 1 1 t/Revised branding` edits the first matching client's first gig.
+
+### Deleting a gig: `deletegig`
+
+Format: `deletegig CLIENT_INDEX GIG_INDEX`
+
+Permanently deletes one gig in any status, provided it has no payment obligations. Deletion is immediate,
+saved automatically, and cannot be undone. The client, other gigs, and their payments remain unchanged.
+
+* Supply exactly two positive integer indexes: the client in the displayed list (including `find` results), then
+  the gig in that client's normal gig order. Status, title-search, and deadline overview positions are not gig indexes.
+* Any paid or unpaid obligation blocks deletion. The error instructs you to delete those obligations first using
+  `deletepayment`; marking them paid does not allow gig deletion.
+  For a gig with one payment, run `deletepayment 1 1 1` followed by `deletegig 1 1` to remove both permanently.
+* Identical-looking gigs are separate records: only the indexed gig is removed. Remaining gigs are renumbered.
+* Open gig views refresh immediately. Deleting the selected gig clears its selection and payment view.
+* Invalid syntax, out-of-range indexes, and payment dependencies leave records and the saved file unchanged.
+* Once a client's final gig is deleted, the client can be removed using `delete CLIENT_INDEX`.
+
+Example with fresh sample data: `deletegig 2 2` removes Bernice's Quarterly newsletter template, which has no payments.
+After `find Bernice`, the equivalent command is `deletegig 1 2`.
 
 ### Updating a gig's status: `setstatus`
 
@@ -398,6 +438,44 @@ Successful examples:
 * `find Alex` followed by `markunpaid 1 1 2` corrects the second displayed payment for the first matching client's
   first gig.
 
+### Deleting a payment obligation: `deletepayment`
+
+Permanently removes one incorrectly recorded, duplicate, or cancelled payment obligation and saves the deletion
+automatically. Both paid and unpaid obligations, including overdue obligations, can be deleted.
+
+Format: `deletepayment CLIENT_INDEX GIG_INDEX PAYMENT_INDEX`
+
+**This command is destructive: it deletes immediately without a confirmation prompt and cannot be undone.** Check
+the displayed indexes before running it. The deleted obligation will not return after restarting Gigabyte.
+
+* Uses the same three indexes as `markpaid`: the client in the currently displayed list (including `find` results),
+  the gig within that client's gig list, and the payment within that gig's payment list.
+* Payment indexes use earliest due date first; ties keep their recorded order. They are not the row numbers in the
+  `outstanding` overview. Selecting the client and gig lets you check the indexes; selection is not required to run
+  the command.
+* Deletes exactly the indexed obligation, even if another obligation has identical fields. The client, parent gig,
+  and all other obligations remain unchanged. Remaining payments keep their relative order and are renumbered.
+* The selected payment list refreshes immediately. Deleting an unpaid obligation also removes it immediately from
+  an open `outstanding` overview.
+* Removing a gig's final obligation displays `This gig has no payment obligations.` when that gig is selected.
+  If no unpaid obligations remain, the outstanding overview displays `No outstanding payment obligations.`.
+* Success feedback includes the client, gig index and title, payment index, amount, due date, and previous state
+  (`PAID` or `UNPAID`). Overdue obligations have previous state `UNPAID`.
+* Exactly three positive integer indexes are required. Invalid or out-of-range indexes leave records and the saved
+  file unchanged.
+
+Examples:
+
+* `deletepayment 1 2 3` deletes the third payment of the second gig belonging to the first displayed client.
+* `find Bernice` followed by `deletepayment 1 1 2` deletes the second payment of the first matching client's first
+  gig, provided that payment exists.
+
+Example success message:
+
+```text
+Deleted payment obligation for Alice Pauline, gig 1 (Website redesign), payment 2: Amount: 50.25; Due date: 2099-01-31; Previous state: PAID
+```
+
 Unsuccessful examples:
 
 Command | Why it is rejected
@@ -409,6 +487,14 @@ Command | Why it is rejected
 `markunpaid 1 1` | Exactly three indexes are required.
 `markunpaid 1 1 1 2` | Extra positional indexes are not accepted.
 `markunpaid 1 1 1` on an unpaid row | An unpaid obligation cannot be marked unpaid again.
+`deletepayment 0 1 1` | Client indexes start at 1.
+`deletepayment 1 -1 1` | Gig indexes must be positive integers.
+`deletepayment 1 1 abc` | Payment indexes must be positive integers.
+`deletepayment 99 1 1` | Rejected if there is no displayed client at position 99.
+`deletepayment 1 99 1` | Rejected if the chosen client has no gig at position 99.
+`deletepayment 1 1 99` | Rejected if the chosen gig has no payment at position 99.
+`deletepayment 1 1` | Exactly three indexes are required.
+`deletepayment 1 1 1 2` | Extra positional indexes are not accepted.
 
 ### Editing a client: `edit`
 
@@ -450,13 +536,43 @@ Deletes the specified client from the client list.
 Format: `delete INDEX`
 
 * Deletes the client at the specified `INDEX`.
-* A client with associated gigs cannot be deleted; an error explains this restriction.
+* A client with associated gigs cannot be deleted. Remove its gigs using `deletegig` first.
 * The index refers to the index number shown in the displayed client list.
 * The index **must be a positive integer** 1, 2, 3, ...
 
 Examples:
 * `list` followed by `delete 3` deletes the 3rd sample client, who has no associated gigs.
 * `find David` followed by `delete 1` deletes the 1st client in the results of the `find` command.
+
+### Locating gigs by title: `findgig`
+
+Finds gigs whose titles contain any of the supplied keywords.
+
+Format: `findgig KEYWORD [MORE_KEYWORDS]`
+
+* The search is case-insensitive and considers gig titles only.
+* Each keyword must match a complete word; for example, `site` does not match `website`.
+* Multiple keywords use OR semantics: a gig is shown when its title contains at least one keyword.
+* Duplicate keywords do not duplicate results.
+* Results include gigs for all clients, even when the client list is filtered, and retain the original gig order.
+* Selecting a result displays that gig's payment obligations. Selecting a client returns to that client's normal gig list.
+* An empty query is rejected. If there are no matches, the panel displays `No gigs match the supplied title keywords.`
+
+Examples:
+* `findgig website` finds titles containing the complete word `website`.
+* `findgig website redesign` finds titles containing either `website` or `redesign`.
+
+### Viewing a work and payment summary: `summary`
+
+Shows counts for all stored clients and gigs, followed by payment totals. The command ignores the current client
+filter and does not change any selection, filter, or stored data.
+
+Format: `summary`
+
+The payment section reports unpaid obligations as **Outstanding**, with **Of which overdue** explicitly identifying
+the subset whose due date is before today. Obligations due today are not overdue. **Marked paid** is the total of
+obligations recorded as paid; it is not revenue because Gigabyte does not record when money was received. All totals
+are calculated exactly to cents.
 
 ### Clearing all entries: `clear`
 
@@ -527,14 +643,17 @@ Action     | Format, Examples
 -----------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------
 **Add**    | `add n/NAME p/PHONE_NUMBER e/EMAIL a/ADDRESS [t/TAG]... ` <br> e.g., `add n/James Ho p/22224444 e/jamesho@example.com a/123, Clementi Rd, 1234665 t/friend t/colleague`
 **Add gig** | `addgig INDEX t/TITLE s/STATUS d/DEADLINE f/FEE` <br> e.g., `addgig 1 t/Website redesign s/NOT_STARTED d/2027-01-31 f/1250.00`
+**Delete gig** | `deletegig CLIENT_INDEX GIG_INDEX` <br> e.g., `deletegig 2 2`
 **Add payment** | `addpayment CLIENT_INDEX GIG_INDEX a/AMOUNT d/DUE_DATE` <br> e.g., `addpayment 1 2 a/500.00 d/2027-01-31`
 **Edit payment** | `editpayment CLIENT_INDEX GIG_INDEX PAYMENT_INDEX [a/AMOUNT] [d/DUE_DATE]` <br> e.g., `editpayment 1 2 1 a/650.00 d/2027-05-15`
 **Mark payment paid** | `markpaid CLIENT_INDEX GIG_INDEX PAYMENT_INDEX` <br> e.g., `markpaid 2 1 3`
 **Mark payment unpaid** | `markunpaid CLIENT_INDEX GIG_INDEX PAYMENT_INDEX` <br> e.g., `markunpaid 2 1 3`
+**Delete payment permanently** | `deletepayment CLIENT_INDEX GIG_INDEX PAYMENT_INDEX` <br> e.g., `deletepayment 1 2 3`
 **Set gig status** | `setstatus CLIENT_INDEX GIG_INDEX s/STATUS` <br> e.g., `setstatus 1 2 s/COMPLETED`
 **Clear**  | `clear`
 **Delete** | `delete INDEX`<br> e.g., `delete 3`
 **Edit**   | `edit INDEX [n/NAME] [p/PHONE_NUMBER] [e/EMAIL] [a/ADDRESS] [t/TAG]... `<br> e.g.,`edit 2 n/James Lee e/jameslee@example.com`
+**Edit gig** | `editgig CLIENT_INDEX GIG_INDEX [t/TITLE] [d/DEADLINE] [f/FEE]`<br> e.g., `editgig 1 2 t/Updated landing page f/1800.00`
 **Exit**   | `exit`
 **Find**   | `find KEYWORD [MORE_KEYWORDS]`<br> e.g., `find James Jake`
 **Filter gigs** | `gigs s/STATUS`<br> e.g., `gigs s/IN_PROGRESS`

@@ -100,6 +100,9 @@ Here's a (partial) class diagram of the `Logic` component:
 <puml src="diagrams/LogicClassDiagram.puml" width="550"/>
 
 The sequence diagram below illustrates the interactions within the `Logic` component, taking `execute("delete 1")` API call as an example.
+The command resolves the index against the currently displayed client list and passes the selected `Client` to
+the model. Invalid indexes and clients with associated gigs are rejected; only a successful deletion creates a
+`CommandResult`. The diagram omits storage interactions and assumes the save succeeds on the successful path.
 
 <puml src="diagrams/DeleteSequenceDiagram.puml" alt="Interactions Inside the Logic Component for the `delete 1` Command" />
 
@@ -114,7 +117,7 @@ How the `Logic` component works:
 1. When `Logic` is called upon to execute a command, the command is passed to a `GigabyteParser` object, which in turn creates a parser that matches the command (e.g., `DeleteClientCommandParser`) and uses it to parse the command.
 1. This results in a `Command` object (more precisely, an object of one of its subclasses e.g., `DeleteClientCommand`) which is executed by the `LogicManager`.
 1. The command can communicate with the `Model` when it is executed (e.g. to delete a client).<br>
-   Note that although this is shown as a single step in the diagram above for simplicity, the code can require several interactions between the command object and the `Model` to complete the operation.
+   The command may make several calls to the `Model`; interactions within the model are omitted from this diagram.
 1. The result of the command execution is encapsulated as a `CommandResult` object which is returned from `Logic`.
 
 Here are the other classes in `Logic` (omitted from the class diagram above) that are used for parsing a user command:
@@ -149,6 +152,14 @@ The `Model` component,
   edits replace linked immutable objects while retaining those identifiers and links. Payment edits replace the
   selected immutable obligation while preserving its canonical gig and paid state. Payment-status changes replace
   the exact immutable obligation while retaining its gig, amount, and due date.
+* deletes gigs by stable UID through `Model#deleteGig` and `GigabyteData#removeGig`. Any paid or unpaid obligation
+  raises `GigHasPaymentsException` before mutation. Removing one observable-list entry preserves other references;
+  the gig panel clears a removed selection before its filtered/sorted views process the removal.
+* deletes payments through `Model#deletePaymentObligation`, delegated to `GigabyteData`. Removal uses object
+  identity to delete exactly one stored instance because separate obligations can have identical fields.
+  `DeletePaymentCommand` resolves indexes using `GigOrdering` and `PaymentObligationOrdering`, as `markpaid` does.
+  The observable removal refreshes the selected payment list or outstanding overview and its empty state.
+  `LogicManager` saves the resulting data through the existing storage path after successful execution.
 * stores a `UserPrefs` object that represents the user’s preferences (currently, just the GUI settings). This is exposed to the outside as a `ReadOnlyUserPrefs` object.
 * does not depend on any of the other three components (as the `Model` represents data entities of the domain, they should make sense on their own without depending on other components)
 
@@ -194,6 +205,105 @@ The save-file fields are:
 UUIDs must be valid, references must resolve to saved records, titles must be valid text, and monetary values must
 be positive integer cents. Null collections and null records are rejected. There is no automatic conversion of
 `persons`, name- or index-based references, decimal amount fields, or missing IDs and titles.
+
+#### Data file format
+
+`MainApp` uses `data/addressbook.json` for application data and `preferences.json` for GUI preferences. Both paths
+are relative to the process's working directory. `JsonSerializableGigabyteData` stores three top-level arrays:
+`clients`, `gigs`, and `paymentObligations`. The following is a complete example with one record of each type:
+
+```json
+{
+  "clients": [
+    {
+      "uid": "11111111-1111-4111-8111-111111111111",
+      "name": "Jamie Tan",
+      "phone": "81234567",
+      "email": "jamie@example.com",
+      "address": "10 Clementi Road",
+      "tags": []
+    }
+  ],
+  "gigs": [
+    {
+      "uid": "22222222-2222-4222-8222-222222222222",
+      "clientUid": "11111111-1111-4111-8111-111111111111",
+      "title": "Website redesign",
+      "status": "IN_PROGRESS",
+      "deadline": "2027-06-30",
+      "feeCents": 125050
+    }
+  ],
+  "paymentObligations": [
+    {
+      "gigUid": "22222222-2222-4222-8222-222222222222",
+      "amountCents": 50000,
+      "dueDate": "2027-07-15",
+      "paid": false
+    }
+  ]
+}
+```
+
+`feeCents` and `amountCents` are positive integer counts of cents; the example represents a fee of `1250.50` and a
+payment of `500.00`. `Fee` uses `BigDecimal` in memory and converts to and from `BigInteger` cents for storage.
+Dates use `yyyy-MM-dd`. The stored `paid` boolean records whether an obligation is settled; overdue status is
+derived from the due date and the current local date rather than stored separately.
+
+Loading proceeds in dependency order: clients, then gigs, then payment obligations. The adapters resolve
+`clientUid` and `gigUid` to the canonical objects already loaded. Duplicate client records or client/gig UUIDs,
+unresolved parent references, and invalid field values detected during conversion cause the load to fail instead
+of returning partially loaded data.
+
+#### Backward compatibility and migration
+
+The loader recognizes older formats by their fields; there is no explicit schema-version field. Supported
+conversions are:
+
+| Older representation | Loading behavior |
+|----------------------|------------------|
+| `persons` instead of `clients` | Uses `persons` when `clients` is absent or null. |
+| Missing `gigs` or `paymentObligations` arrays | Treats the missing lists as empty. |
+| Client without a `uid` | Generates a client UUID. |
+| Gig with `clientName` instead of `clientUid` | Resolves the exact client name and generates a gig UUID if absent. A gig using `clientUid` must already supply its own `uid`. |
+| Gig with decimal-string `fee` instead of `feeCents` | Validates the decimal amount and converts it to a `Fee`. |
+| Payment with `gigIndex` and decimal-string `amount` instead of `gigUid` and `amountCents` | Resolves the one-based index in the saved top-level `gigs` array and converts the amount. This is not a per-client or displayed gig index. |
+| Gig without a `title` property | Uses `Untitled gig`. An explicit null, non-string, blank, or overlong title is invalid and does not receive this fallback. |
+
+Migration takes place in memory during loading. The data file is rewritten in the current format on the next
+successful save, including generated UUIDs, titles, and integer-cent amounts. Legacy fields such as `persons`,
+`clientName`, `gigIndex`, `fee`, and `amount` are not written back.
+
+#### Save lifecycle and failure behavior
+
+`LogicManager#execute` performs these steps in order:
+
+1. Parse the input into a command.
+1. Execute the command against the model.
+1. Save the complete current `GigabyteData` through `StorageManager` and `JsonGigabyteDataStorage`.
+1. Return the `CommandResult` to the UI.
+
+Every command that completes step 2 reaches the save step, including commands such as `list` that do not change
+stored records. A parsing or command-execution exception skips the save step. Missing parent directories and the
+data file are created when saving.
+
+If saving throws `AccessDeniedException`, `LogicManager` reports insufficient write permissions through a
+`CommandException`. Other `IOException`s produce a `CommandException` containing the underlying error. The
+command's successful result is not returned to the UI, but any changes already made to the in-memory model remain:
+there is no rollback. After the write problem is resolved, the next successful command and save persist the current
+model, including those earlier unsaved changes.
+
+`FileUtil#writeToFile` writes directly to the destination file. There is no temporary-file replacement or automatic
+backup, so a failed write does not guarantee that the previous file contents remain intact.
+
+At startup, a missing data file causes `MainApp` to use sample data. A malformed JSON file or a validation failure
+reported as `DataLoadingException` is logged and causes the app to start with empty data. Loading itself does not
+overwrite that file, but the next successful save, even after `list`, replaces it with the current model. Preserve
+the original file before running commands when investigating a load failure.
+
+GUI preferences are saved separately during initialization and shutdown. Missing or unreadable preferences fall
+back to defaults; failures to save preferences are logged. Shutdown does not provide an additional application-data
+save, so it does not retry a failed command save.
 
 ### Common classes
 
@@ -363,6 +473,7 @@ Priorities: High (must have) - `* * *`, Medium (nice to have) - `* *`, Low (unli
 | `* * *`  | freelancer                                 | correct a payment obligation's amount or due date                        | keep revised invoice details accurate                                  |
 | `* * *`  | freelancer                                 | mark a payment obligation as paid                                        | distinguish settled payments from money still owed                      |
 | `* * *`  | freelancer                                 | correct a payment that I accidentally marked as paid                     | keep my outstanding-payment list accurate                              |
+| `* * *`  | freelancer                                 | remove an incorrectly recorded payment obligation                        | keep duplicate or cancelled invoices out of my records                  |
 | `* * *`  | freelancer                                 | view a client’s details and associated gigs                              | understand my work with that client                                    |
 | `* * *`  | freelancer                                 | create a gig linked to a client with a title, status, deadline, and fee  | track each piece of work                                               |
 | `* * *`  | freelancer                                 | view upcoming gig deadlines in date order                                | prioritise my work                                                     |
@@ -495,6 +606,19 @@ For all use cases below, the **System** is the `Gigabyte` and the **Actor** is t
 4. Gigabyte saves the obligation as unpaid while preserving its gig, amount, and due date.
 5. Gigabyte refreshes the payment view and includes the obligation in `outstanding` as `OVERDUE` or `OUTSTANDING`
    according to its due date and the current local date.
+
+**Use case: Delete a payment obligation**
+
+**Preconditions:** The relevant payment obligation exists in Gigabyte.
+
+**MSS**
+
+1. Freelancer identifies the displayed client index, per-client gig index, and per-gig payment index.
+2. Freelancer enters `deletepayment` with all three indexes.
+3. Gigabyte validates the indexes and deletes exactly that obligation, whether paid or unpaid, without a
+   confirmation prompt. The gig, client, and other obligations are preserved.
+4. Gigabyte refreshes the payment view, saves the deletion, and reports the client, gig, amount, due date, and
+   previous paid state. If the view is now empty, it shows the existing empty state.
 
     Use case ends.
 
@@ -760,6 +884,64 @@ Start each test in this section from a fresh test folder unless the test says ot
    1. Input `markunpaid 1 1 1`, exit, and relaunch Gigabyte from the same folder.<br>
       Expected: Alex's sample payment remains unpaid, retains its gig, amount, and due date, and appears in
       `outstanding` with the display state derived from the relaunch date.
+
+### Deleting payment obligations
+
+Use a fresh test folder for each numbered test below. Deletion is permanent and has no confirmation or undo.
+
+1. **Paid, future unpaid, overdue, final payment, and restart**
+   1. Input: `addpayment 1 1 a/500 d/2099-01-31`, then `addpayment 1 1 a/100 d/2000-01-31`.<br>
+      Select Alex Yeoh and Portfolio website redesign. Expected order: overdue `$100.00` (1), sample paid
+      `$1250.00` (2), future unpaid `$500.00` (3).
+   1. Input: `deletepayment 1 1 2`.<br>
+      Expected: Only the paid row disappears immediately. Feedback names Alex Yeoh, gig 1 (Portfolio website
+      redesign), payment 2, amount `1250.00`, due date `2027-01-15`, and previous state `PAID`.
+      The remaining rows become 1 and 2 in the same order. The client and gig remain selected and unchanged.
+   1. Input: `outstanding`, then `deletepayment 1 1 1`.<br>
+      Expected: The overdue `$100.00` row disappears without rerunning `outstanding`. Feedback includes its amount,
+      due date `2000-01-31`, and previous state `UNPAID`. Other clients' obligations remain visible.
+   1. Input: `deletepayment 1 1 1`.<br>
+      Expected: The future `$500.00` obligation disappears from the open overview. Feedback includes due date
+      `2099-01-31` and previous state `UNPAID`.
+   1. Select Alex and Portfolio website redesign again.<br>
+      Expected: `This gig has no payment obligations.` The gig retains its title, status, deadline, and fee.
+   1. Input: `exit`, then relaunch from the same folder.<br>
+      Expected: All three deleted obligations remain absent, Alex and both his gigs remain, and other obligations
+      retain their data and order. Selecting the same gig still shows the empty state.
+
+1. **Two identical obligations**
+   1. Input `addpayment 1 1 a/500 d/2099-01-31` twice. Select Alex and his first gig.<br>
+      Expected: Two identical unpaid rows follow the sample paid row, at payment indexes 2 and 3.
+   1. Input: `deletepayment 1 1 3`.<br>
+      Expected: Exactly one duplicate disappears; the sample paid row and one `$500.00` row remain in order.
+   1. Input: `deletepayment 1 1 2`.<br>
+      Expected: The other duplicate disappears independently, leaving only the sample paid row.
+
+1. **Filtered client indexes**
+   1. Input: `find Bernice`, then `addpayment 1 2 a/125 d/2099-08-15`.<br>
+      Select Bernice and Quarterly newsletter template, which now has one obligation.
+   1. Input: `deletepayment 1 2 1`.<br>
+      Expected: Bernice's payment disappears immediately and her gig shows the empty state. Feedback names Bernice.
+      The filtered client list remains unchanged; Alex's payments and Bernice's other gig are unaffected.
+
+1. **Invalid indexes and syntax leave data unchanged**
+   1. Select Alex and his first gig. Copy `data/gigabyte.json` for comparison.
+   1. Try `deletepayment CLIENT_INDEX GIG_INDEX PAYMENT_INDEX`, starting from `1 1 1` and replacing each index
+      in turn with `0`, `-1`, `abc`, `1.5`, `2147483648`, and `999`.<br>
+      Expected: Each command is rejected; `999` reports which index is out of range and the other values produce
+      the command-format error. The payment list, parents, and saved file remain unchanged.
+   1. Try `deletepayment`, `deletepayment 1 1`, and `deletepayment 1 1 1 2`.<br>
+      Expected: Each reports the required syntax. The saved file still matches the copy.
+
+1. **Outstanding overview becomes empty**
+   1. In the disposable test folder, input `clear`, then
+      `add n/Test Client p/91234567 e/test@example.com a/Test address`, then
+      `addgig 1 t/Test gig s/NOT_STARTED d/2099-12-31 f/100`, then
+      `addpayment 1 1 a/50 d/2099-01-31`.
+   1. Input: `outstanding`, then `deletepayment 1 1 1`.<br>
+      Expected: The overview immediately shows `No outstanding payment obligations.` without another command.
+      Selecting Test Client and Test gig shows `This gig has no payment obligations.`.
+
 ### Editing payment obligations
 
 Start this section from a fresh test folder. Select `Alex Yeoh`, then select `Portfolio website redesign` so the
@@ -916,6 +1098,28 @@ Start this section from a fresh test folder and perform the tests in order.
       Expected: The new `$125.00` obligation, shown after the earlier sample obligation, changes to `PAID`.
    1. Input: `list`<br>
       Expected: The full six-client list is restored; subsequent client indexes use this full list.
+
+### Deleting gigs safely
+
+Use a disposable fresh sample-data folder for each test. Deletion is permanent and has no undo.
+
+1. Input `deletegig 1 1` (paid payment) and `deletegig 1 2` (unpaid payment).<br>
+   Expected: Both are rejected with instructions to remove payments using `deletepayment`. Records and the saved
+   file remain unchanged. Settling an obligation does not unblock deletion. Input `deletepayment 1 1 1`, then
+   `deletegig 1 1`: Alex's first gig can now be deleted, while his other gig and its payment remain unchanged.
+1. Select Bernice and Quarterly newsletter template, then input `deletegig 2 2`.<br>
+   Expected: Only that gig disappears; Bernice and Brand identity refresh remain. Gig selection clears and the payment
+   panel prompts for a gig. Restart: the removed gig remains absent. Repeat from fresh data with `gigs s/IN_PROGRESS`,
+   `deadlines`, or `findgig newsletter` open before deletion: the active view refreshes without another command.
+1. Add the same gig twice using `addgig 1 t/Duplicate s/NOT_STARTED d/2099-01-31 f/100`, then input
+   `addpayment 1 3 a/50 d/2099-02-28`, followed by `deletegig 1 4`.<br>
+   Expected: Only the fourth gig disappears. The third gig and its payment remain linked; `deletegig 1 3` is rejected.
+1. Input `find Bernice`, then `deletegig 1 2`.<br>
+   Expected: Bernice's second gig disappears and the client filter remains. Try `deletegig`, `deletegig 1 1 2`,
+   `deletegig 0 1`, `deletegig 1 abc`, `deletegig 2 1`, and `deletegig 1 999`: all fail without changing records or disk.
+1. Input `add n/Deletion Test p/91234567 e/deletion@example.com a/Test address`, then `find Deletion`, then
+   `addgig 1 t/Temporary s/COMPLETED d/2099-01-31 f/100`, `deletegig 1 1`, and `delete 1`.<br>
+   Expected: The completed gig is removed and its client can then be deleted; other clients remain unchanged.
 
 ### Deleting a client with gigs
 

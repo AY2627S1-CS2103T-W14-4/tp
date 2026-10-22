@@ -12,8 +12,10 @@ import gigabyte.model.client.Client;
 import gigabyte.model.gig.Gig;
 import gigabyte.model.gig.GigOrdering;
 import gigabyte.model.gig.GigStatus;
+import gigabyte.model.gig.GigTitleContainsKeywordsPredicate;
 import javafx.animation.PauseTransition;
 import javafx.application.Platform;
+import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
 import javafx.collections.transformation.FilteredList;
 import javafx.collections.transformation.SortedList;
@@ -40,6 +42,7 @@ public class GigListPanel extends UiPart<Region> {
     private Client selectedClient;
     private GigStatus selectedStatus;
     private boolean deadlineOverview;
+    private boolean isTitleSearchActive;
     @javafx.fxml.FXML private Label emptyState;
     @javafx.fxml.FXML private ListView<Gig> gigListView;
 
@@ -56,6 +59,13 @@ public class GigListPanel extends UiPart<Region> {
     GigListPanel(ObservableList<Gig> gigs, Consumer<Gig> gigSelectionHandler, Clock clock) {
         super("GigListPanel.fxml", new BorderPane());
         this.clock = clock;
+        // Clear deleted selections before the filtered/sorted lists can select a neighboring gig.
+        gigs.addListener((ListChangeListener<Gig>) change -> {
+            Gig selected = gigListView.getSelectionModel().getSelectedItem();
+            if (selected != null && gigs.stream().noneMatch(gig -> gig.hasSameUid(selected))) {
+                gigListView.getSelectionModel().clearSelection();
+            }
+        });
         filteredGigs = new FilteredList<>(gigs, gig -> false);
         SortedList<Gig> sortedGigs = new SortedList<>(filteredGigs);
         gigListView.setItems(sortedGigs);
@@ -90,6 +100,7 @@ public class GigListPanel extends UiPart<Region> {
         selectedClient = client;
         selectedStatus = null;
         deadlineOverview = false;
+        isTitleSearchActive = false;
         getSortedGigs().setComparator(null);
         filteredGigs.setPredicate(gig -> isGigForClient(gig, client));
         updateEmptyState();
@@ -104,6 +115,7 @@ public class GigListPanel extends UiPart<Region> {
         selectedClient = null;
         selectedStatus = status;
         deadlineOverview = false;
+        isTitleSearchActive = false;
         getSortedGigs().setComparator(null);
         filteredGigs.setPredicate(gig -> gig.getStatus() == status);
         updateEmptyState();
@@ -115,8 +127,22 @@ public class GigListPanel extends UiPart<Region> {
         deadlineOverview = true;
         selectedClient = null;
         selectedStatus = null;
+        isTitleSearchActive = false;
         filteredGigs.setPredicate(gig -> gig.getStatus() != GigStatus.COMPLETED);
         getSortedGigs().setComparator(DEADLINE_COMPARATOR);
+        updateEmptyState();
+    }
+
+    /** Displays all gigs whose titles match any supplied keyword. */
+    public void showGigsMatchingTitle(GigTitleContainsKeywordsPredicate predicate) {
+        requireNonNull(predicate);
+        gigListView.getSelectionModel().clearSelection();
+        selectedClient = null;
+        selectedStatus = null;
+        deadlineOverview = false;
+        isTitleSearchActive = true;
+        getSortedGigs().setComparator(null);
+        filteredGigs.setPredicate(predicate);
         updateEmptyState();
     }
 
@@ -165,6 +191,10 @@ public class GigListPanel extends UiPart<Region> {
         }
         if (deadlineOverview) {
             emptyState.setText(filteredGigs.isEmpty() ? NO_DEADLINES : "");
+            return;
+        }
+        if (isTitleSearchActive) {
+            emptyState.setText(filteredGigs.isEmpty() ? "No gigs match the supplied title keywords." : "");
             return;
         }
         emptyState.setText(selectedClient == null ? NO_CLIENT

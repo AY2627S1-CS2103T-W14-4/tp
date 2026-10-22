@@ -20,17 +20,22 @@ import gigabyte.logic.commands.AddPaymentCommand;
 import gigabyte.logic.commands.ClearClientsCommand;
 import gigabyte.logic.commands.DeadlinesCommand;
 import gigabyte.logic.commands.DeleteClientCommand;
+import gigabyte.logic.commands.DeleteGigCommand;
+import gigabyte.logic.commands.DeletePaymentCommand;
 import gigabyte.logic.commands.EditClientCommand;
+import gigabyte.logic.commands.EditGigCommand;
 import gigabyte.logic.commands.EditPaymentCommand;
 import gigabyte.logic.commands.ExitCommand;
 import gigabyte.logic.commands.FilterGigsCommand;
 import gigabyte.logic.commands.FindClientCommand;
+import gigabyte.logic.commands.FindGigCommand;
 import gigabyte.logic.commands.HelpCommand;
 import gigabyte.logic.commands.ListClientsCommand;
 import gigabyte.logic.commands.MarkPaymentPaidCommand;
 import gigabyte.logic.commands.MarkPaymentUnpaidCommand;
 import gigabyte.logic.commands.OutstandingCommand;
 import gigabyte.logic.commands.SetGigStatusCommand;
+import gigabyte.logic.commands.SummaryCommand;
 import gigabyte.logic.parser.exceptions.ParseException;
 import gigabyte.model.client.Client;
 import gigabyte.model.client.ClientNameContainsKeywordsPredicate;
@@ -38,6 +43,7 @@ import gigabyte.model.gig.Deadline;
 import gigabyte.model.gig.Fee;
 import gigabyte.model.gig.GigStatus;
 import gigabyte.model.gig.GigTitle;
+import gigabyte.model.gig.GigTitleContainsKeywordsPredicate;
 import gigabyte.testutil.ClientBuilder;
 import gigabyte.testutil.ClientUtil;
 import gigabyte.testutil.EditClientDescriptorBuilder;
@@ -45,6 +51,22 @@ import gigabyte.testutil.EditClientDescriptorBuilder;
 public class GigabyteParserTest {
 
     private final GigabyteParser parser = new GigabyteParser();
+
+    @Test
+    public void parseCommand_deleteGig() throws Exception {
+        assertEquals(new DeleteGigCommand(INDEX_FIRST_CLIENT, Index.fromOneBased(2)),
+                parser.parseCommand("deletegig 1 2"));
+        assertThrows(ParseException.class,
+                String.format(MESSAGE_INVALID_COMMAND_FORMAT, DeleteGigCommand.MESSAGE_USAGE), () ->
+                        parser.parseCommand("deletegig 1 2 3"));
+    }
+
+    @Test
+    public void parseCommand_editGig() throws Exception {
+        assertEquals(new EditGigCommand(INDEX_FIRST_CLIENT, INDEX_FIRST_CLIENT,
+                Optional.of(new GigTitle("Updated website")), Optional.empty(),
+                Optional.empty()), parser.parseCommand("editgig 1 1 t/Updated website"));
+    }
 
     @Test
     public void parseCommand_outstanding_acceptsNoArgumentsAndRejectsExtraInput() throws Exception {
@@ -96,6 +118,15 @@ public class GigabyteParserTest {
         assertEquals(new MarkPaymentUnpaidCommand(INDEX_FIRST_CLIENT, INDEX_FIRST_CLIENT,
                 Index.fromOneBased(3)), parser.parseCommand("markunpaid 1 1 3"));
     }
+  
+    @Test
+    public void parseCommand_deletePayment() throws Exception {
+        assertEquals(new DeletePaymentCommand(INDEX_FIRST_CLIENT, Index.fromOneBased(2),
+                Index.fromOneBased(3)), parser.parseCommand("deletepayment 1 2 3"));
+        assertThrows(ParseException.class,
+                String.format(MESSAGE_INVALID_COMMAND_FORMAT, DeletePaymentCommand.MESSAGE_USAGE), () ->
+                        parser.parseCommand("deletepayment 1 2"));
+    }
 
     @Test
     public void parseCommand_editPayment() throws Exception {
@@ -144,6 +175,23 @@ public class GigabyteParserTest {
         FindClientCommand command = (FindClientCommand) parser.parseCommand(
                 FindClientCommand.COMMAND_WORD + " " + keywords.stream().collect(Collectors.joining(" ")));
         assertEquals(new FindClientCommand(new ClientNameContainsKeywordsPredicate(keywords)), command);
+    }
+
+    @Test
+    public void parseCommand_findgig() throws Exception {
+        List<String> keywords = List.of("website", "redesign");
+        assertEquals(new FindGigCommand(new GigTitleContainsKeywordsPredicate(keywords)),
+                parser.parseCommand("findgig website redesign"));
+    }
+
+    @Test
+    public void parseCommand_findgigWithoutKeywords_throwsParseException() {
+        assertThrows(ParseException.class, () -> parser.parseCommand("findgig   "));
+    }
+
+    @Test
+    public void parseCommand_summary() throws Exception {
+        assertTrue(parser.parseCommand(SummaryCommand.COMMAND_WORD) instanceof SummaryCommand);
     }
 
     @Test

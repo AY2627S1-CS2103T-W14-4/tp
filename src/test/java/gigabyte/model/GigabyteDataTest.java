@@ -25,6 +25,7 @@ import gigabyte.model.gig.Gig;
 import gigabyte.model.gig.GigStatus;
 import gigabyte.model.gig.GigTitle;
 import gigabyte.model.gig.PaymentObligation;
+import gigabyte.model.gig.exceptions.GigHasPaymentsException;
 import gigabyte.model.gig.exceptions.GigNotFoundException;
 import gigabyte.testutil.ClientBuilder;
 import javafx.collections.FXCollections;
@@ -95,6 +96,54 @@ public class GigabyteDataTest {
     }
 
     @Test
+    public void removeGig_identicalGigs_deletesOnlyMatchingUidAndKeepsOtherPayments() {
+        gigabyteData.addClient(ALICE);
+        Gig original = new Gig(ALICE, TITLE, GigStatus.NOT_STARTED, new Deadline("2099-01-31"), new Fee("100"));
+        gigabyteData.addGig(original);
+        gigabyteData.addGig(original);
+        Gig first = gigabyteData.getGigList().get(0);
+        Gig second = gigabyteData.getGigList().get(1);
+        gigabyteData.addPaymentObligation(new PaymentObligation(first, new Fee("50"),
+                new Deadline("2099-02-28"), false));
+        PaymentObligation payment = gigabyteData.getPaymentObligationList().get(0);
+        List<Gig> liveGigs = gigabyteData.getGigList();
+
+        gigabyteData.removeGig(second.withStatus(GigStatus.COMPLETED));
+
+        assertEquals(1, liveGigs.size());
+        assertSame(first, liveGigs.get(0));
+        assertSame(ALICE, gigabyteData.getClientList().get(0));
+        assertSame(payment, gigabyteData.getPaymentObligationList().get(0));
+        assertSame(first, payment.getGig());
+        assertThrows(GigNotFoundException.class, () -> gigabyteData.removeGig(second));
+        assertThrows(GigNotFoundException.class, () -> gigabyteData.removeGig(original.withNewUid()));
+    }
+
+    @Test
+    public void removeGig_paidOrUnpaidPayments_rejectsWithoutChangingRecords() {
+        for (boolean paid : new boolean[] {false, true}) {
+            GigabyteData data = new GigabyteData();
+            data.addClient(ALICE);
+            data.addGig(new Gig(ALICE, TITLE, GigStatus.IN_PROGRESS, new Deadline("2099-01-31"), new Fee("100")));
+            Gig gig = data.getGigList().get(0);
+            data.addPaymentObligation(new PaymentObligation(gig, new Fee("50"), new Deadline("2099-02-28"), paid));
+            GigabyteData before = new GigabyteData(data);
+            PaymentObligation payment = data.getPaymentObligationList().get(0);
+
+            assertThrows(GigHasPaymentsException.class, GigHasPaymentsException.MESSAGE, () -> data.removeGig(gig));
+
+            assertEquals(before, data);
+            assertSame(gig, data.getGigList().get(0));
+            assertSame(payment, data.getPaymentObligationList().get(0));
+        }
+    }
+
+    @Test
+    public void removeGig_null_throwsNullPointerException() {
+        assertThrows(NullPointerException.class, () -> gigabyteData.removeGig(null));
+    }
+
+    @Test
     public void addPaymentObligation_existingGig_addsObligation() {
         gigabyteData.addClient(ALICE);
         Gig gig = new Gig(ALICE, TITLE, GigStatus.NOT_STARTED, new Deadline("2026-12-31"), new Fee("100"));
@@ -156,6 +205,50 @@ public class GigabyteDataTest {
                 gigabyteData.setPaymentPaidState(equalButUnstored, false));
 
         assertSame(stored, gigabyteData.getPaymentObligationList().get(0));
+    }
+  
+    @Test
+    public void deletePaymentObligation_identicalPayments_removesExactInstanceAndPreservesOrder() {
+        gigabyteData.addClient(ALICE);
+        gigabyteData.addGig(new Gig(ALICE, TITLE, GigStatus.NOT_STARTED,
+                new Deadline("2099-12-31"), new Fee("100")));
+        Gig gig = gigabyteData.getGigList().get(0);
+        PaymentObligation payment = new PaymentObligation(gig, new Fee("50"), new Deadline("2099-01-31"), false);
+        gigabyteData.addPaymentObligation(payment);
+        gigabyteData.addPaymentObligation(payment);
+        gigabyteData.addPaymentObligation(payment.withPaid(true));
+        List<PaymentObligation> before = List.copyOf(gigabyteData.getPaymentObligationList());
+
+        gigabyteData.deletePaymentObligation(before.get(1));
+
+        assertEquals(2, gigabyteData.getPaymentObligationList().size());
+        assertSame(before.get(0), gigabyteData.getPaymentObligationList().get(0));
+        assertSame(before.get(2), gigabyteData.getPaymentObligationList().get(1));
+        assertSame(gig, gigabyteData.getGigList().get(0));
+        assertSame(ALICE, gigabyteData.getClientList().get(0));
+        assertThrows(IllegalArgumentException.class, () -> gigabyteData.deletePaymentObligation(before.get(1)));
+        assertSame(before.get(0), gigabyteData.getPaymentObligationList().get(0));
+        assertEquals(2, gigabyteData.getPaymentObligationList().size());
+    }
+
+    @Test
+    public void deletePaymentObligation_equalButUnstoredInstance_throwsAndLeavesDataUnchanged() {
+        gigabyteData.addClient(ALICE);
+        gigabyteData.addGig(new Gig(ALICE, TITLE, GigStatus.NOT_STARTED,
+                new Deadline("2099-12-31"), new Fee("100")));
+        PaymentObligation payment = new PaymentObligation(gigabyteData.getGigList().get(0), new Fee("50"),
+                new Deadline("2099-01-31"), false);
+        gigabyteData.addPaymentObligation(payment);
+        GigabyteData before = new GigabyteData(gigabyteData);
+
+        assertThrows(IllegalArgumentException.class, () -> gigabyteData.deletePaymentObligation(payment));
+
+        assertEquals(before, gigabyteData);
+    }
+
+    @Test
+    public void deletePaymentObligation_null_throwsNullPointerException() {
+        assertThrows(NullPointerException.class, () -> gigabyteData.deletePaymentObligation(null));
     }
 
     @Test
