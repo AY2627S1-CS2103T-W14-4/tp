@@ -27,6 +27,7 @@ import org.junit.jupiter.api.io.TempDir;
 import gigabyte.logic.commands.AddClientCommand;
 import gigabyte.logic.commands.AddPaymentCommand;
 import gigabyte.logic.commands.CommandResult;
+import gigabyte.logic.commands.DeleteGigCommand;
 import gigabyte.logic.commands.EditGigCommand;
 import gigabyte.logic.commands.ListClientsCommand;
 import gigabyte.logic.commands.OutstandingCommand;
@@ -45,6 +46,7 @@ import gigabyte.model.gig.Fee;
 import gigabyte.model.gig.Gig;
 import gigabyte.model.gig.GigStatus;
 import gigabyte.model.gig.GigTitle;
+import gigabyte.model.gig.exceptions.GigHasPaymentsException;
 import gigabyte.storage.JsonGigabyteDataStorage;
 import gigabyte.storage.JsonUserPrefsStorage;
 import gigabyte.storage.StorageManager;
@@ -202,6 +204,46 @@ public class LogicManagerTest {
                 .readGigabyteData().orElseThrow();
         assertTrue(restored.getPaymentObligationList().get(0).isPaid());
         assertEquals(model.getGigabyteData(), new GigabyteData(restored));
+    }
+
+    @Test
+    public void execute_deleteGig_persistsExactDeletionAndPreservesOtherPaymentsAcrossRestart() throws Exception {
+        model.addClient(ALICE);
+        String command = "addgig 1 t/Website s/IN_PROGRESS d/2099-01-31 f/100";
+        logic.execute(command);
+        logic.execute(command);
+        logic.execute("addpayment 1 1 a/50 d/2099-02-28");
+        Gig survivor = model.getGigList().get(0);
+        Gig removed = model.getGigList().get(1);
+        Path path = temporaryFolder.resolve("gigabyteData.json");
+        String saved = Files.readString(path);
+        for (String invalid : new String[] {"", "1", "1 2 3", "0 1", "1 -1", "1 abc", "2147483648 1"}) {
+            assertParseException("deletegig " + invalid,
+                    String.format(MESSAGE_INVALID_COMMAND_FORMAT, DeleteGigCommand.MESSAGE_USAGE));
+            assertEquals(saved, Files.readString(path));
+        }
+        assertCommandException("deletegig 2 1", MESSAGE_INVALID_CLIENT_DISPLAYED_INDEX);
+        assertCommandException("deletegig 1 3", DeleteGigCommand.MESSAGE_INVALID_GIG_INDEX);
+        for (int attempt = 0; attempt < 2; attempt++) {
+            assertCommandException("deletegig 1 1", GigHasPaymentsException.MESSAGE);
+            assertEquals(saved, Files.readString(path));
+            if (attempt == 0) {
+                logic.execute("markpaid 1 1 1");
+                saved = Files.readString(path);
+            }
+        }
+
+        logic.execute("deletegig 1 2");
+
+        ReadOnlyGigabyteData restored = new JsonGigabyteDataStorage(path).readGigabyteData().orElseThrow();
+        assertEquals(1, restored.getGigList().size());
+        assertEquals(survivor.getUid(), restored.getGigList().get(0).getUid());
+        assertFalse(restored.getGigList().stream().anyMatch(gig -> gig.hasSameUid(removed)));
+        assertEquals(1, restored.getClientList().size());
+        assertTrue(restored.getPaymentObligationList().get(0).isPaid());
+        assertSame(restored.getGigList().get(0), restored.getPaymentObligationList().get(0).getGig());
+        Model restarted = new ModelManager(restored, new UserPrefs());
+        assertThrows(GigHasPaymentsException.class, () -> restarted.deleteGig(restarted.getGigList().get(0)));
     }
 
     @Test
