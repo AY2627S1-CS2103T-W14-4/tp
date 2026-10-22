@@ -201,7 +201,7 @@ public class ModelManagerTest {
 
         assertFalse(modelManager.getPaymentObligationList().get(0).isPaid());
     }
-  
+
     @Test
     public void deletePaymentObligation_lastPayment_updatesLiveListAndPreservesParents() {
         modelManager.addClient(ALICE);

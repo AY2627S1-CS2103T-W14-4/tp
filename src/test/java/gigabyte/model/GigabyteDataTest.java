@@ -206,7 +206,7 @@ public class GigabyteDataTest {
 
         assertSame(stored, gigabyteData.getPaymentObligationList().get(0));
     }
-  
+
     @Test
     public void deletePaymentObligation_identicalPayments_removesExactInstanceAndPreservesOrder() {
         gigabyteData.addClient(ALICE);

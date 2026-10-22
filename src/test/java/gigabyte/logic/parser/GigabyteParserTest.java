@@ -118,7 +118,7 @@ public class GigabyteParserTest {
         assertEquals(new MarkPaymentUnpaidCommand(INDEX_FIRST_CLIENT, INDEX_FIRST_CLIENT,
                 Index.fromOneBased(3)), parser.parseCommand("markunpaid 1 1 3"));
     }
-  
+
     @Test
     public void parseCommand_deletePayment() throws Exception {
         assertEquals(new DeletePaymentCommand(INDEX_FIRST_CLIENT, Index.fromOneBased(2),

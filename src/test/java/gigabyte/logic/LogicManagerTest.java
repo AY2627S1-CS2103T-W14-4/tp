@@ -233,7 +233,7 @@ public class LogicManagerTest {
         assertEquals(payment, restoredPayment);
         assertSame(restored.getGigList().get(0), restoredPayment.getGig());
     }
-  
+
     @Test
     public void execute_deleteGig_persistsExactDeletionAndPreservesOtherPaymentsAcrossRestart() throws Exception {
         model.addClient(ALICE);
