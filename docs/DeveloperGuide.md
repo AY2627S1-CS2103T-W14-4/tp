@@ -100,6 +100,9 @@ Here's a (partial) class diagram of the `Logic` component:
 <puml src="diagrams/LogicClassDiagram.puml" width="550"/>
 
 The sequence diagram below illustrates the interactions within the `Logic` component, taking `execute("delete 1")` API call as an example.
+The command resolves the index against the currently displayed client list and passes the selected `Client` to
+the model. Invalid indexes and clients with associated gigs are rejected; only a successful deletion creates a
+`CommandResult`. The diagram omits storage interactions and assumes the save succeeds on the successful path.
 
 <puml src="diagrams/DeleteSequenceDiagram.puml" alt="Interactions Inside the Logic Component for the `delete 1` Command" />
 
@@ -114,7 +117,7 @@ How the `Logic` component works:
 1. When `Logic` is called upon to execute a command, the command is passed to a `GigabyteParser` object, which in turn creates a parser that matches the command (e.g., `DeleteClientCommandParser`) and uses it to parse the command.
 1. This results in a `Command` object (more precisely, an object of one of its subclasses e.g., `DeleteClientCommand`) which is executed by the `LogicManager`.
 1. The command can communicate with the `Model` when it is executed (e.g. to delete a client).<br>
-   Note that although this is shown as a single step in the diagram above for simplicity, the code can require several interactions between the command object and the `Model` to complete the operation.
+   The command may make several calls to the `Model`; interactions within the model are omitted from this diagram.
 1. The result of the command execution is encapsulated as a `CommandResult` object which is returned from `Logic`.
 
 Here are the other classes in `Logic` (omitted from the class diagram above) that are used for parsing a user command:
@@ -201,6 +204,105 @@ The save-file fields are:
 UUIDs must be valid, references must resolve to saved records, titles must be valid text, and monetary values must
 be positive integer cents. Null collections and null records are rejected. There is no automatic conversion of
 `persons`, name- or index-based references, decimal amount fields, or missing IDs and titles.
+
+#### Data file format
+
+`MainApp` uses `data/addressbook.json` for application data and `preferences.json` for GUI preferences. Both paths
+are relative to the process's working directory. `JsonSerializableGigabyteData` stores three top-level arrays:
+`clients`, `gigs`, and `paymentObligations`. The following is a complete example with one record of each type:
+
+```json
+{
+  "clients": [
+    {
+      "uid": "11111111-1111-4111-8111-111111111111",
+      "name": "Jamie Tan",
+      "phone": "81234567",
+      "email": "jamie@example.com",
+      "address": "10 Clementi Road",
+      "tags": []
+    }
+  ],
+  "gigs": [
+    {
+      "uid": "22222222-2222-4222-8222-222222222222",
+      "clientUid": "11111111-1111-4111-8111-111111111111",
+      "title": "Website redesign",
+      "status": "IN_PROGRESS",
+      "deadline": "2027-06-30",
+      "feeCents": 125050
+    }
+  ],
+  "paymentObligations": [
+    {
+      "gigUid": "22222222-2222-4222-8222-222222222222",
+      "amountCents": 50000,
+      "dueDate": "2027-07-15",
+      "paid": false
+    }
+  ]
+}
+```
+
+`feeCents` and `amountCents` are positive integer counts of cents; the example represents a fee of `1250.50` and a
+payment of `500.00`. `Fee` uses `BigDecimal` in memory and converts to and from `BigInteger` cents for storage.
+Dates use `yyyy-MM-dd`. The stored `paid` boolean records whether an obligation is settled; overdue status is
+derived from the due date and the current local date rather than stored separately.
+
+Loading proceeds in dependency order: clients, then gigs, then payment obligations. The adapters resolve
+`clientUid` and `gigUid` to the canonical objects already loaded. Duplicate client records or client/gig UUIDs,
+unresolved parent references, and invalid field values detected during conversion cause the load to fail instead
+of returning partially loaded data.
+
+#### Backward compatibility and migration
+
+The loader recognizes older formats by their fields; there is no explicit schema-version field. Supported
+conversions are:
+
+| Older representation | Loading behavior |
+|----------------------|------------------|
+| `persons` instead of `clients` | Uses `persons` when `clients` is absent or null. |
+| Missing `gigs` or `paymentObligations` arrays | Treats the missing lists as empty. |
+| Client without a `uid` | Generates a client UUID. |
+| Gig with `clientName` instead of `clientUid` | Resolves the exact client name and generates a gig UUID if absent. A gig using `clientUid` must already supply its own `uid`. |
+| Gig with decimal-string `fee` instead of `feeCents` | Validates the decimal amount and converts it to a `Fee`. |
+| Payment with `gigIndex` and decimal-string `amount` instead of `gigUid` and `amountCents` | Resolves the one-based index in the saved top-level `gigs` array and converts the amount. This is not a per-client or displayed gig index. |
+| Gig without a `title` property | Uses `Untitled gig`. An explicit null, non-string, blank, or overlong title is invalid and does not receive this fallback. |
+
+Migration takes place in memory during loading. The data file is rewritten in the current format on the next
+successful save, including generated UUIDs, titles, and integer-cent amounts. Legacy fields such as `persons`,
+`clientName`, `gigIndex`, `fee`, and `amount` are not written back.
+
+#### Save lifecycle and failure behavior
+
+`LogicManager#execute` performs these steps in order:
+
+1. Parse the input into a command.
+1. Execute the command against the model.
+1. Save the complete current `GigabyteData` through `StorageManager` and `JsonGigabyteDataStorage`.
+1. Return the `CommandResult` to the UI.
+
+Every command that completes step 2 reaches the save step, including commands such as `list` that do not change
+stored records. A parsing or command-execution exception skips the save step. Missing parent directories and the
+data file are created when saving.
+
+If saving throws `AccessDeniedException`, `LogicManager` reports insufficient write permissions through a
+`CommandException`. Other `IOException`s produce a `CommandException` containing the underlying error. The
+command's successful result is not returned to the UI, but any changes already made to the in-memory model remain:
+there is no rollback. After the write problem is resolved, the next successful command and save persist the current
+model, including those earlier unsaved changes.
+
+`FileUtil#writeToFile` writes directly to the destination file. There is no temporary-file replacement or automatic
+backup, so a failed write does not guarantee that the previous file contents remain intact.
+
+At startup, a missing data file causes `MainApp` to use sample data. A malformed JSON file or a validation failure
+reported as `DataLoadingException` is logged and causes the app to start with empty data. Loading itself does not
+overwrite that file, but the next successful save, even after `list`, replaces it with the current model. Preserve
+the original file before running commands when investigating a load failure.
+
+GUI preferences are saved separately during initialization and shutdown. Missing or unreadable preferences fall
+back to defaults; failures to save preferences are logged. Shutdown does not provide an additional application-data
+save, so it does not retry a failed command save.
 
 ### Common classes
 
