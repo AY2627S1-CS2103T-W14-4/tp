@@ -131,9 +131,9 @@ public class ModelManager implements Model {
     }
 
     @Override
-    public void markPaymentPaid(PaymentObligation obligation) {
+    public void setPaymentPaidState(PaymentObligation obligation, boolean isPaid) {
         requireNonNull(obligation);
-        gigabyteData.markPaymentPaid(obligation);
+        gigabyteData.setPaymentPaidState(obligation, isPaid);
     }
 
     @Override

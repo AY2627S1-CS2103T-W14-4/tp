@@ -69,7 +69,7 @@ public class MarkPaymentPaidCommand extends Command {
             throw new CommandException(MESSAGE_ALREADY_PAID);
         }
 
-        model.markPaymentPaid(payment);
+        model.setPaymentPaidState(payment, true);
         return new CommandResult(String.format(MESSAGE_SUCCESS, client.getName(), gigIndex.getOneBased(),
                 paymentIndex.getOneBased(), payment.getAmount(), payment.getDueDate()));
     }

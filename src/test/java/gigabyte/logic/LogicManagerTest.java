@@ -210,6 +210,31 @@ public class LogicManagerTest {
     }
 
     @Test
+    public void execute_markUnpaid_savesUnpaidStateForReload() throws Exception {
+        model.addClient(ALICE);
+        model.addGig(new Gig(ALICE, new GigTitle("Website redesign"), GigStatus.IN_PROGRESS,
+                new Deadline("2027-01-31"), new Fee("100")));
+        logic.execute("addpayment 1 1 a/50.25 d/2027-02-28");
+        logic.execute("markpaid 1 1 1");
+
+        CommandResult result = logic.execute("markunpaid 1 1 1");
+
+        assertEquals("Marked payment obligation for Alice Pauline, gig 1, payment 1 as unpaid: Amount: 50.25; "
+                + "Due date: 2027-02-28", result.getFeedbackToUser());
+        PaymentObligation payment = model.getPaymentObligationList().get(0);
+        assertFalse(payment.isPaid());
+        assertEquals(new Fee("50.25"), payment.getAmount());
+        assertEquals(new Deadline("2027-02-28"), payment.getDueDate());
+        assertSame(model.getGigList().get(0), payment.getGig());
+        ReadOnlyGigabyteData restored = new JsonGigabyteDataStorage(temporaryFolder.resolve("gigabyteData.json"))
+                .readGigabyteData().orElseThrow();
+        PaymentObligation restoredPayment = restored.getPaymentObligationList().get(0);
+        assertFalse(restoredPayment.isPaid());
+        assertEquals(payment, restoredPayment);
+        assertSame(restored.getGigList().get(0), restoredPayment.getGig());
+    }
+  
+    @Test
     public void execute_deleteGig_persistsExactDeletionAndPreservesOtherPaymentsAcrossRestart() throws Exception {
         model.addClient(ALICE);
         String command = "addgig 1 t/Website s/IN_PROGRESS d/2099-01-31 f/100";

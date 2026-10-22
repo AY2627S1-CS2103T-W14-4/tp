@@ -32,6 +32,7 @@ import gigabyte.logic.commands.FindGigCommand;
 import gigabyte.logic.commands.HelpCommand;
 import gigabyte.logic.commands.ListClientsCommand;
 import gigabyte.logic.commands.MarkPaymentPaidCommand;
+import gigabyte.logic.commands.MarkPaymentUnpaidCommand;
 import gigabyte.logic.commands.OutstandingCommand;
 import gigabyte.logic.commands.SetGigStatusCommand;
 import gigabyte.logic.commands.SummaryCommand;
@@ -112,6 +113,12 @@ public class GigabyteParserTest {
                 Index.fromOneBased(3)), parser.parseCommand("markpaid 1 1 3"));
     }
 
+    @Test
+    public void parseCommand_markPaymentUnpaid() throws Exception {
+        assertEquals(new MarkPaymentUnpaidCommand(INDEX_FIRST_CLIENT, INDEX_FIRST_CLIENT,
+                Index.fromOneBased(3)), parser.parseCommand("markunpaid 1 1 3"));
+    }
+  
     @Test
     public void parseCommand_deletePayment() throws Exception {
         assertEquals(new DeletePaymentCommand(INDEX_FIRST_CLIENT, Index.fromOneBased(2),

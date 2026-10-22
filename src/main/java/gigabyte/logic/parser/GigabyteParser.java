@@ -27,6 +27,7 @@ import gigabyte.logic.commands.FindGigCommand;
 import gigabyte.logic.commands.HelpCommand;
 import gigabyte.logic.commands.ListClientsCommand;
 import gigabyte.logic.commands.MarkPaymentPaidCommand;
+import gigabyte.logic.commands.MarkPaymentUnpaidCommand;
 import gigabyte.logic.commands.OutstandingCommand;
 import gigabyte.logic.commands.SetGigStatusCommand;
 import gigabyte.logic.commands.SummaryCommand;
@@ -69,6 +70,7 @@ public class GigabyteParser {
             case AddGigCommand.COMMAND_WORD -> new AddGigCommandParser().parse(arguments);
             case AddPaymentCommand.COMMAND_WORD -> new AddPaymentCommandParser().parse(arguments);
             case MarkPaymentPaidCommand.COMMAND_WORD -> new MarkPaymentPaidCommandParser().parse(arguments);
+            case MarkPaymentUnpaidCommand.COMMAND_WORD -> new MarkPaymentUnpaidCommandParser().parse(arguments);
             case DeletePaymentCommand.COMMAND_WORD -> new DeletePaymentCommandParser().parse(arguments);
             case EditPaymentCommand.COMMAND_WORD -> new EditPaymentCommandParser().parse(arguments);
             case SetGigStatusCommand.COMMAND_WORD -> new SetGigStatusCommandParser().parse(arguments);

@@ -176,7 +176,7 @@ public class AddClientCommandTest {
         }
 
         @Override
-        public void markPaymentPaid(PaymentObligation obligation) {
+        public void setPaymentPaidState(PaymentObligation obligation, boolean isPaid) {
             throw new AssertionError("This method should not be called.");
         }
 
