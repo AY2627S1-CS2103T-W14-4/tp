@@ -187,6 +187,28 @@ public class ModelManagerTest {
     }
 
     @Test
+    public void deletePaymentObligation_lastPayment_updatesLiveListAndPreservesParents() {
+        modelManager.addClient(ALICE);
+        modelManager.addGig(createGig(ALICE));
+        Gig gig = modelManager.getGigList().get(0);
+        modelManager.addPaymentObligation(new PaymentObligation(gig, new Fee("500"),
+                new Deadline("2099-01-31"), true));
+        List<PaymentObligation> displayedPayments = modelManager.getPaymentObligationList();
+
+        modelManager.deletePaymentObligation(displayedPayments.get(0));
+
+        assertTrue(displayedPayments.isEmpty());
+        assertEquals(1, modelManager.getGigList().size());
+        assertSame(gig, modelManager.getGigList().get(0));
+        assertEquals(List.of(ALICE), modelManager.getFilteredClientList());
+    }
+
+    @Test
+    public void deletePaymentObligation_null_throwsNullPointerException() {
+        assertThrows(NullPointerException.class, () -> modelManager.deletePaymentObligation(null));
+    }
+
+    @Test
     public void setPaymentObligation_existingPayment_replacesPayment() {
         modelManager.addClient(ALICE);
         modelManager.addGig(createGig(ALICE));

@@ -329,6 +329,115 @@ public class MainWindowTest {
         }
     }
 
+    @Test
+    public void deletePaymentCommand_refreshesSelectedListAndShowsEmptyStateImmediately() throws Exception {
+        Model model = new ModelManager();
+        model.addClient(ALICE);
+        model.addClient(BENSON);
+        model.addGig(ALICE_GIG);
+        model.addGig(BENSON_GIG);
+        model.addPaymentObligation(ALICE_PAYMENT);
+        model.addPaymentObligation(ALICE_PAYMENT);
+        model.addPaymentObligation(ALICE_PAYMENT.withPaid(true));
+        model.addPaymentObligation(BENSON_PAYMENT);
+        PaymentObligation first = model.getPaymentObligationList().get(0);
+        PaymentObligation paid = model.getPaymentObligationList().get(2);
+        Gig selectedGig = model.getGigList().get(0);
+        Logic logic = new LogicManager(model, new StorageManager(
+                new JsonGigabyteDataStorage(temporaryFolder.resolve("delete-data.json")),
+                new JsonUserPrefsStorage(temporaryFolder.resolve("delete-preferences.json"))));
+        MainWindow window = callOnJavaFxThread(() -> {
+            MainWindow mainWindow = new MainWindow(new Stage(), logic, temporaryFolder.resolve("delete-data.json"));
+            mainWindow.fillInnerParts();
+            return mainWindow;
+        });
+
+        try {
+            callOnJavaFxThread(() -> {
+                window.getClientListPanel().getClientListView().getSelectionModel().select(0);
+                window.getGigListPanel().getGigListView().getSelectionModel().select(0);
+                PaymentObligationListPanel panel = window.getPaymentObligationListPanel();
+
+                enterCommand(window, "deletepayment 1 1 2");
+
+                assertEquals(2, panel.getPaymentListView().getItems().size());
+                assertSame(first, panel.getPaymentListView().getItems().get(0));
+                assertSame(paid, panel.getPaymentListView().getItems().get(1));
+                assertEquals("", panel.getEmptyState().getText());
+
+                enterCommand(window, "deletepayment 1 1 2");
+                assertEquals(List.of(first), panel.getPaymentListView().getItems());
+                enterCommand(window, "deletepayment 1 1 1");
+
+                assertTrue(panel.getPaymentListView().getItems().isEmpty());
+                assertEquals("This gig has no payment obligations.", panel.getEmptyState().getText());
+                assertSame(selectedGig, window.getGigListPanel().getGigListView()
+                        .getSelectionModel().getSelectedItem());
+                assertSame(ALICE, window.getClientListPanel().getClientListView()
+                        .getSelectionModel().getSelectedItem());
+                assertEquals(List.of(BENSON_PAYMENT), model.getPaymentObligationList());
+                return null;
+            });
+        } finally {
+            callOnJavaFxThread(() -> {
+                window.getPrimaryStage().hide();
+                return null;
+            });
+        }
+    }
+
+    @Test
+    public void deletePaymentCommand_refreshesOutstandingOverviewWithFilteredClientsImmediately() throws Exception {
+        Model model = new ModelManager();
+        model.addClient(ALICE);
+        model.addClient(BENSON);
+        model.addGig(ALICE_GIG);
+        model.addGig(BENSON_GIG);
+        model.addPaymentObligation(ALICE_PAYMENT.withPaid(true));
+        model.addPaymentObligation(new PaymentObligation(BENSON_GIG, new Fee("100"),
+                new Deadline("2000-01-01"), false));
+        model.addPaymentObligation(new PaymentObligation(BENSON_GIG, new Fee("200"),
+                new Deadline("2099-01-01"), false));
+        PaymentObligation future = model.getPaymentObligationList().get(2);
+        Logic logic = new LogicManager(model, new StorageManager(
+                new JsonGigabyteDataStorage(temporaryFolder.resolve("delete-outstanding.json")),
+                new JsonUserPrefsStorage(temporaryFolder.resolve("delete-outstanding-preferences.json"))));
+        MainWindow window = callOnJavaFxThread(() -> {
+            MainWindow mainWindow = new MainWindow(new Stage(), logic,
+                    temporaryFolder.resolve("delete-outstanding.json"));
+            mainWindow.fillInnerParts();
+            return mainWindow;
+        });
+
+        try {
+            callOnJavaFxThread(() -> {
+                enterCommand(window, "find Benson");
+                enterCommand(window, "outstanding");
+                PaymentObligationListPanel panel = window.getPaymentObligationListPanel();
+                assertEquals(2, panel.getPaymentListView().getItems().size());
+
+                enterCommand(window, "deletepayment 1 1 1");
+
+                assertEquals(List.of(future), panel.getPaymentListView().getItems());
+                assertEquals("", panel.getEmptyState().getText());
+
+                enterCommand(window, "deletepayment 1 1 1");
+
+                assertTrue(panel.getPaymentListView().getItems().isEmpty());
+                assertEquals("No outstanding payment obligations.", panel.getEmptyState().getText());
+                assertEquals(List.of(BENSON), window.getClientListPanel().getClientListView().getItems());
+                assertEquals(List.of(ALICE_PAYMENT.withPaid(true)), model.getPaymentObligationList());
+                assertEquals(2, model.getGigList().size());
+                return null;
+            });
+        } finally {
+            callOnJavaFxThread(() -> {
+                window.getPrimaryStage().hide();
+                return null;
+            });
+        }
+    }
+
     private static void enterCommand(MainWindow window, String command) {
         TextField textField = (TextField) window.getRoot().getScene().lookup("#commandTextField");
         textField.setText(command);
