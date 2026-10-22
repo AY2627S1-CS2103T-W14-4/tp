@@ -68,4 +68,9 @@ Address -[hidden]right-> Email
 
 ModelManager --> "~* filtered" Client
 ModelManager --> "~* all" Gig
+note bottom of Gig
+  Client and Gig carry immutable UUIDs.
+  Gig edits keep the UUID and relink payments.
+  Gig deletion is blocked while payments refer to it.
+end note
 @enduml

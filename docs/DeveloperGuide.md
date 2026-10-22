@@ -11,12 +11,6 @@
 
 --------------------------------------------------------------------------------------------------------------------
 
-## **Acknowledgements**
-
-* _{List the sources of reused or adapted ideas, code, documentation, and third-party libraries here, with links to the originals.}_
-
---------------------------------------------------------------------------------------------------------------------
-
 ## **Setting up, getting started**
 
 Refer to the guide [_Setting up and getting started_](SettingUp.md).
@@ -130,12 +124,13 @@ How the parsing works:
 * `AddGigCommandParser` parses one displayed client index plus `t/`, `s/`, `d/`, and `f/` fields.
   `AddPaymentCommandParser` parses displayed client and per-client gig indexes plus `a/` and `d/` fields. Both reject
   missing or repeated single-valued prefixes before their commands update the model.
-* `SetGigStatusCommandParser` parses a displayed client index, a per-client gig index, and one `s/` field;
-  `EditPaymentCommandParser` parses displayed client, gig, and payment indexes plus optional `a/` and `d/` fields;
-  `MarkPaymentPaidCommandParser` and `MarkPaymentUnpaidCommandParser` parse the displayed client, gig, and payment
-  indexes; and `FilterGigsCommandParser` parses one `s/` field. `deadlines` needs no arguments, while `outstanding`
-  explicitly rejects arguments. Their commands return `CommandResult` view instructions that `MainWindow` applies
-  without changing the current client filter.
+* `EditGigCommandParser` accepts a displayed client index, a per-client gig index, and at least one of `t/`, `d/`,
+  or `f/`. `DeleteGigCommandParser` accepts the two indexes only. `FindGigCommandParser` accepts title keywords.
+  `SetGigStatusCommandParser` parses two indexes and one `s/` field. `EditPaymentCommandParser` parses three indexes
+  and at least one of `a/` or `d/`; `DeletePaymentCommandParser`, `MarkPaymentPaidCommandParser`, and
+  `MarkPaymentUnpaidCommandParser` parse three indexes only. `FilterGigsCommandParser` parses one `s/` field.
+  `deadlines` needs no arguments, while `outstanding` explicitly rejects arguments. Overview commands return
+  `CommandResult` view instructions that `MainWindow` applies without changing the current client filter.
 
 ### Model component
 **API** : [`Model.java`](https://github.com/AY2627S1-CS2103T-W14-4/tp/tree/master/src/main/java/gigabyte/model/Model.java)
@@ -152,6 +147,10 @@ The `Model` component,
   edits replace linked immutable objects while retaining those identifiers and links. Payment edits replace the
   selected immutable obligation while preserving its canonical gig and paid state. Payment-status changes replace
   the exact immutable obligation while retaining its gig, amount, and due date.
+* replaces gigs through `Model#setGig` when details or status change. `GigabyteData#setGig` relinks dependent
+  payments to the replacement object. `EditGigCommand` preserves the gig UID, client, status, and payments; a
+  deadline edit refreshes and can reorder the deadline overview. `FindGigCommand` searches all gig titles without
+  changing the filtered client list.
 * deletes gigs by stable UID through `Model#deleteGig` and `GigabyteData#removeGig`. Any paid or unpaid obligation
   raises `GigHasPaymentsException` before mutation. Removing one observable-list entry preserves other references;
   the gig panel clears a removed selection before its filtered/sorted views process the removal.
@@ -208,7 +207,7 @@ be positive integer cents. Null collections and null records are rejected. There
 
 #### Data file format
 
-`MainApp` uses `data/addressbook.json` for application data and `preferences.json` for GUI preferences. Both paths
+`MainApp` uses `data/gigabyte.json` for application data and `preferences.json` for GUI preferences. Both paths
 are relative to the process's working directory. `JsonSerializableGigabyteData` stores three top-level arrays:
 `clients`, `gigs`, and `paymentObligations`. The following is a complete example with one record of each type:
 
@@ -255,24 +254,18 @@ Loading proceeds in dependency order: clients, then gigs, then payment obligatio
 unresolved parent references, and invalid field values detected during conversion cause the load to fail instead
 of returning partially loaded data.
 
-#### Backward compatibility and migration
+#### Backward compatibility and filename migration
 
-The loader recognizes older formats by their fields; there is no explicit schema-version field. Supported
-conversions are:
+There is no schema-version field. The v1.4 loader accepts only the current required fields described above.
+It does not convert a v1.3 JSON shape: `persons`, absent collections or UUIDs, `clientName`, `gigIndex`, decimal
+`fee`/`amount`, and missing titles fail strict loading. `JsonGigabyteDataStorage#migrateLegacyDataFile` only moves
+`data/addressbook.json` to `data/gigabyte.json` when the destination is absent. It does not transform its contents.
+When both files exist, the current filename takes precedence and neither file is moved.
 
-| Older representation | Loading behavior |
-|----------------------|------------------|
-| `persons` instead of `clients` | Uses `persons` when `clients` is absent or null. |
-| Missing `gigs` or `paymentObligations` arrays | Treats the missing lists as empty. |
-| Client without a `uid` | Generates a client UUID. |
-| Gig with `clientName` instead of `clientUid` | Resolves the exact client name and generates a gig UUID if absent. A gig using `clientUid` must already supply its own `uid`. |
-| Gig with decimal-string `fee` instead of `feeCents` | Validates the decimal amount and converts it to a `Fee`. |
-| Payment with `gigIndex` and decimal-string `amount` instead of `gigUid` and `amountCents` | Resolves the one-based index in the saved top-level `gigs` array and converts the amount. This is not a per-client or displayed gig index. |
-| Gig without a `title` property | Uses `Untitled gig`. An explicit null, non-string, blank, or overlong title is invalid and does not receive this fallback. |
-
-Migration takes place in memory during loading. The data file is rewritten in the current format on the next
-successful save, including generated UUIDs, titles, and integer-cent amounts. Legacy fields such as `persons`,
-`clientName`, `gigIndex`, `fee`, and `amount` are not written back.
+This distinction matters during upgrade: a moved v1.3 file remains unsupported. Preserve a backup before launch;
+if loading fails, the app starts with an empty model and the next successful command overwrites the moved file.
+The manual compatibility test below checks both the filename move with current-format data and the rejection of a
+representative v1.3 file.
 
 #### Save lifecycle and failure behavior
 
@@ -339,108 +332,26 @@ state, then call `Model#setPaymentPaidState`. `GigabyteData` replaces the select
 independent. The observable-list replacement refreshes selected-gig and outstanding views immediately, while normal
 storage saving persists the corrected state.
 
-### \[Proposed\] Undo/redo feature
+`EditGigCommand` resolves both indexes before constructing a replacement gig with the same UID. `Model#setGig`
+relinks dependent payments to that replacement, so changing a title, deadline, or fee does not detach payments.
+`DeleteGigCommand` also resolves the normal per-client index first, but `Model#deleteGig` refuses removal while any
+paid or unpaid payment refers to the gig UID. The user must explicitly delete those payments, then retry the gig
+deletion. `DeleteClientCommand` similarly refuses to remove a client while gigs refer to its UID. `clear` is the
+explicit operation that removes the complete graph of clients, gigs, and payments at once. These policies preserve
+referential integrity and avoid silent dependent-record deletion.
 
-#### Proposed Implementation
-
-The proposed undo/redo mechanism is facilitated by `VersionedGigabyteData`. It extends `GigabyteData` with an undo/redo history, stored internally as an `gigabyteDataStateList` and `currentStatePointer`. Additionally, it implements the following operations:
-
-* `VersionedGigabyteData#commit()` -- Saves the current Gigabyte data state in its history.
-* `VersionedGigabyteData#undo()` -- Restores the previous Gigabyte data state from its history.
-* `VersionedGigabyteData#redo()` -- Restores a previously undone Gigabyte data state from its history.
-
-These operations are exposed in the `Model` interface as `Model#commitGigabyteData()`, `Model#undoGigabyteData()` and `Model#redoGigabyteData()` respectively.
-
-Given below is an example usage scenario and how the undo/redo mechanism behaves at each step.
-
-Step 1. The user launches the application for the first time. The `VersionedGigabyteData` will be initialized with the initial Gigabyte data state, and the `currentStatePointer` pointing to that single Gigabyte data state.
-
-<puml src="diagrams/UndoRedoState0.puml" alt="UndoRedoState0" />
-
-Step 2. The user executes `delete 5` command to delete the 5th client in the Gigabyte data. The `delete` command calls `Model#commitGigabyteData()`, causing the modified state of the Gigabyte data after the `delete 5` command executes to be saved in the `gigabyteDataStateList`, and the `currentStatePointer` is shifted to the newly inserted Gigabyte data state.
-
-<puml src="diagrams/UndoRedoState1.puml" alt="UndoRedoState1" />
-
-Step 3. The user executes `add n/David …​` to add a new client. The `add` command also calls `Model#commitGigabyteData()`, causing another modified Gigabyte data state to be saved into the `gigabyteDataStateList`.
-
-<puml src="diagrams/UndoRedoState2.puml" alt="UndoRedoState2" />
-
-<box type="info" seamless>
-
-**Note:** If a command fails its execution, it will not call `Model#commitGigabyteData()`, so the Gigabyte data state will not be saved into the `gigabyteDataStateList`.
-</box>
-
-Step 4. The user now decides that adding the client was a mistake, and decides to undo that action by executing the `undo` command. The `undo` command will call `Model#undoGigabyteData()`, which will shift the `currentStatePointer` once to the left, pointing it to the previous Gigabyte data state, and restores the Gigabyte data to that state.
-
-<puml src="diagrams/UndoRedoState3.puml" alt="UndoRedoState3" />
-
-
-<box type="info" seamless>
-
-**Note:** If the `currentStatePointer` is at index 0, pointing to the initial GigabyteData state, then there are no previous GigabyteData states to restore. The `undo` command uses `Model#canUndoGigabyteData()` to check if this is the case. If so, it will return an error to the user rather
-than attempting to perform the undo.
-</box>
-
-The following sequence diagram shows how an undo operation goes through the `Logic` component:
-
-<puml src="diagrams/UndoSequenceDiagram-Logic.puml" alt="UndoSequenceDiagram-Logic" />
-
-<box type="info" seamless>
-
-**Note:** The lifeline for `UndoCommand` should end at the destroy marker (X), but due to a limitation of PlantUML, it continues to the end of the diagram.
-</box>
-
-Similarly, how an undo operation goes through the `Model` component is shown below:
-
-<puml src="diagrams/UndoSequenceDiagram-Model.puml" alt="UndoSequenceDiagram-Model" />
-
-The `redo` command does the opposite — it calls `Model#redoGigabyteData()`, which shifts the `currentStatePointer` once to the right, pointing to the previously undone state, and restores the Gigabyte data to that state.
-
-<box type="info" seamless>
-
-**Note:** If the `currentStatePointer` is at index `gigabyteDataStateList.size() - 1`, pointing to the latest Gigabyte data state, then there are no undone GigabyteData states to restore. The `redo` command uses `Model#canRedoGigabyteData()` to check if this is the case. If so, it will return an error to the user rather than attempting to perform the redo.
-</box>
-
-Step 5. The user then decides to execute the command `list`. Commands that do not modify the Gigabyte data, such as `list`, will usually not call `Model#commitGigabyteData()`, `Model#undoGigabyteData()` or `Model#redoGigabyteData()`. Thus, the `gigabyteDataStateList` remains unchanged.
-
-<puml src="diagrams/UndoRedoState4.puml" alt="UndoRedoState4" />
-
-Step 6. The user executes `clear`, which calls `Model#commitGigabyteData()`. Since the `currentStatePointer` is not pointing at the end of the `gigabyteDataStateList`, all Gigabyte data states after the `currentStatePointer` will be purged. Reason: It no longer makes sense to redo the `add n/David …` command. This is the behavior that most modern desktop applications follow.
-
-<puml src="diagrams/UndoRedoState5.puml" alt="UndoRedoState5" />
-
-The following activity diagram summarizes what happens when a user executes a new command:
-
-<puml src="diagrams/CommitActivityDiagram.puml" width="250" />
-
-#### Design considerations:
-
-**Aspect: How undo & redo execute:**
-
-* **Alternative 1 (current choice):** Saves the entire Gigabyte data.
-  * Pros: Easy to implement.
-  * Cons: May have performance issues in terms of memory usage.
-
-* **Alternative 2:** Individual command knows how to undo/redo by
-  itself.
-  * Pros: Will use less memory (e.g. for `delete`, just save the client being deleted).
-  * Cons: We must ensure that the implementation of each individual command is correct.
-
-_{more aspects and alternatives to be added}_
-
-### \[Proposed\] Data archiving
-
-_{Explain here how the data archiving feature will be implemented}_
-
+`FindGigCommand` searches all titles with `GigTitleContainsKeywordsPredicate`; `MainWindow` displays the matching
+gigs without changing the filtered client list. Overview row positions are not command gig indexes. Commands use
+`GigOrdering.forClient` for a client's recorded gig order and `PaymentObligationOrdering.forGig` for due-date-ordered
+payments, including when another view is open.
 
 --------------------------------------------------------------------------------------------------------------------
 
 ## **Documentation, logging, testing, dev-ops**
 
-* [Documentation guide](Documentation.md)
 * [Testing guide](Testing.md)
 * [Logging guide](Logging.md)
-* [DevOps guide](DevOps.md)
+* [Setting up and building](SettingUp.md)
 
 --------------------------------------------------------------------------------------------------------------------
 
@@ -466,9 +377,9 @@ Priorities: High (must have) - `* * *`, Medium (nice to have) - `* *`, Low (unli
 | Priority | As a …                                     | I want to …                                                              | So that I can…                                                         |
 |----------|--------------------------------------------|--------------------------------------------------------------------------|------------------------------------------------------------------------|
 | `* * *`  | new freelancer user                        | see instructions for available commands                                  | learn how to use Gigabyte                                              |
-| `* * *`  | user                                       | add a new person                                                         |                                                                        |
-| `* * *`  | user                                       | delete a person                                                          | remove entries that I no longer need                                   |
-| `* * *`  | user                                       | find a person by name                                                    | locate details of persons without having to go through the entire list |
+| `* * *`  | freelancer                                 | add and edit a client                                                    | keep contact details current                                           |
+| `* * *`  | freelancer                                 | delete a client without gigs                                             | remove unneeded contact records                                        |
+| `* * *`  | freelancer                                 | find a client by name                                                    | locate a contact quickly                                               |
 | `* * *`  | freelancer                                 | record a payment obligation linked to a gig, with an amount and due date | know what payment I expect and when                                    |
 | `* * *`  | freelancer                                 | correct a payment obligation's amount or due date                        | keep revised invoice details accurate                                  |
 | `* * *`  | freelancer                                 | mark a payment obligation as paid                                        | distinguish settled payments from money still owed                      |
@@ -476,11 +387,11 @@ Priorities: High (must have) - `* * *`, Medium (nice to have) - `* *`, Low (unli
 | `* * *`  | freelancer                                 | remove an incorrectly recorded payment obligation                        | keep duplicate or cancelled invoices out of my records                  |
 | `* * *`  | freelancer                                 | view a client’s details and associated gigs                              | understand my work with that client                                    |
 | `* * *`  | freelancer                                 | create a gig linked to a client with a title, status, deadline, and fee  | track each piece of work                                               |
+| `* * *`  | freelancer                                 | correct a gig's title, deadline, or fee                                  | keep work details accurate                                             |
+| `* * *`  | freelancer                                 | delete a gig after its payments are removed                              | remove cancelled work without orphaning payments                      |
+| `* * *`  | freelancer                                 | find gigs by title                                                       | locate work across clients                                             |
 | `* * *`  | freelancer                                 | view upcoming gig deadlines in date order                                | prioritise my work                                                     |
-| `* *`    | user                                       | hide private contact details                                             | minimize chance of someone else seeing them by accident                |
-| `* *`    | freelancer                                 | filter clients or gigs by relevant criteria                              | focus on the records I need                                            |
-| `*`      | user with many persons in the address book | sort persons by name                                                     | locate a person easily                                                 |
-| `*`      | freelancer                                 | archive completed gigs                                                   | keep the active view focused on current work                           |
+| `* *`    | freelancer                                 | filter gigs by status and review unpaid payments                         | focus on active work and money owed                                    |
 
 
 ### Use cases
@@ -516,6 +427,60 @@ For all use cases below, the **System** is the `Gigabyte` and the **Actor** is t
   * 7a1. Gigabyte reports the error without changing the gig.
 * 7b. The gig already has the requested status.
   * 7b1. Gigabyte reports that no change was made.
+
+**Use case: Correct gig details**
+
+**Preconditions:** A client and one of their gigs exist.
+
+**MSS**
+
+1. Freelancer identifies the displayed client index and that client's normal gig index.
+2. Freelancer enters `editgig` with one or more of a title, deadline, and fee.
+3. Gigabyte resolves the gig and validates all supplied fields before mutation.
+4. Gigabyte replaces the gig while retaining its UID, client, status, and linked payments, then saves the data.
+5. The selected gig view refreshes; a changed deadline reorders the deadline overview when it is open.
+
+**Extensions**
+
+* 2a. No editable field or a repeated field is supplied.
+  * 2a1. Gigabyte rejects the command without changing data.
+* 3a. An index or field is invalid, or the resulting details are unchanged.
+  * 3a1. Gigabyte reports the error and leaves the gig and payments unchanged.
+
+**Use case: Delete a gig safely**
+
+**Preconditions:** The client and gig exist.
+
+**MSS**
+
+1. Freelancer identifies the displayed client index and the gig's normal per-client index.
+2. Freelancer enters `deletegig` with both indexes.
+3. Gigabyte checks that the gig has no paid or unpaid obligations.
+4. Gigabyte removes exactly that gig by UID, saves the data, and refreshes open gig views.
+
+**Extensions**
+
+* 3a. The gig has one or more obligations.
+  * 3a1. Gigabyte rejects deletion and instructs the freelancer to remove the payments with `deletepayment` first.
+  * 3a2. After removing the payments, the freelancer resolves the current indexes and retries at step 2.
+* 2a. Either index is invalid.
+  * 2a1. Gigabyte reports the invalid index without changing records.
+
+**Use case: Find gigs by title**
+
+**MSS**
+
+1. Freelancer enters `findgig` with one or more title keywords.
+2. Gigabyte searches all gig titles using case-insensitive complete-word OR matching.
+3. Gigabyte displays matching gigs across all clients in recorded order, without changing the filtered client list.
+4. Freelancer selects a result to inspect its payments.
+
+**Extensions**
+
+* 1a. No keyword is supplied.
+  * 1a1. Gigabyte rejects the command.
+* 3a. No title matches.
+  * 3a1. Gigabyte displays the no-matches message in the gig panel.
 
 **Use case: Record a payment obligation**
 
@@ -626,8 +591,6 @@ For all use cases below, the **System** is the `Gigabyte` and the **Actor** is t
 
 * 3a. Any index is invalid.
   * 3a1. Gigabyte reports which displayed index is invalid without changing any obligation.
-* 3b. The selected obligation is already unpaid.
-  * 3b1. Gigabyte reports that no change was made.
 
 **Use case: Review active deadlines**
 
@@ -745,6 +708,37 @@ Start this section from a fresh test folder so the sample clients and gigs are p
    1. Repeat a valid `addgig` command using client indexes `0`, `-1`, `abc`, and `999`.<br>
       Expected: No gig is added. Zero, negative, and non-numeric values produce the command-format error; `999`
       reports that the client index is invalid.
+
+### Correcting and finding gigs
+
+Start each numbered test from a fresh test folder. Client and gig indexes use the currently displayed client list
+and the selected client's normal recorded gig order, even while an overview is open.
+
+1. **Edit details and reorder the deadline view**
+   1. Input `deadlines`, then `editgig 1 2 t/Revised photography d/2026-10-01 f/1350`.<br>
+      Expected: Alex's second gig retains its UID, `NOT_STARTED` status, and `$1200.00` payment. The deadline
+      overview refreshes without another `deadlines` command; the revised gig moves to the first row.
+   1. Input `find Alex`, then `editgig 1 2 d/2027-12-01`.<br>
+      Expected: The same gig's deadline changes again while the filtered client list remains Alex only.
+      Select Alex and his second gig: its payment remains linked and unchanged.
+   1. Restart from the same folder.<br>
+      Expected: The revised title, deadline, fee, status, and linked payment survive.
+
+1. **Reject invalid and no-op gig edits**
+   1. Input `editgig 1 2`, `editgig 1 2 t/First t/Second`, `editgig 1 2 d/2027-02-29`,
+      `editgig 1 2 f/0`, `editgig 0 2 f/100`, and `editgig 1 99 f/100`.<br>
+      Expected: Each command fails; no gig or payment changes. The repeated prefix, invalid date and fee, and
+      out-of-range indexes have distinct errors.
+   1. Input `editgig 1 2 f/1200` on fresh sample data.<br>
+      Expected: The no-op is rejected and the saved file is unchanged.
+
+1. **Find gigs across a filtered client list**
+   1. Input `find Bernice`, then `findgig website photography`.<br>
+      Expected: Alex's two gigs appear in recorded order despite Bernice being the only displayed client.
+      Select a result: only that gig's payments appear. The client list remains filtered to Bernice.
+   1. Input `findgig no-such-title`, then `findgig`.<br>
+      Expected: The first command shows `No gigs match the supplied title keywords.`; the second is rejected
+      without changing stored records. Input `list` to restore all clients.
 
 ### Updating gig statuses and reviewing gigs
 
@@ -1130,6 +1124,32 @@ Use a disposable fresh sample-data folder for each test. Deletion is permanent a
 
 ### Persistence and data-file recovery
 
+1. **Restart after each mutation type**
+   1. Use a separate copy of the fresh sample folder for each command below. Run the command, close with `exit`,
+      relaunch the same JAR from that folder, and inspect the named record or run `summary`.<br>
+      Inputs and expected persisted results:
+
+      | Input on fresh sample data | Expected after restart |
+      | --- | --- |
+      | `add n/Jamie Tan p/81234567 e/jamie@example.com a/Test road` | Jamie exists. |
+      | `edit 1 p/91234567` | Alex's phone is `91234567`. |
+      | `delete 3` | Charlotte is absent; other clients and gigs remain. |
+      | `addgig 1 t/Retest s/NOT_STARTED d/2099-01-01 f/100` | Alex has a third gig named Retest. |
+      | `editgig 1 2 f/1300` | Alex's second gig has a `$1300.00` fee and its payment remains. |
+      | `setstatus 1 2 s/COMPLETED` | Alex's second gig is completed. |
+      | `deletegig 2 2` | Bernice's second gig is absent; her first gig remains. |
+      | `addpayment 1 2 a/80 d/2099-02-01` | Alex's second gig has its sample payment and the new `$80.00` payment. |
+      | `editpayment 1 2 1 a/1300` | Alex's second gig's sample payment is `$1300.00`, still unpaid. |
+      | `markpaid 1 2 1` | Alex's second gig's sample payment is paid. |
+      | `markunpaid 1 1 1` | Alex's first gig's sample payment is unpaid. |
+      | `deletepayment 1 2 1` | Alex's second gig has no payments. |
+      | `clear` | No clients, gigs, or payments remain. |
+
+   1. After each relaunch, inspect `data/gigabyte.json`.<br>
+      Expected: It contains the corresponding current-format records and valid client/gig links; a deleted record
+      does not return. Read-only `find`, `findgig`, `gigs`, `deadlines`, `outstanding`, `summary`, `help`, and `list`
+      do not mutate records.
+
 1. **Restart after adding data**
    1. In a fresh test folder, input
       `addgig 1 t/Persistence check s/NOT_STARTED d/2027-09-01 f/900`, then
@@ -1146,6 +1166,17 @@ Use a disposable fresh sample-data folder for each test. Deletion is permanent a
    1. Close the app, place a different valid save at `data/addressbook.json` while keeping `data/gigabyte.json`,
       then relaunch.<br>
       Expected: Gigabyte loads `data/gigabyte.json` and leaves both files unchanged.
+
+1. **v1.3 format compatibility boundary**
+   1. In a disposable test folder, close the JAR and place a valid v1.3 JSON save using the older `persons`
+      collection at `data/addressbook.json`; ensure `data/gigabyte.json` is absent. Keep an untouched backup.
+      Relaunch the JAR.<br>
+      Expected for the current release candidate: the file is moved to `data/gigabyte.json` without conversion,
+      loading fails, and the app starts with an empty client list. The moved file is unchanged until a successful
+      command saves data. This is a release compatibility gap if v1.3 data loading is required.
+   1. Close the window without entering a command and compare the moved file with the backup.<br>
+      Expected: They are byte-for-byte identical. A separate test with current-format JSON in
+      `data/addressbook.json` loads successfully after the filename move.
 
 1. **Missing data file**
    1. In a test folder with no `data/addressbook.json`, close the app and rename `data/gigabyte.json` to
@@ -1170,17 +1201,31 @@ Use a disposable fresh sample-data folder for each test. Deletion is permanent a
    obligations panel.
 1. Input: `setstatus 1 3 s/COMPLETED`<br>
    Expected: `End-to-end website` changes to `COMPLETED` without changing its title, deadline, fee, or payment.
+1. Input `editgig 1 3 t/Delivered website d/2027-09-30 f/2100`, then `findgig Delivered`.<br>
+   Expected: The edited gig is found under its new title, retains its payment, and has the revised deadline and fee.
+   The client list remains filtered to Alex.
+1. Input `editpayment 1 3 1 a/1050 d/2027-10-20`.<br>
+   Expected: The payment amount and due date change while it remains unpaid and linked to the edited gig.
 1. Input: `markpaid 1 3 1`<br>
-   Expected: The `$1000.00` obligation immediately changes to `PAID`.
+   Expected: The `$1050.00` obligation immediately changes to `PAID`.
+1. Input `markunpaid 1 3 1`, then `outstanding`.<br>
+   Expected: The corrected `$1050.00` payment appears in the unpaid overview.
+1. Input `markpaid 1 3 1` again.<br>
+   Expected: The payment leaves the open outstanding overview immediately.
 1. Input: `gigs s/COMPLETED`<br>
-   Expected: Completed gigs across all clients are shown, including `End-to-end website`.
+   Expected: Completed gigs across all clients are shown, including `Delivered website`.
 1. Input: `deadlines`<br>
-   Expected: Active gigs are shown in deadline order; `End-to-end website` is absent because it is completed.
+   Expected: Active gigs are shown in deadline order; `Delivered website` is absent because it is completed.
 1. Input: `outstanding`<br>
-   Expected: Unpaid obligations across all clients are shown in due-date order; the paid `$1000.00` obligation is
+   Expected: Unpaid obligations across all clients are shown in due-date order; the paid `$1050.00` obligation is
    absent.
 1. Input `exit`, relaunch from the same folder, input `find Alex`, and select Alex.<br>
-   Expected: `End-to-end website` is still present with status `COMPLETED`, deadline `2027-10-01`, and fee `$2000.00`.
-1. Select `End-to-end website`.<br>
-   Expected: Its Payment obligations panel shows `1. Amount: $1000.00`, due `2027-10-15`, as `PAID`. No payment from
+   Expected: `Delivered website` is still present with status `COMPLETED`, deadline `2027-09-30`, and fee `$2100.00`.
+1. Select `Delivered website`.<br>
+   Expected: Its Payment obligations panel shows `1. Amount: $1050.00`, due `2027-10-20`, as `PAID`. No payment from
    another gig is shown.
+1. Input `deletegig 1 3`.<br>
+   Expected: Deletion is blocked by the paid payment. Input `deletepayment 1 3 1`, then `deletegig 1 3`.<br>
+   Expected: Both deletions succeed; Alex's other gigs and their payments remain.
+1. Exit and relaunch from the same folder, then input `find Alex` and select Alex.<br>
+   Expected: `Delivered website` and its payment remain absent, confirming both deletions persisted.
