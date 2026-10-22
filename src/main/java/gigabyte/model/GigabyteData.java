@@ -266,7 +266,7 @@ public class GigabyteData implements ReadOnlyGigabyteData {
                 return;
             }
         }
-        throw new IllegalArgumentException("Payment obligation must belong to this Gigabyte data."); 
+        throw new IllegalArgumentException("Payment obligation must belong to this Gigabyte data.");
     }
   
     /** Finds {@code target} by identity before matching its gig identity and value. */
