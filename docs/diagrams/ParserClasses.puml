@@ -18,6 +18,13 @@ Class ArgumentTokenizer
 Class Prefix
 }
 
+note right of XYZCommandParser
+  Examples: EditGigCommandParser,
+  DeleteGigCommandParser, FindGigCommandParser,
+  EditPaymentCommandParser,
+  DeletePaymentCommandParser.
+end note
+
 Class HiddenOutside #FFFFFF
 HiddenOutside ..> GigabyteParser
 
