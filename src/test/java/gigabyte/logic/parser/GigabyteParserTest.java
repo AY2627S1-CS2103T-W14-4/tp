@@ -20,6 +20,7 @@ import gigabyte.logic.commands.AddPaymentCommand;
 import gigabyte.logic.commands.ClearClientsCommand;
 import gigabyte.logic.commands.DeadlinesCommand;
 import gigabyte.logic.commands.DeleteClientCommand;
+import gigabyte.logic.commands.DeletePaymentCommand;
 import gigabyte.logic.commands.EditClientCommand;
 import gigabyte.logic.commands.EditGigCommand;
 import gigabyte.logic.commands.EditPaymentCommand;
@@ -101,6 +102,15 @@ public class GigabyteParserTest {
                 Index.fromOneBased(3)), parser.parseCommand("markpaid 1 1 3"));
     }
 
+    @Test
+    public void parseCommand_deletePayment() throws Exception {
+        assertEquals(new DeletePaymentCommand(INDEX_FIRST_CLIENT, Index.fromOneBased(2),
+                Index.fromOneBased(3)), parser.parseCommand("deletepayment 1 2 3"));
+        assertThrows(ParseException.class,
+                String.format(MESSAGE_INVALID_COMMAND_FORMAT, DeletePaymentCommand.MESSAGE_USAGE), () ->
+                        parser.parseCommand("deletepayment 1 2"));
+    }
+  
     @Test
     public void parseCommand_editPayment() throws Exception {
         assertEquals(new EditPaymentCommand(INDEX_FIRST_CLIENT, INDEX_FIRST_CLIENT, Index.fromOneBased(3),

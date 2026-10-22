@@ -253,6 +253,22 @@ public class GigabyteData implements ReadOnlyGigabyteData {
         throw new IllegalArgumentException("Payment obligation must belong to this Gigabyte data.");
     }
 
+    /**
+     * Removes only the exact stored obligation, preserving the order of all remaining obligations.
+     * @throws IllegalArgumentException if the obligation is not a stored instance
+     */
+    public void deletePaymentObligation(PaymentObligation obligation) {
+        requireNonNull(obligation);
+        for (int index = 0; index < paymentObligations.size(); index++) {
+            // Field-identical obligations are independent records, so equality cannot identify the target.
+            if (paymentObligations.get(index) == obligation) {
+                paymentObligations.remove(index);
+                return;
+            }
+        }
+        throw new IllegalArgumentException("Payment obligation must belong to this Gigabyte data.");
+    }
+  
     /** Finds {@code target} by identity before matching its gig identity and value. */
     private int findPaymentObligationIndex(PaymentObligation target) {
         for (int index = 0; index < paymentObligations.size(); index++) {

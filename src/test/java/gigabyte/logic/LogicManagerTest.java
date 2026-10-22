@@ -19,6 +19,7 @@ import java.io.IOException;
 import java.nio.file.AccessDeniedException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -27,6 +28,7 @@ import org.junit.jupiter.api.io.TempDir;
 import gigabyte.logic.commands.AddClientCommand;
 import gigabyte.logic.commands.AddPaymentCommand;
 import gigabyte.logic.commands.CommandResult;
+import gigabyte.logic.commands.DeletePaymentCommand;
 import gigabyte.logic.commands.EditGigCommand;
 import gigabyte.logic.commands.ListClientsCommand;
 import gigabyte.logic.commands.OutstandingCommand;
@@ -204,6 +206,63 @@ public class LogicManagerTest {
         assertEquals(model.getGigabyteData(), new GigabyteData(restored));
     }
 
+    @Test
+    public void execute_deletePayment_savesDeletionAndRemainingOrderAcrossRestart() throws Exception {
+        model.addClient(ALICE);
+        logic.execute("addgig 1 t/Website s/IN_PROGRESS d/2099-01-31 f/100");
+        logic.execute("addpayment 1 1 a/75 d/2099-03-31");
+        logic.execute("addpayment 1 1 a/50 d/2099-02-28");
+        logic.execute("addpayment 1 1 a/50 d/2099-02-28");
+        logic.execute("addpayment 1 1 a/25 d/2000-01-01");
+        logic.execute("markpaid 1 1 1");
+
+        logic.execute("deletepayment 1 1 3");
+        logic.execute("deletepayment 1 1 1");
+
+        Path path = temporaryFolder.resolve("gigabyteData.json");
+        JsonGigabyteDataStorage storage = new JsonGigabyteDataStorage(path);
+        Model restarted = new ModelManager(storage.readGigabyteData().orElseThrow(), new UserPrefs());
+        assertEquals(model.getGigabyteData(), restarted.getGigabyteData());
+        assertEquals(List.of(new Fee("75"), new Fee("50")), restarted.getPaymentObligationList().stream()
+                .map(payment -> payment.getAmount()).toList());
+        assertSame(restarted.getGigList().get(0), restarted.getPaymentObligationList().get(0).getGig());
+        assertSame(restarted.getGigList().get(0), restarted.getPaymentObligationList().get(1).getGig());
+        assertEquals(model.getGigList().get(0).getUid(), restarted.getGigList().get(0).getUid());
+
+        Logic restartedLogic = new LogicManager(restarted, new StorageManager(storage,
+                new JsonUserPrefsStorage(temporaryFolder.resolve("userPrefs.json"))));
+        restartedLogic.execute("deletepayment 1 1 1");
+        restartedLogic.execute("deletepayment 1 1 1");
+
+        ReadOnlyGigabyteData restored = storage.readGigabyteData().orElseThrow();
+        assertTrue(restored.getPaymentObligationList().isEmpty());
+        assertEquals(restarted.getGigabyteData(), restored);
+        assertEquals(model.getGigabyteData().getClientList(), restored.getClientList());
+        assertEquals(model.getGigList(), restored.getGigList());
+    }
+
+    @Test
+    public void execute_deletePayment_invalidInputLeavesDataAndFileUnchanged() throws Exception {
+        model.addClient(ALICE);
+        logic.execute("addgig 1 t/Website s/IN_PROGRESS d/2099-01-31 f/100");
+        logic.execute("addpayment 1 1 a/50 d/2099-02-28");
+        GigabyteData before = new GigabyteData(model.getGigabyteData());
+        Path path = temporaryFolder.resolve("gigabyteData.json");
+        String savedData = Files.readString(path);
+        String usage = String.format(MESSAGE_INVALID_COMMAND_FORMAT, DeletePaymentCommand.MESSAGE_USAGE);
+
+        for (String args : new String[] {"", "1 1", "1 1 1 1", "0 1 1", "1 -1 1", "1 1 abc"}) {
+            assertParseException("deletepayment " + args, usage);
+            assertEquals(savedData, Files.readString(path));
+        }
+        assertCommandException("deletepayment 2 1 1", MESSAGE_INVALID_CLIENT_DISPLAYED_INDEX);
+        assertCommandException("deletepayment 1 2 1", DeletePaymentCommand.MESSAGE_INVALID_GIG_INDEX);
+        assertCommandException("deletepayment 1 1 2", DeletePaymentCommand.MESSAGE_INVALID_PAYMENT_INDEX);
+
+        assertEquals(before, model.getGigabyteData());
+        assertEquals(savedData, Files.readString(path));
+    }
+  
     @Test
     public void execute_editPayment_savesEditedDetailsForReload() throws Exception {
         model.addClient(ALICE);

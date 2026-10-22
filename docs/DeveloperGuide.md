@@ -146,8 +146,12 @@ The `Model` component,
   payment obligations are exposed as unmodifiable observable lists.
 * stores the `Client` objects selected by the current filter, such as search results, in a separate _filtered_ list. It exposes this list as an unmodifiable `ObservableList<Client>` that the UI can observe and bind to, so the UI updates when the list changes.
 * uses stable UUIDs to preserve links from each gig to its client and from each payment obligation to its gig. Client
-  edits replace linked immutable objects while retaining those identifiers and links. Payment edits replace the
-  selected immutable obligation while preserving its canonical gig and paid state.
+  edits replace linked immutable objects while retaining those identifiers and links.
+* deletes payments through `Model#deletePaymentObligation`, delegated to `GigabyteData`. Removal uses object
+  identity to delete exactly one stored instance because separate obligations can have identical fields.
+  `DeletePaymentCommand` resolves indexes using `GigOrdering` and `PaymentObligationOrdering`, as `markpaid` does.
+  The observable removal refreshes the selected payment list or outstanding overview and its empty state.
+  `LogicManager` saves the resulting data through the existing storage path after successful execution.
 * stores a `UserPrefs` object that represents the user’s preferences (currently, just the GUI settings). This is exposed to the outside as a `ReadOnlyUserPrefs` object.
 * does not depend on any of the other three components (as the `Model` represents data entities of the domain, they should make sense on their own without depending on other components)
 
@@ -354,6 +358,7 @@ Priorities: High (must have) - `* * *`, Medium (nice to have) - `* *`, Low (unli
 | `* * *`  | freelancer                                 | record a payment obligation linked to a gig, with an amount and due date | know what payment I expect and when                                    |
 | `* * *`  | freelancer                                 | correct a payment obligation's amount or due date                        | keep revised invoice details accurate                                  |
 | `* * *`  | freelancer                                 | mark a payment obligation as paid                                        | distinguish settled payments from money still owed                      |
+| `* * *`  | freelancer                                 | remove an incorrectly recorded payment obligation                        | keep duplicate or cancelled invoices out of my records                  |
 | `* * *`  | freelancer                                 | view a client’s details and associated gigs                              | understand my work with that client                                    |
 | `* * *`  | freelancer                                 | create a gig linked to a client with a title, status, deadline, and fee  | track each piece of work                                               |
 | `* * *`  | freelancer                                 | view upcoming gig deadlines in date order                                | prioritise my work                                                     |
@@ -472,6 +477,28 @@ For all use cases below, the **System** is the `Gigabyte` and the **Actor** is t
 
     * 8a1. Gigabyte informs the freelancer that no change was made.
     Use case ends.
+
+**Use case: Delete a payment obligation**
+
+**Preconditions:** The relevant payment obligation exists in Gigabyte.
+
+**MSS**
+
+1. Freelancer identifies the displayed client index, per-client gig index, and per-gig payment index.
+2. Freelancer enters `deletepayment` with all three indexes.
+3. Gigabyte validates the indexes and deletes exactly that obligation, whether paid or unpaid, without a
+   confirmation prompt. The gig, client, and other obligations are preserved.
+4. Gigabyte refreshes the payment view, saves the deletion, and reports the client, gig, amount, due date, and
+   previous paid state. If the view is now empty, it shows the existing empty state.
+
+    Use case ends.
+
+**Extensions**
+
+* 3a. An index is invalid or the wrong number of indexes is supplied.
+
+    * 3a1. Gigabyte explains the error and leaves the records and saved file unchanged.
+    Use case resumes at step 2.
 
 **Use case: Review active deadlines**
 
@@ -685,6 +712,63 @@ Start this section from a fresh test folder. Alex's sample gigs make `CLIENT_IND
       Expected: No obligation is recorded. The first three produce the command-format error; `999` reports that the
       gig index is invalid for this client.
 
+### Deleting payment obligations
+
+Use a fresh test folder for each numbered test below. Deletion is permanent and has no confirmation or undo.
+
+1. **Paid, future unpaid, overdue, final payment, and restart**
+   1. Input: `addpayment 1 1 a/500 d/2099-01-31`, then `addpayment 1 1 a/100 d/2000-01-31`.<br>
+      Select Alex Yeoh and Portfolio website redesign. Expected order: overdue `$100.00` (1), sample paid
+      `$1250.00` (2), future unpaid `$500.00` (3).
+   1. Input: `deletepayment 1 1 2`.<br>
+      Expected: Only the paid row disappears immediately. Feedback names Alex Yeoh, gig 1 (Portfolio website
+      redesign), payment 2, amount `1250.00`, due date `2027-01-15`, and previous state `PAID`.
+      The remaining rows become 1 and 2 in the same order. The client and gig remain selected and unchanged.
+   1. Input: `outstanding`, then `deletepayment 1 1 1`.<br>
+      Expected: The overdue `$100.00` row disappears without rerunning `outstanding`. Feedback includes its amount,
+      due date `2000-01-31`, and previous state `UNPAID`. Other clients' obligations remain visible.
+   1. Input: `deletepayment 1 1 1`.<br>
+      Expected: The future `$500.00` obligation disappears from the open overview. Feedback includes due date
+      `2099-01-31` and previous state `UNPAID`.
+   1. Select Alex and Portfolio website redesign again.<br>
+      Expected: `This gig has no payment obligations.` The gig retains its title, status, deadline, and fee.
+   1. Input: `exit`, then relaunch from the same folder.<br>
+      Expected: All three deleted obligations remain absent, Alex and both his gigs remain, and other obligations
+      retain their data and order. Selecting the same gig still shows the empty state.
+
+1. **Two identical obligations**
+   1. Input `addpayment 1 1 a/500 d/2099-01-31` twice. Select Alex and his first gig.<br>
+      Expected: Two identical unpaid rows follow the sample paid row, at payment indexes 2 and 3.
+   1. Input: `deletepayment 1 1 3`.<br>
+      Expected: Exactly one duplicate disappears; the sample paid row and one `$500.00` row remain in order.
+   1. Input: `deletepayment 1 1 2`.<br>
+      Expected: The other duplicate disappears independently, leaving only the sample paid row.
+
+1. **Filtered client indexes**
+   1. Input: `find Bernice`, then `addpayment 1 2 a/125 d/2099-08-15`.<br>
+      Select Bernice and Quarterly newsletter template, which now has one obligation.
+   1. Input: `deletepayment 1 2 1`.<br>
+      Expected: Bernice's payment disappears immediately and her gig shows the empty state. Feedback names Bernice.
+      The filtered client list remains unchanged; Alex's payments and Bernice's other gig are unaffected.
+
+1. **Invalid indexes and syntax leave data unchanged**
+   1. Select Alex and his first gig. Copy `data/gigabyte.json` for comparison.
+   1. Try `deletepayment CLIENT_INDEX GIG_INDEX PAYMENT_INDEX`, starting from `1 1 1` and replacing each index
+      in turn with `0`, `-1`, `abc`, `1.5`, `2147483648`, and `999`.<br>
+      Expected: Each command is rejected; `999` reports which index is out of range and the other values produce
+      the command-format error. The payment list, parents, and saved file remain unchanged.
+   1. Try `deletepayment`, `deletepayment 1 1`, and `deletepayment 1 1 1 2`.<br>
+      Expected: Each reports the required syntax. The saved file still matches the copy.
+
+1. **Outstanding overview becomes empty**
+   1. In the disposable test folder, input `clear`, then
+      `add n/Test Client p/91234567 e/test@example.com a/Test address`, then
+      `addgig 1 t/Test gig s/NOT_STARTED d/2099-12-31 f/100`, then
+      `addpayment 1 1 a/50 d/2099-01-31`.
+   1. Input: `outstanding`, then `deletepayment 1 1 1`.<br>
+      Expected: The overview immediately shows `No outstanding payment obligations.` without another command.
+      Selecting Test Client and Test gig shows `This gig has no payment obligations.`.
+      
 ### Editing payment obligations
 
 Start this section from a fresh test folder. Select `Alex Yeoh`, then select `Portfolio website redesign` so the
