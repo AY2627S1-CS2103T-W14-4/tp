@@ -113,7 +113,7 @@ Gigabyte uses one-based indexes: the first displayed item is `1`, the second is 
 numbers, decimals, text, and indexes larger than the displayed list are invalid.
 
 * A **client index** always refers to the numbered client in the list currently shown on the left. Commands such as
-  `addgig`, `addpayment`, `editpayment`, `markpaid`, `edit`, and `delete` use this displayed list.
+  `addgig`, `deletegig`, `addpayment`, `editpayment`, `markpaid`, `edit`, and `delete` use this displayed list.
 * `find` replaces the displayed client list with its matching results. A later command therefore uses the numbers in
   those results, not the numbers from the earlier full list. Run `list` to restore the full client list.
 * A **gig index** is the gig's one-based position among the chosen client's gigs. It is not an index into all gigs in
@@ -121,7 +121,7 @@ numbers, decimals, text, and indexes larger than the displayed list are invalid.
   client is not required before running `addpayment`.
 * `addpayment` takes only the client index and that client's gig index. `editpayment` and `markpaid` also take the
   payment's index in the selected gig's due-date-ordered payment list.
-* `editgig` and `setstatus` use the same client and gig index rules as `addpayment`.
+* `editgig`, `deletegig`, and `setstatus` use the same client and gig index rules as `addpayment`.
 
 Example: after `find Bernice`, `addgig 1 ...` targets the first client in the filtered results. After `list`, the same
 client might have a different index.
@@ -249,6 +249,25 @@ Format: `editgig CLIENT_INDEX GIG_INDEX [t/TITLE] [d/DEADLINE] [f/FEE]`
 
 Examples: `editgig 1 2 t/Updated landing page`, `editgig 1 2 d/2027-04-30 f/1800.00`.
 After `find Bernice`, `editgig 1 1 t/Revised branding` edits the first matching client's first gig.
+
+### Deleting a gig: `deletegig`
+
+Format: `deletegig CLIENT_INDEX GIG_INDEX`
+
+Permanently deletes one gig in any status, provided it has no payment obligations. Deletion is immediate,
+saved automatically, and cannot be undone. The client, other gigs, and their payments remain unchanged.
+
+* Supply exactly two positive integer indexes: the client in the displayed list (including `find` results), then
+  the gig in that client's normal gig order. Status, title-search, and deadline overview positions are not gig indexes.
+* Any paid or unpaid obligation blocks deletion. The error instructs you to delete those obligations first using
+  `deletepayment`; marking them paid does not allow gig deletion.
+* Identical-looking gigs are separate records: only the indexed gig is removed. Remaining gigs are renumbered.
+* Open gig views refresh immediately. Deleting the selected gig clears its selection and payment view.
+* Invalid syntax, out-of-range indexes, and payment dependencies leave records and the saved file unchanged.
+* Once a client's final gig is deleted, the client can be removed using `delete CLIENT_INDEX`.
+
+Example with fresh sample data: `deletegig 2 2` removes Bernice's Quarterly newsletter template, which has no payments.
+After `find Bernice`, the equivalent command is `deletegig 1 2`.
 
 ### Updating a gig's status: `setstatus`
 
@@ -429,7 +448,7 @@ Deletes the specified client from the client list.
 Format: `delete INDEX`
 
 * Deletes the client at the specified `INDEX`.
-* A client with associated gigs cannot be deleted; an error explains this restriction.
+* A client with associated gigs cannot be deleted. Remove its gigs using `deletegig` first.
 * The index refers to the index number shown in the displayed client list.
 * The index **must be a positive integer** 1, 2, 3, ...
 
@@ -536,6 +555,7 @@ Action     | Format, Examples
 -----------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------
 **Add**    | `add n/NAME p/PHONE_NUMBER e/EMAIL a/ADDRESS [t/TAG]... ` <br> e.g., `add n/James Ho p/22224444 e/jamesho@example.com a/123, Clementi Rd, 1234665 t/friend t/colleague`
 **Add gig** | `addgig INDEX t/TITLE s/STATUS d/DEADLINE f/FEE` <br> e.g., `addgig 1 t/Website redesign s/NOT_STARTED d/2027-01-31 f/1250.00`
+**Delete gig** | `deletegig CLIENT_INDEX GIG_INDEX` <br> e.g., `deletegig 2 2`
 **Add payment** | `addpayment CLIENT_INDEX GIG_INDEX a/AMOUNT d/DUE_DATE` <br> e.g., `addpayment 1 2 a/500.00 d/2027-01-31`
 **Edit payment** | `editpayment CLIENT_INDEX GIG_INDEX PAYMENT_INDEX [a/AMOUNT] [d/DUE_DATE]` <br> e.g., `editpayment 1 2 1 a/650.00 d/2027-05-15`
 **Mark payment paid** | `markpaid CLIENT_INDEX GIG_INDEX PAYMENT_INDEX` <br> e.g., `markpaid 2 1 3`

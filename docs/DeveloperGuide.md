@@ -148,6 +148,9 @@ The `Model` component,
 * uses stable UUIDs to preserve links from each gig to its client and from each payment obligation to its gig. Client
   edits replace linked immutable objects while retaining those identifiers and links. Payment edits replace the
   selected immutable obligation while preserving its canonical gig and paid state.
+* deletes gigs by stable UID through `Model#deleteGig` and `GigabyteData#removeGig`. Any paid or unpaid obligation
+  raises `GigHasPaymentsException` before mutation. Removing one observable-list entry preserves other references;
+  the gig panel clears a removed selection before its filtered/sorted views process the removal.
 * stores a `UserPrefs` object that represents the user’s preferences (currently, just the GUI settings). This is exposed to the outside as a `ReadOnlyUserPrefs` object.
 * does not depend on any of the other three components (as the `Model` represents data entities of the domain, they should make sense on their own without depending on other components)
 
@@ -841,6 +844,27 @@ Start this section from a fresh test folder and perform the tests in order.
       Expected: The new `$125.00` obligation, shown after the earlier sample obligation, changes to `PAID`.
    1. Input: `list`<br>
       Expected: The full six-client list is restored; subsequent client indexes use this full list.
+
+### Deleting gigs safely
+
+Use a disposable fresh sample-data folder for each test. Deletion is permanent and has no undo.
+
+1. Input `deletegig 1 1` (paid payment) and `deletegig 1 2` (unpaid payment).<br>
+   Expected: Both are rejected with instructions to remove payments using `deletepayment`. Records and the saved
+   file remain unchanged. Settling an obligation does not unblock deletion; payment deletion is provided by PR #99.
+1. Select Bernice and Quarterly newsletter template, then input `deletegig 2 2`.<br>
+   Expected: Only that gig disappears; Bernice and Brand identity refresh remain. Gig selection clears and the payment
+   panel prompts for a gig. Restart: the removed gig remains absent. Repeat from fresh data with `gigs s/IN_PROGRESS`,
+   `deadlines`, or `findgig newsletter` open before deletion: the active view refreshes without another command.
+1. Add the same gig twice using `addgig 1 t/Duplicate s/NOT_STARTED d/2099-01-31 f/100`, then input
+   `addpayment 1 3 a/50 d/2099-02-28`, followed by `deletegig 1 4`.<br>
+   Expected: Only the fourth gig disappears. The third gig and its payment remain linked; `deletegig 1 3` is rejected.
+1. Input `find Bernice`, then `deletegig 1 2`.<br>
+   Expected: Bernice's second gig disappears and the client filter remains. Try `deletegig`, `deletegig 1 1 2`,
+   `deletegig 0 1`, `deletegig 1 abc`, `deletegig 2 1`, and `deletegig 1 999`: all fail without changing records or disk.
+1. Input `add n/Deletion Test p/91234567 e/deletion@example.com a/Test address`, then `find Deletion`, then
+   `addgig 1 t/Temporary s/COMPLETED d/2099-01-31 f/100`, `deletegig 1 1`, and `delete 1`.<br>
+   Expected: The completed gig is removed and its client can then be deleted; other clients remain unchanged.
 
 ### Deleting a client with gigs
 
