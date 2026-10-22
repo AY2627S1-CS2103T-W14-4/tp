@@ -936,7 +936,8 @@ Use a disposable fresh sample-data folder for each test. Deletion is permanent a
 
 1. Input `deletegig 1 1` (paid payment) and `deletegig 1 2` (unpaid payment).<br>
    Expected: Both are rejected with instructions to remove payments using `deletepayment`. Records and the saved
-   file remain unchanged. Settling an obligation does not unblock deletion; payment deletion is provided by PR #99.
+   file remain unchanged. Settling an obligation does not unblock deletion. Input `deletepayment 1 1 1`, then
+   `deletegig 1 1`: Alex's first gig can now be deleted, while his other gig and its payment remain unchanged.
 1. Select Bernice and Quarterly newsletter template, then input `deletegig 2 2`.<br>
    Expected: Only that gig disappears; Bernice and Brand identity refresh remain. Gig selection clears and the payment
    panel prompts for a gig. Restart: the removed gig remains absent. Repeat from fresh data with `gigs s/IN_PROGRESS`,

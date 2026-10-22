@@ -133,7 +133,7 @@ client might have a different index.
 Select a client in the client list to show only that client's gigs in the **Gigs** panel. Select a gig to show only
 its payment obligations in the **Payment obligations** panel beneath the gig list. Payment obligations are numbered
 from 1 and ordered by due date, earliest first. Obligations with the same due date retain the order in which they were
-recorded. These displayed payment indexes restart from 1 for each selected gig; `markpaid` and `deletepayment` uses them.
+recorded. These displayed payment indexes restart from 1 for each selected gig; `markpaid` and `deletepayment` use them.
 `editpayment` uses the same indexes. It resolves the selected payment before applying a due-date change that might
 move the payment to a new displayed position.
 
@@ -263,6 +263,7 @@ saved automatically, and cannot be undone. The client, other gigs, and their pay
   the gig in that client's normal gig order. Status, title-search, and deadline overview positions are not gig indexes.
 * Any paid or unpaid obligation blocks deletion. The error instructs you to delete those obligations first using
   `deletepayment`; marking them paid does not allow gig deletion.
+  For a gig with one payment, run `deletepayment 1 1 1` followed by `deletegig 1 1` to remove both permanently.
 * Identical-looking gigs are separate records: only the indexed gig is removed. Remaining gigs are renumbered.
 * Open gig views refresh immediately. Deleting the selected gig clears its selection and payment view.
 * Invalid syntax, out-of-range indexes, and payment dependencies leave records and the saved file unchanged.

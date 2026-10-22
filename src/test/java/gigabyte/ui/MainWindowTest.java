@@ -376,6 +376,13 @@ public class MainWindowTest {
                 assertSame(ALICE, window.getClientListPanel().getClientListView()
                         .getSelectionModel().getSelectedItem());
                 assertEquals(List.of(BENSON_PAYMENT), model.getPaymentObligationList());
+
+                enterCommand(window, "deletegig 1 1");
+
+                assertTrue(window.getGigListPanel().getGigListView().getItems().isEmpty());
+                assertNull(window.getGigListPanel().getGigListView().getSelectionModel().getSelectedItem());
+                assertEquals("Select a gig to view its payment obligations.", panel.getEmptyState().getText());
+                assertEquals(List.of(BENSON_PAYMENT), model.getPaymentObligationList());
                 return null;
             });
         } finally {

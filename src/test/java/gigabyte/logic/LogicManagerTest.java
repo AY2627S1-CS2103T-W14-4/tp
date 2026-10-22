@@ -48,6 +48,7 @@ import gigabyte.model.gig.Fee;
 import gigabyte.model.gig.Gig;
 import gigabyte.model.gig.GigStatus;
 import gigabyte.model.gig.GigTitle;
+import gigabyte.model.gig.PaymentObligation;
 import gigabyte.model.gig.exceptions.GigHasPaymentsException;
 import gigabyte.storage.JsonGigabyteDataStorage;
 import gigabyte.storage.JsonUserPrefsStorage;
@@ -246,6 +247,42 @@ public class LogicManagerTest {
         assertSame(restored.getGigList().get(0), restored.getPaymentObligationList().get(0).getGig());
         Model restarted = new ModelManager(restored, new UserPrefs());
         assertThrows(GigHasPaymentsException.class, () -> restarted.deleteGig(restarted.getGigList().get(0)));
+    }
+
+    @Test
+    public void execute_deletePayment_unblocksGigDeletionOnlyAfterAllPaymentsAreRemoved() throws Exception {
+        model.addClient(ALICE);
+        String command = "addgig 1 t/Website s/IN_PROGRESS d/2099-01-31 f/100";
+        logic.execute(command);
+        logic.execute(command);
+        logic.execute("addpayment 1 1 a/75 d/2099-03-31");
+        logic.execute("addpayment 1 2 a/50 d/2099-02-28");
+        logic.execute("addpayment 1 2 a/50 d/2099-02-28");
+        logic.execute("markpaid 1 2 1");
+        Gig survivor = model.getGigList().get(0);
+        Gig target = model.getGigList().get(1);
+        PaymentObligation otherPayment = model.getPaymentObligationList().get(0);
+        assertCommandException("deletegig 1 2", GigHasPaymentsException.MESSAGE);
+
+        CommandResult paidDeletion = logic.execute("deletepayment 1 2 1");
+        assertTrue(paidDeletion.getFeedbackToUser().endsWith("Previous state: PAID"));
+        assertCommandException("deletegig 1 2", GigHasPaymentsException.MESSAGE);
+        CommandResult unpaidDeletion = logic.execute("deletepayment 1 2 1");
+        assertTrue(unpaidDeletion.getFeedbackToUser().endsWith("Previous state: UNPAID"));
+        assertSame(target, model.getGigList().get(1));
+
+        logic.execute("deletegig 1 2");
+
+        assertEquals(1, model.getGigList().size());
+        assertSame(survivor, model.getGigList().get(0));
+        assertSame(otherPayment, model.getPaymentObligationList().get(0));
+        ReadOnlyGigabyteData restored = new JsonGigabyteDataStorage(temporaryFolder.resolve("gigabyteData.json"))
+                .readGigabyteData().orElseThrow();
+        assertEquals(1, restored.getGigList().size());
+        assertEquals(survivor.getUid(), restored.getGigList().get(0).getUid());
+        assertEquals(List.of(otherPayment), restored.getPaymentObligationList());
+        assertSame(restored.getGigList().get(0), restored.getPaymentObligationList().get(0).getGig());
+        assertEquals(List.of(ALICE), restored.getClientList());
     }
 
     @Test
