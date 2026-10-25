@@ -4,10 +4,12 @@ import static gigabyte.commons.util.CollectionUtil.requireAllNonNull;
 import static java.util.Objects.requireNonNull;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.BiPredicate;
 
 import gigabyte.commons.util.ToStringBuilder;
 import gigabyte.model.client.Client;
@@ -167,14 +169,14 @@ public class GigabyteData implements ReadOnlyGigabyteData {
 
         Client storedClient = findMatchingClient(getClientList(), gig.getClient());
         Gig storedGig = gig.withClient(storedClient);
-        boolean duplicateUid = false;
+        boolean hasDuplicateUid = false;
         for (Gig existing : gigs) {
             if (existing.hasSameUid(storedGig)) {
-                duplicateUid = true;
+                hasDuplicateUid = true;
                 break;
             }
         }
-        if (duplicateUid) {
+        if (hasDuplicateUid) {
             storedGig = storedGig.withNewUid();
         }
         gigs.add(storedGig);
@@ -251,9 +253,9 @@ public class GigabyteData implements ReadOnlyGigabyteData {
         }
 
         PaymentObligation storedTarget = paymentObligations.get(targetIndex);
-        boolean changesGig = !storedTarget.getGig().hasSameUid(replacement.getGig());
-        boolean changesPaidState = storedTarget.isPaid() != replacement.isPaid();
-        if (changesGig || changesPaidState) {
+        boolean hasDifferentGig = !storedTarget.getGig().hasSameUid(replacement.getGig());
+        boolean hasDifferentPaidState = storedTarget.isPaid() != replacement.isPaid();
+        if (hasDifferentGig || hasDifferentPaidState) {
             throw new IllegalArgumentException("A replacement payment must preserve its gig and paid state.");
         }
 
@@ -365,44 +367,47 @@ public class GigabyteData implements ReadOnlyGigabyteData {
      * one remaining new gig, those unmatched entries are treated as edited replacements in relative order.
      */
     private static List<Integer> matchReplacementGigIndexes(List<Gig> oldGigs, List<Gig> newGigs) {
-        List<Integer> replacementIndexes = new ArrayList<>();
-        boolean[] matchedNewGigs = new boolean[newGigs.size()];
-        for (int index = 0; index < oldGigs.size(); index++) {
-            replacementIndexes.add(-1);
-        }
+        List<Integer> replacementIndexes = new ArrayList<>(Collections.nCopies(oldGigs.size(), -1));
+        boolean[] isNewGigMatched = new boolean[newGigs.size()];
+        matchUnmatchedGigs(oldGigs, newGigs, replacementIndexes, isNewGigMatched, Gig::hasSameUid);
+        matchUnmatchedGigs(oldGigs, newGigs, replacementIndexes, isNewGigMatched, Gig::equals);
+        pairRemainingGigsInOrder(replacementIndexes, isNewGigMatched);
+        return replacementIndexes;
+    }
 
-        for (int oldIndex = 0; oldIndex < oldGigs.size(); oldIndex++) {
-            for (int newIndex = 0; newIndex < newGigs.size(); newIndex++) {
-                if (!matchedNewGigs[newIndex] && oldGigs.get(oldIndex).hasSameUid(newGigs.get(newIndex))) {
-                    replacementIndexes.set(oldIndex, newIndex);
-                    matchedNewGigs[newIndex] = true;
-                    break;
-                }
-            }
-        }
-
+    /**
+     * Matches each unmatched old gig to the first unmatched new gig for which {@code isMatch} holds.
+     */
+    private static void matchUnmatchedGigs(List<Gig> oldGigs, List<Gig> newGigs, List<Integer> replacementIndexes,
+            boolean[] isNewGigMatched, BiPredicate<Gig, Gig> isMatch) {
         for (int oldIndex = 0; oldIndex < oldGigs.size(); oldIndex++) {
             if (replacementIndexes.get(oldIndex) >= 0) {
                 continue;
             }
             for (int newIndex = 0; newIndex < newGigs.size(); newIndex++) {
-                if (!matchedNewGigs[newIndex] && oldGigs.get(oldIndex).equals(newGigs.get(newIndex))) {
+                if (!isNewGigMatched[newIndex] && isMatch.test(oldGigs.get(oldIndex), newGigs.get(newIndex))) {
                     replacementIndexes.set(oldIndex, newIndex);
-                    matchedNewGigs[newIndex] = true;
+                    isNewGigMatched[newIndex] = true;
                     break;
                 }
             }
         }
+    }
 
+    /**
+     * Pairs the remaining unmatched old and new gigs in relative order, but only when both sides have the same
+     * number of gigs left.
+     */
+    private static void pairRemainingGigsInOrder(List<Integer> replacementIndexes, boolean[] isNewGigMatched) {
         List<Integer> unmatchedOldIndexes = new ArrayList<>();
         List<Integer> unmatchedNewIndexes = new ArrayList<>();
-        for (int oldIndex = 0; oldIndex < oldGigs.size(); oldIndex++) {
+        for (int oldIndex = 0; oldIndex < replacementIndexes.size(); oldIndex++) {
             if (replacementIndexes.get(oldIndex) < 0) {
                 unmatchedOldIndexes.add(oldIndex);
             }
         }
-        for (int newIndex = 0; newIndex < newGigs.size(); newIndex++) {
-            if (!matchedNewGigs[newIndex]) {
+        for (int newIndex = 0; newIndex < isNewGigMatched.length; newIndex++) {
+            if (!isNewGigMatched[newIndex]) {
                 unmatchedNewIndexes.add(newIndex);
             }
         }
@@ -412,7 +417,6 @@ public class GigabyteData implements ReadOnlyGigabyteData {
                 replacementIndexes.set(unmatchedOldIndexes.get(index), unmatchedNewIndexes.get(index));
             }
         }
-        return replacementIndexes;
     }
 
     private static List<Gig> linkGigsToClients(

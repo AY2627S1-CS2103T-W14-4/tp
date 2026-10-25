@@ -39,11 +39,12 @@ public class JsonAdaptedPaymentObligationTest {
     @Test
     public void toModelType_missingFields_throwsIllegalValueException() {
         for (JsonAdaptedPaymentObligation obligation : List.of(
-                new JsonAdaptedPaymentObligation(null, BigInteger.valueOf(5000), "2027-01-31", false),
-                new JsonAdaptedPaymentObligation(GIG.getUid().toString(), null, "2027-01-31", false),
-                new JsonAdaptedPaymentObligation(GIG.getUid().toString(), BigInteger.valueOf(5000), null, false),
+                new JsonAdaptedPaymentObligation(null, BigInteger.valueOf(5000), "2027-01-31", false), // gig UID
+                new JsonAdaptedPaymentObligation(GIG.getUid().toString(), null, "2027-01-31", false), // amount
+                new JsonAdaptedPaymentObligation(GIG.getUid().toString(), BigInteger.valueOf(5000), null,
+                        false), // due date
                 new JsonAdaptedPaymentObligation(GIG.getUid().toString(), BigInteger.valueOf(5000),
-                        "2027-01-31", null))) {
+                        "2027-01-31", null))) { // paid state
             assertThrows(IllegalValueException.class, JsonAdaptedPaymentObligation.MISSING_FIELD_MESSAGE, () ->
                     obligation.toModelType(List.of(GIG)));
         }
@@ -51,20 +52,29 @@ public class JsonAdaptedPaymentObligationTest {
 
     @Test
     public void toModelType_invalidOrUnknownGigUid_throwsIllegalValueException() {
-        for (String gigUid : List.of("invalid", "00000000-0000-0000-0000-000000000001")) {
-            assertThrows(IllegalValueException.class, GigNotFoundException.MESSAGE, () ->
-                    new JsonAdaptedPaymentObligation(gigUid, BigInteger.valueOf(5000),
-                            "2027-01-31", false).toModelType(List.of(GIG)));
-        }
+        // EP: gig UID is not a valid UUID
+        assertGigUidRejected("invalid");
+
+        // EP: valid UUID that matches no stored gig
+        assertGigUidRejected("00000000-0000-0000-0000-000000000001");
     }
 
     @Test
     public void toModelType_invalidAmountOrDueDate_throwsIllegalValueException() {
+        // EP: zero amount
         assertThrows(IllegalValueException.class, Fee.MESSAGE_CONSTRAINTS, () ->
                 new JsonAdaptedPaymentObligation(GIG.getUid().toString(), BigInteger.ZERO,
-                        "2027-01-31", false).toModelType(List.of(GIG)));
+                        "2027-01-31", false).toModelType(List.of(GIG))); // Boundary value
+
+        // EP: due date that does not exist
         assertThrows(IllegalValueException.class, Deadline.MESSAGE_CONSTRAINTS, () ->
                 new JsonAdaptedPaymentObligation(GIG.getUid().toString(), BigInteger.valueOf(5000),
-                        "2027-02-29", false).toModelType(List.of(GIG)));
+                        "2027-02-29", false).toModelType(List.of(GIG))); // Not a leap year
+    }
+
+    private void assertGigUidRejected(String gigUid) {
+        assertThrows(IllegalValueException.class, GigNotFoundException.MESSAGE, () ->
+                new JsonAdaptedPaymentObligation(gigUid, BigInteger.valueOf(5000),
+                        "2027-01-31", false).toModelType(List.of(GIG)));
     }
 }

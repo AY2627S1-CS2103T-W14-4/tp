@@ -106,10 +106,15 @@ public class SetGigStatusCommandTest {
         model.addPaymentObligation(new PaymentObligation(model.getGigList().get(0), new Fee("50"), DEADLINE, false));
         GigabyteData before = new GigabyteData(model.getGigabyteData());
 
+        // EP: client index beyond the displayed client list
         assertThrows(CommandException.class, Messages.MESSAGE_INVALID_CLIENT_DISPLAYED_INDEX, () ->
                 new SetGigStatusCommand(Index.fromOneBased(3), FIRST, GigStatus.COMPLETED).execute(model));
-        assertThrows(CommandException.class, SetGigStatusCommand.MESSAGE_INVALID_GIG_INDEX, () ->
+
+        // EP: gig index beyond the client's gigs
+        assertThrows(CommandException.class, Messages.MESSAGE_INVALID_GIG_INDEX, () ->
                 new SetGigStatusCommand(FIRST, SECOND, GigStatus.COMPLETED).execute(model));
+
+        // EP: gig already has the requested status
         assertThrows(CommandException.class, SetGigStatusCommand.MESSAGE_STATUS_UNCHANGED.formatted(
                 GigStatus.NOT_STARTED), () -> new SetGigStatusCommand(FIRST, FIRST, GigStatus.NOT_STARTED)
                 .execute(model));
@@ -131,10 +136,15 @@ public class SetGigStatusCommandTest {
     public void equals_comparesAllFieldsAndHandlesOtherTypes() {
         SetGigStatusCommand command = new SetGigStatusCommand(FIRST, SECOND, GigStatus.COMPLETED);
 
+        // same object or same values -> returns true
         assertTrue(command.equals(command));
+        assertEquals(command, new SetGigStatusCommand(FIRST, SECOND, GigStatus.COMPLETED));
+
+        // null or a different type -> returns false
         assertFalse(command.equals(null));
         assertFalse(command.equals("setstatus"));
-        assertEquals(command, new SetGigStatusCommand(FIRST, SECOND, GigStatus.COMPLETED));
+
+        // different client index, gig index, or status -> returns false
         assertNotEquals(command, new SetGigStatusCommand(SECOND, SECOND, GigStatus.COMPLETED));
         assertNotEquals(command, new SetGigStatusCommand(FIRST, FIRST, GigStatus.COMPLETED));
         assertNotEquals(command, new SetGigStatusCommand(FIRST, SECOND, GigStatus.IN_PROGRESS));

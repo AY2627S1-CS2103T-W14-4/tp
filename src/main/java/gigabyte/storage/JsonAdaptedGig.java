@@ -46,8 +46,9 @@ class JsonAdaptedGig {
 
     /** Copies {@code gig} for serialization. */
     public JsonAdaptedGig(Gig gig) {
-        this(gig.getUid().toString(), gig.getClient().getUid().toString(), TextNode.valueOf(gig.getTitle().toString()),
-                gig.getStatus().name(), gig.getDeadline().toString(), gig.getAgreedFee().getCents());
+        this(gig.getUid().toString(), gig.getClient().getUid().toString(),
+                TextNode.valueOf(gig.getTitle().toString()), gig.getStatus().name(),
+                gig.getDeadline().toString(), gig.getAgreedFee().getCents());
     }
 
     /** Restores a gig linked to an existing canonical client. */

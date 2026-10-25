@@ -14,7 +14,8 @@ public class FilterGigsCommandParser implements Parser<FilterGigsCommand> {
     public FilterGigsCommand parse(String args) throws ParseException {
         ArgumentMultimap arguments = ArgumentTokenizer.tokenize(args, PREFIX_STATUS);
         if (!arguments.getPreamble().isEmpty() || arguments.getValue(PREFIX_STATUS).isEmpty()) {
-            throw new ParseException(String.format(MESSAGE_INVALID_COMMAND_FORMAT, FilterGigsCommand.MESSAGE_USAGE));
+            throw new ParseException(
+                    String.format(MESSAGE_INVALID_COMMAND_FORMAT, FilterGigsCommand.MESSAGE_USAGE));
         }
         arguments.verifyNoDuplicatePrefixesFor(PREFIX_STATUS);
         return new FilterGigsCommand(ParserUtil.parseGigStatus(arguments.getValue(PREFIX_STATUS).get()));

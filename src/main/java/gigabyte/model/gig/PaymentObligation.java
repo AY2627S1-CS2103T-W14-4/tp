@@ -11,15 +11,15 @@ public class PaymentObligation {
     private final Gig gig;
     private final Fee amount;
     private final Deadline dueDate;
-    private final boolean paid;
+    private final boolean isPaid;
 
     /** Creates a payment obligation. */
-    public PaymentObligation(Gig gig, Fee amount, Deadline dueDate, boolean paid) {
+    public PaymentObligation(Gig gig, Fee amount, Deadline dueDate, boolean isPaid) {
         requireAllNonNull(gig, amount, dueDate);
         this.gig = gig;
         this.amount = amount;
         this.dueDate = dueDate;
-        this.paid = paid;
+        this.isPaid = isPaid;
     }
     public Gig getGig() {
         return gig;
@@ -31,22 +31,22 @@ public class PaymentObligation {
         return dueDate;
     }
     public boolean isPaid() {
-        return paid;
+        return isPaid;
     }
 
     /** Returns a copy with the payment state changed. */
-    public PaymentObligation withPaid(boolean paid) {
-        return new PaymentObligation(gig, amount, dueDate, paid);
+    public PaymentObligation withPaid(boolean isPaid) {
+        return new PaymentObligation(gig, amount, dueDate, isPaid);
     }
 
     /** Returns a copy with the amount and due date changed. */
     public PaymentObligation withDetails(Fee amount, Deadline dueDate) {
-        return new PaymentObligation(gig, amount, dueDate, paid);
+        return new PaymentObligation(gig, amount, dueDate, isPaid);
     }
 
     /** Returns a copy linked to {@code replacementGig}. */
     public PaymentObligation withGig(Gig replacementGig) {
-        return new PaymentObligation(replacementGig, amount, dueDate, paid);
+        return new PaymentObligation(replacementGig, amount, dueDate, isPaid);
     }
 
     @Override
@@ -58,15 +58,15 @@ public class PaymentObligation {
             return false;
         }
         return gig.equals(otherPayment.gig) && amount.equals(otherPayment.amount)
-                && dueDate.equals(otherPayment.dueDate) && paid == otherPayment.paid;
+                && dueDate.equals(otherPayment.dueDate) && isPaid == otherPayment.isPaid;
     }
     @Override
     public int hashCode() {
-        return Objects.hash(gig, amount, dueDate, paid);
+        return Objects.hash(gig, amount, dueDate, isPaid);
     }
     @Override
     public String toString() {
         return new ToStringBuilder(this).add("gig", gig).add("amount", amount)
-                .add("dueDate", dueDate).add("paid", paid).toString();
+                .add("dueDate", dueDate).add("paid", isPaid).toString();
     }
 }

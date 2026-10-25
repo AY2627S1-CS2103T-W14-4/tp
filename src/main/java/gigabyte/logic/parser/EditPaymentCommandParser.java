@@ -31,8 +31,8 @@ public class EditPaymentCommandParser implements Parser<EditPaymentCommand> {
             gigIndex = ParserUtil.parseIndex(indexes[1]);
             paymentIndex = ParserUtil.parseIndex(indexes[2]);
         } catch (ParseException exception) {
-            throw new ParseException(String.format(MESSAGE_INVALID_COMMAND_FORMAT, EditPaymentCommand.MESSAGE_USAGE),
-                    exception);
+            throw new ParseException(
+                    String.format(MESSAGE_INVALID_COMMAND_FORMAT, EditPaymentCommand.MESSAGE_USAGE), exception);
         }
 
         Optional<Fee> amount = Optional.empty();

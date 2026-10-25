@@ -16,7 +16,8 @@ public class SetGigStatusCommandParser implements Parser<SetGigStatusCommand> {
         String[] indexes = arguments.getPreamble().split("\\s+");
         if (indexes.length != 2 || arguments.getValue(PREFIX_STATUS).isEmpty()
                 || arguments.getValue(PREFIX_STATUS).get().isBlank()) {
-            throw new ParseException(String.format(MESSAGE_INVALID_COMMAND_FORMAT, SetGigStatusCommand.MESSAGE_USAGE));
+            throw new ParseException(
+                    String.format(MESSAGE_INVALID_COMMAND_FORMAT, SetGigStatusCommand.MESSAGE_USAGE));
         }
         arguments.verifyNoDuplicatePrefixesFor(PREFIX_STATUS);
 
@@ -26,8 +27,8 @@ public class SetGigStatusCommandParser implements Parser<SetGigStatusCommand> {
             clientIndex = ParserUtil.parseIndex(indexes[0]);
             gigIndex = ParserUtil.parseIndex(indexes[1]);
         } catch (ParseException exception) {
-            throw new ParseException(String.format(MESSAGE_INVALID_COMMAND_FORMAT, SetGigStatusCommand.MESSAGE_USAGE),
-                    exception);
+            throw new ParseException(
+                    String.format(MESSAGE_INVALID_COMMAND_FORMAT, SetGigStatusCommand.MESSAGE_USAGE), exception);
         }
 
         GigStatus status = ParserUtil.parseGigStatus(arguments.getValue(PREFIX_STATUS).get());

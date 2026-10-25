@@ -13,6 +13,6 @@ public class DeadlinesCommandTest {
 
         assertEquals(CommandResult.deadlineOverview(DeadlinesCommand.MESSAGE_SUCCESS), result);
         assertEquals(DeadlinesCommand.MESSAGE_SUCCESS, result.getFeedbackToUser());
-        assertEquals(true, result.isShowDeadlineOverview());
+        assertEquals(true, result.shouldShowDeadlineOverview());
     }
 }

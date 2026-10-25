@@ -18,10 +18,10 @@ public class CommandResultTest {
     @Test
     public void deadlineAndOutstandingViews_useIndependentFlags() {
         CommandResult deadlines = CommandResult.deadlineOverview("feedback");
-        assertTrue(deadlines.isShowDeadlineOverview());
-        assertFalse(deadlines.isShowOutstandingPayments());
-        assertFalse(CommandResult.forOutstandingPayments("feedback").isShowDeadlineOverview());
-        assertFalse(new CommandResult("feedback").isShowDeadlineOverview());
+        assertTrue(deadlines.shouldShowDeadlineOverview());
+        assertFalse(deadlines.shouldShowOutstandingPayments());
+        assertFalse(CommandResult.forOutstandingPayments("feedback").shouldShowDeadlineOverview());
+        assertFalse(new CommandResult("feedback").shouldShowDeadlineOverview());
         assertEquals(deadlines, CommandResult.deadlineOverview("feedback"));
         assertEquals(deadlines.hashCode(), CommandResult.deadlineOverview("feedback").hashCode());
         assertNotEquals(new CommandResult("feedback"), deadlines);
@@ -31,8 +31,8 @@ public class CommandResultTest {
     @Test
     public void outstandingPayments_includedInResultIdentity() {
         CommandResult result = CommandResult.forOutstandingPayments("feedback");
-        assertTrue(result.isShowOutstandingPayments());
-        assertFalse(new CommandResult("feedback").isShowOutstandingPayments());
+        assertTrue(result.shouldShowOutstandingPayments());
+        assertFalse(new CommandResult("feedback").shouldShowOutstandingPayments());
         assertEquals(result, CommandResult.forOutstandingPayments("feedback"));
         assertEquals(result.hashCode(), CommandResult.forOutstandingPayments("feedback").hashCode());
         assertNotEquals(result, new CommandResult("feedback"));
@@ -101,8 +101,8 @@ public class CommandResultTest {
     public void toStringMethod() {
         CommandResult commandResult = new CommandResult("feedback");
         String expected = CommandResult.class.getCanonicalName() + "{feedbackToUser="
-                + commandResult.getFeedbackToUser() + ", showHelp=" + commandResult.isShowHelp()
-                + ", exit=" + commandResult.isExit()
+                + commandResult.getFeedbackToUser() + ", showHelp=" + commandResult.shouldShowHelp()
+                + ", exit=" + commandResult.shouldExit()
                 + ", gigStatusFilter=null, showOutstandingPayments=false, showDeadlineOverview=false, "
                 + "gigTitleSearch=null}";
         assertEquals(expected, commandResult.toString());

@@ -23,7 +23,6 @@ public class SetGigStatusCommand extends Command {
             + "Indexes must be positive integers; GIG_INDEX is the position in this client's gig panel. "
             + "STATUS: NOT_STARTED, IN_PROGRESS, or COMPLETED.\n"
             + "Example: " + COMMAND_WORD + " 1 2 s/IN_PROGRESS";
-    public static final String MESSAGE_INVALID_GIG_INDEX = "The gig index provided is invalid for this client.";
     public static final String MESSAGE_STATUS_UNCHANGED = "The gig already has status %1$s.";
     public static final String MESSAGE_SUCCESS = "Updated status for %1$s, gig %2$d: %3$s";
 
@@ -51,7 +50,7 @@ public class SetGigStatusCommand extends Command {
         List<Gig> gigs = model.getGigList().stream()
                 .filter(gig -> gig.getClient().hasSameUid(client)).toList();
         if (gigIndex.getZeroBased() >= gigs.size()) {
-            throw new CommandException(MESSAGE_INVALID_GIG_INDEX);
+            throw new CommandException(Messages.MESSAGE_INVALID_GIG_INDEX);
         }
 
         Gig targetGig = gigs.get(gigIndex.getZeroBased());

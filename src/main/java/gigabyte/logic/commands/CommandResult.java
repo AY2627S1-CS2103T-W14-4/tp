@@ -16,37 +16,37 @@ public class CommandResult {
     private final String feedbackToUser;
 
     /** Help information should be shown to the user. */
-    private final boolean showHelp;
+    private final boolean shouldShowHelp;
 
     /** The application should exit. */
-    private final boolean exit;
+    private final boolean shouldExit;
 
     /** Status to display across all clients, or null when the gig view should remain unchanged. */
     private final GigStatus gigStatusFilter;
-    private final boolean showDeadlineOverview;
+    private final boolean shouldShowDeadlineOverview;
 
     /**
      * Unpaid obligations across all clients should be shown.
      */
-    private final boolean showOutstandingPayments;
+    private final boolean shouldShowOutstandingPayments;
     private final GigTitleContainsKeywordsPredicate gigTitleSearch;
 
     /**
      * Constructs a {@code CommandResult} with the specified fields.
      */
-    public CommandResult(String feedbackToUser, boolean showHelp, boolean exit) {
-        this(feedbackToUser, showHelp, exit, null, false, false, null);
+    public CommandResult(String feedbackToUser, boolean shouldShowHelp, boolean shouldExit) {
+        this(feedbackToUser, shouldShowHelp, shouldExit, null, false, false, null);
     }
 
-    private CommandResult(String feedbackToUser, boolean showHelp, boolean exit, GigStatus gigStatusFilter,
-            boolean showDeadlineOverview, boolean showOutstandingPayments,
-            GigTitleContainsKeywordsPredicate gigTitleSearch) {
+    private CommandResult(String feedbackToUser, boolean shouldShowHelp, boolean shouldExit,
+            GigStatus gigStatusFilter, boolean shouldShowDeadlineOverview,
+            boolean shouldShowOutstandingPayments, GigTitleContainsKeywordsPredicate gigTitleSearch) {
         this.feedbackToUser = requireNonNull(feedbackToUser);
-        this.showHelp = showHelp;
-        this.exit = exit;
+        this.shouldShowHelp = shouldShowHelp;
+        this.shouldExit = shouldExit;
         this.gigStatusFilter = gigStatusFilter;
-        this.showOutstandingPayments = showOutstandingPayments;
-        this.showDeadlineOverview = showDeadlineOverview;
+        this.shouldShowOutstandingPayments = shouldShowOutstandingPayments;
+        this.shouldShowDeadlineOverview = shouldShowDeadlineOverview;
         this.gigTitleSearch = gigTitleSearch;
     }
 
@@ -91,24 +91,24 @@ public class CommandResult {
         return feedbackToUser;
     }
 
-    public boolean isShowHelp() {
-        return showHelp;
+    public boolean shouldShowHelp() {
+        return shouldShowHelp;
     }
 
-    public boolean isExit() {
-        return exit;
+    public boolean shouldExit() {
+        return shouldExit;
     }
 
     public GigStatus getGigStatusFilter() {
         return gigStatusFilter;
     }
 
-    public boolean isShowOutstandingPayments() {
-        return showOutstandingPayments;
+    public boolean shouldShowOutstandingPayments() {
+        return shouldShowOutstandingPayments;
     }
 
-    public boolean isShowDeadlineOverview() {
-        return showDeadlineOverview;
+    public boolean shouldShowDeadlineOverview() {
+        return shouldShowDeadlineOverview;
     }
 
     public GigTitleContainsKeywordsPredicate getGigTitleSearch() {
@@ -127,29 +127,29 @@ public class CommandResult {
         }
 
         return feedbackToUser.equals(otherCommandResult.feedbackToUser)
-                && showHelp == otherCommandResult.showHelp
-                && exit == otherCommandResult.exit
+                && shouldShowHelp == otherCommandResult.shouldShowHelp
+                && shouldExit == otherCommandResult.shouldExit
                 && gigStatusFilter == otherCommandResult.gigStatusFilter
-                && showOutstandingPayments == otherCommandResult.showOutstandingPayments
-                && showDeadlineOverview == otherCommandResult.showDeadlineOverview
+                && shouldShowOutstandingPayments == otherCommandResult.shouldShowOutstandingPayments
+                && shouldShowDeadlineOverview == otherCommandResult.shouldShowDeadlineOverview
                 && Objects.equals(gigTitleSearch, otherCommandResult.gigTitleSearch);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(feedbackToUser, showHelp, exit, gigStatusFilter,
-                showOutstandingPayments, showDeadlineOverview, gigTitleSearch);
+        return Objects.hash(feedbackToUser, shouldShowHelp, shouldExit, gigStatusFilter,
+                shouldShowOutstandingPayments, shouldShowDeadlineOverview, gigTitleSearch);
     }
 
     @Override
     public String toString() {
         return new ToStringBuilder(this)
                 .add("feedbackToUser", feedbackToUser)
-                .add("showHelp", showHelp)
-                .add("exit", exit)
+                .add("showHelp", shouldShowHelp)
+                .add("exit", shouldExit)
                 .add("gigStatusFilter", gigStatusFilter)
-                .add("showOutstandingPayments", showOutstandingPayments)
-                .add("showDeadlineOverview", showDeadlineOverview)
+                .add("showOutstandingPayments", shouldShowOutstandingPayments)
+                .add("showDeadlineOverview", shouldShowDeadlineOverview)
                 .add("gigTitleSearch", gigTitleSearch)
                 .toString();
     }

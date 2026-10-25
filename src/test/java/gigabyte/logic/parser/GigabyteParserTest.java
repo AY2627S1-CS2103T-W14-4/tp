@@ -70,8 +70,11 @@ public class GigabyteParserTest {
 
     @Test
     public void parseCommand_outstanding_acceptsNoArgumentsAndRejectsExtraInput() throws Exception {
+        // EP: command word only, with or without surrounding spaces
         assertTrue(parser.parseCommand("outstanding") instanceof OutstandingCommand);
         assertTrue(parser.parseCommand("  outstanding  ") instanceof OutstandingCommand);
+
+        // EP: command word followed by any argument
         String error = String.format(MESSAGE_INVALID_COMMAND_FORMAT, OutstandingCommand.MESSAGE_USAGE);
         assertThrows(ParseException.class, error, () -> parser.parseCommand("outstanding 1"));
         assertThrows(ParseException.class, error, () -> parser.parseCommand("outstanding s/PAID"));

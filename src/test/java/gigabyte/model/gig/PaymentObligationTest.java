@@ -17,9 +17,10 @@ public class PaymentObligationTest {
 
     @Test
     public void constructor_nullField_throwsNullPointerException() {
-        assertThrows(NullPointerException.class, () -> new PaymentObligation(null, AMOUNT, DUE_DATE, false));
-        assertThrows(NullPointerException.class, () -> new PaymentObligation(GIG, null, DUE_DATE, false));
-        assertThrows(NullPointerException.class, () -> new PaymentObligation(GIG, AMOUNT, null, false));
+        // One null field at a time
+        assertThrows(NullPointerException.class, () -> new PaymentObligation(null, AMOUNT, DUE_DATE, false)); // gig
+        assertThrows(NullPointerException.class, () -> new PaymentObligation(GIG, null, DUE_DATE, false)); // amount
+        assertThrows(NullPointerException.class, () -> new PaymentObligation(GIG, AMOUNT, null, false)); // due date
     }
 
     @Test
@@ -48,15 +49,21 @@ public class PaymentObligationTest {
         PaymentObligation obligation = new PaymentObligation(GIG, AMOUNT, DUE_DATE, false);
         PaymentObligation equivalent = new PaymentObligation(GIG, AMOUNT, DUE_DATE, false);
 
+        // accessors
         assertEquals(GIG, obligation.getGig());
         assertEquals(AMOUNT, obligation.getAmount());
         assertEquals(DUE_DATE, obligation.getDueDate());
+
+        // same values or same object -> equal, with the same hash code
         assertTrue(obligation.equals(equivalent));
         assertTrue(obligation.equals(obligation));
         assertEquals(obligation.hashCode(), equivalent.hashCode());
-        assertTrue(obligation.toString().contains("PaymentObligation"));
+
+        // null or a different type -> not equal
         assertFalse(obligation.equals(null));
         assertFalse(obligation.equals("not an obligation"));
+
+        assertTrue(obligation.toString().contains("PaymentObligation"));
     }
 
     @Test

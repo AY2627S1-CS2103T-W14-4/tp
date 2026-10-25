@@ -84,10 +84,16 @@ public class EditGigCommandTest {
         Gig original = model.getGigList().get(0);
         model.addPaymentObligation(new PaymentObligation(original, new Fee("50"), DEADLINE, false));
         GigabyteData before = new GigabyteData(model.getGigabyteData());
+
+        // EP: client index beyond the displayed client list
         assertThrows(CommandException.class, () -> new EditGigCommand(Index.fromOneBased(3), FIRST,
                 Optional.of(TITLE), Optional.empty(), Optional.empty()).execute(model));
+
+        // EP: gig index beyond the client's gigs
         assertThrows(CommandException.class, () -> new EditGigCommand(SECOND, SECOND,
                 Optional.of(TITLE), Optional.empty(), Optional.empty()).execute(model));
+
+        // EP: new details are the same as the current ones
         CommandException error = assertThrows(CommandException.class, () -> new EditGigCommand(FIRST, FIRST,
                 Optional.of(original.getTitle()), Optional.empty(), Optional.empty()).execute(model));
         assertEquals(EditGigCommand.MESSAGE_NOT_EDITED, error.getMessage());
@@ -96,8 +102,11 @@ public class EditGigCommandTest {
 
     @Test
     public void constructorAndExecute_invalidArguments_rejected() {
+        // EP: no field to edit
         assertThrows(IllegalArgumentException.class, () -> new EditGigCommand(FIRST, FIRST,
                 Optional.empty(), Optional.empty(), Optional.empty()));
+
+        // EP: null index or model
         assertThrows(NullPointerException.class, () -> new EditGigCommand(null, FIRST,
                 Optional.of(TITLE), Optional.empty(), Optional.empty()));
         assertThrows(NullPointerException.class, () -> new EditGigCommand(FIRST, FIRST,
@@ -108,15 +117,23 @@ public class EditGigCommandTest {
     public void equalsAndToString_includeIndexesAndDetails() {
         EditGigCommand command = new EditGigCommand(FIRST, SECOND, Optional.of(TITLE),
                 Optional.of(DEADLINE), Optional.of(FEE));
+
+        // same object or same values -> returns true
         assertTrue(command.equals(command));
         assertTrue(command.equals(new EditGigCommand(FIRST, SECOND, Optional.of(TITLE),
                 Optional.of(DEADLINE), Optional.of(FEE))));
+
+        // null or a different type -> returns false
         assertFalse(command.equals(null));
         assertFalse(command.equals("editgig"));
+
+        // different client or gig index -> returns false
         assertFalse(command.equals(new EditGigCommand(SECOND, SECOND, Optional.of(TITLE),
                 Optional.of(DEADLINE), Optional.of(FEE))));
         assertFalse(command.equals(new EditGigCommand(FIRST, FIRST, Optional.of(TITLE),
                 Optional.of(DEADLINE), Optional.of(FEE))));
+
+        // one detail left out -> returns false
         for (int field = 0; field < 3; field++) {
             assertFalse(command.equals(new EditGigCommand(FIRST, SECOND,
                     field == 0 ? Optional.empty() : Optional.of(TITLE),

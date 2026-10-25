@@ -27,7 +27,6 @@ public class EditGigCommand extends Command {
             + "Parameters: CLIENT_INDEX GIG_INDEX [t/TITLE] [d/DEADLINE] [f/FEE]\n"
             + "Provide at least one field. Use setstatus to change status.\n"
             + "Example: " + COMMAND_WORD + " 1 2 t/Updated landing page d/2027-04-30 f/1800.00";
-    public static final String MESSAGE_INVALID_GIG_INDEX = "The gig index provided is invalid for this client.";
     public static final String MESSAGE_NOT_EDITED = "The gig already has the specified details.";
 
     private final Index clientIndex;
@@ -62,7 +61,7 @@ public class EditGigCommand extends Command {
         Client client = clients.get(clientIndex.getZeroBased());
         List<Gig> gigs = GigOrdering.forClient(model.getGigList(), client);
         if (gigIndex.getZeroBased() >= gigs.size()) {
-            throw new CommandException(MESSAGE_INVALID_GIG_INDEX);
+            throw new CommandException(Messages.MESSAGE_INVALID_GIG_INDEX);
         }
         Gig target = gigs.get(gigIndex.getZeroBased());
         Gig replacement = target.withDetails(title.orElse(target.getTitle()),

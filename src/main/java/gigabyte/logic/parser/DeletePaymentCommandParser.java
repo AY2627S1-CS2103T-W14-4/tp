@@ -13,7 +13,8 @@ public class DeletePaymentCommandParser implements Parser<DeletePaymentCommand> 
         String trimmedArgs = args.trim();
         String[] indexes = trimmedArgs.isEmpty() ? new String[0] : trimmedArgs.split("\\s+");
         if (indexes.length != 3) {
-            throw new ParseException(String.format(MESSAGE_INVALID_COMMAND_FORMAT, DeletePaymentCommand.MESSAGE_USAGE));
+            throw new ParseException(
+                    String.format(MESSAGE_INVALID_COMMAND_FORMAT, DeletePaymentCommand.MESSAGE_USAGE));
         }
 
         try {

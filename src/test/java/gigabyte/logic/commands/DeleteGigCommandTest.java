@@ -39,7 +39,8 @@ public class DeleteGigCommandTest {
             Gig otherClientGig = model.getGigList().get(1);
             Gig target = model.getGigList().get(2);
             model.setGig(target, target.withStatus(status));
-            model.addPaymentObligation(new PaymentObligation(first, new Fee("50"), new Deadline("2099-02-28"), true));
+            model.addPaymentObligation(
+                    new PaymentObligation(first, new Fee("50"), new Deadline("2099-02-28"), true));
             PaymentObligation payment = model.getPaymentObligationList().get(0);
 
             CommandResult result = new DeleteGigCommand(FIRST, SECOND).execute(model);
@@ -68,10 +69,10 @@ public class DeleteGigCommandTest {
 
     @Test
     public void execute_paidOrUnpaidPayments_rejectsAndPreservesRecords() {
-        for (boolean paid : new boolean[] {false, true}) {
+        for (boolean isPaid : new boolean[] {false, true}) {
             ModelManager model = createModel();
             model.addPaymentObligation(new PaymentObligation(model.getGigList().get(0), new Fee("50"),
-                    new Deadline("2099-02-28"), paid));
+                    new Deadline("2099-02-28"), isPaid));
             GigabyteData before = new GigabyteData(model.getGigabyteData());
 
             assertThrows(CommandException.class, GigHasPaymentsException.MESSAGE, () ->
@@ -85,13 +86,19 @@ public class DeleteGigCommandTest {
     public void execute_invalidIndexes_rejectsWithoutChangingRecords() {
         ModelManager model = createModel();
         GigabyteData before = new GigabyteData(model.getGigabyteData());
+
+        // EP: client index beyond the displayed client list
         assertThrows(CommandException.class, Messages.MESSAGE_INVALID_CLIENT_DISPLAYED_INDEX, () ->
                 new DeleteGigCommand(THIRD, FIRST).execute(model));
-        assertThrows(CommandException.class, DeleteGigCommand.MESSAGE_INVALID_GIG_INDEX, () ->
+
+        // EP: gig index beyond the client's gigs
+        assertThrows(CommandException.class, Messages.MESSAGE_INVALID_GIG_INDEX, () ->
                 new DeleteGigCommand(FIRST, THIRD).execute(model));
-        assertThrows(CommandException.class, DeleteGigCommand.MESSAGE_INVALID_GIG_INDEX, () ->
+        assertThrows(CommandException.class, Messages.MESSAGE_INVALID_GIG_INDEX, () ->
                 new DeleteGigCommand(SECOND, SECOND).execute(model));
         assertEquals(before, model.getGigabyteData());
+
+        // EP: no clients displayed
         model.updateFilteredClientList(client -> false);
         assertThrows(CommandException.class, Messages.MESSAGE_INVALID_CLIENT_DISPLAYED_INDEX, () ->
                 new DeleteGigCommand(FIRST, FIRST).execute(model));
@@ -100,22 +107,29 @@ public class DeleteGigCommandTest {
 
     @Test
     public void constructorAndExecute_nullArguments_rejects() {
-        assertThrows(NullPointerException.class, () -> new DeleteGigCommand(null, FIRST));
-        assertThrows(NullPointerException.class, () -> new DeleteGigCommand(FIRST, null));
-        assertThrows(NullPointerException.class, () -> new DeleteGigCommand(FIRST, FIRST).execute(null));
+        assertThrows(NullPointerException.class, () -> new DeleteGigCommand(null, FIRST)); // client index
+        assertThrows(NullPointerException.class, () -> new DeleteGigCommand(FIRST, null)); // gig index
+        assertThrows(NullPointerException.class, () -> new DeleteGigCommand(FIRST, FIRST).execute(null)); // model
     }
 
     @Test
     public void equalsAndToString_useBothIndexes() {
         DeleteGigCommand command = new DeleteGigCommand(FIRST, SECOND);
+
+        // same values or same object -> returns true
         assertEquals(command, new DeleteGigCommand(FIRST, SECOND));
         assertTrue(command.equals(command));
+
+        // null or a different type -> returns false
         assertFalse(command.equals(null));
         assertFalse(command.equals("deletegig"));
+
+        // different client or gig index -> returns false
         assertFalse(command.equals(new DeleteGigCommand(SECOND, SECOND)));
         assertFalse(command.equals(new DeleteGigCommand(FIRST, FIRST)));
-        assertEquals(DeleteGigCommand.class.getCanonicalName() + "{clientIndex=" + FIRST + ", gigIndex=" + SECOND + "}",
-                command.toString());
+
+        assertEquals(DeleteGigCommand.class.getCanonicalName()
+                + "{clientIndex=" + FIRST + ", gigIndex=" + SECOND + "}", command.toString());
     }
 
     private ModelManager createModel() {

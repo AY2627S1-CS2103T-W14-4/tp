@@ -18,14 +18,15 @@ public class FeeTest {
 
     @Test
     public void constructor_invalidFee_throwsIllegalArgumentExceptionWithClearMessage() {
-        assertThrows(IllegalArgumentException.class, Fee.MESSAGE_CONSTRAINTS, () ->
-                new Fee("0"));
-        assertThrows(IllegalArgumentException.class, Fee.MESSAGE_CONSTRAINTS, () ->
-                new Fee("-10"));
-        assertThrows(IllegalArgumentException.class, Fee.MESSAGE_CONSTRAINTS, () ->
-                new Fee("10.999"));
-        assertThrows(IllegalArgumentException.class, Fee.MESSAGE_CONSTRAINTS, () ->
-                new Fee("ten dollars"));
+        // EP: zero or negative fee
+        assertThrows(IllegalArgumentException.class, Fee.MESSAGE_CONSTRAINTS, () -> new Fee("0")); // Boundary value
+        assertThrows(IllegalArgumentException.class, Fee.MESSAGE_CONSTRAINTS, () -> new Fee("-10"));
+
+        // EP: more than two decimal places
+        assertThrows(IllegalArgumentException.class, Fee.MESSAGE_CONSTRAINTS, () -> new Fee("10.999"));
+
+        // EP: not a number
+        assertThrows(IllegalArgumentException.class, Fee.MESSAGE_CONSTRAINTS, () -> new Fee("ten dollars"));
     }
 
     @Test
@@ -38,16 +39,25 @@ public class FeeTest {
 
     @Test
     public void isValidFee() {
+        // EP: null fee
         assertThrows(NullPointerException.class, () -> Fee.isValidFee(null));
 
+        // EP: empty fee
         assertFalse(Fee.isValidFee(""));
-        assertFalse(Fee.isValidFee("0"));
+
+        // EP: zero or negative fee
+        assertFalse(Fee.isValidFee("0")); // Boundary value
         assertFalse(Fee.isValidFee("-1.00"));
+
+        // EP: more than two decimal places
         assertFalse(Fee.isValidFee("1.234"));
+
+        // EP: not a plain decimal number
         assertFalse(Fee.isValidFee("$100"));
         assertFalse(Fee.isValidFee("1e3"));
 
-        assertTrue(Fee.isValidFee("0.01"));
+        // EP: positive amount with at most two decimal places, should return true
+        assertTrue(Fee.isValidFee("0.01")); // Boundary value: smallest valid fee
         assertTrue(Fee.isValidFee("100"));
         assertTrue(Fee.isValidFee("100.5"));
         assertTrue(Fee.isValidFee("100.50"));
