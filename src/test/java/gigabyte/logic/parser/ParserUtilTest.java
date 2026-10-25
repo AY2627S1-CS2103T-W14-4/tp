@@ -25,6 +25,7 @@ public class ParserUtilTest {
     private static final String INVALID_ADDRESS = " ";
     private static final String INVALID_EMAIL = "example.com";
     private static final String INVALID_TAG = "#friend";
+    private static final String TAG_OVER_LENGTH_LIMIT = "a".repeat(Tag.MAX_LENGTH + 1);
 
     private static final String VALID_NAME = "Rachel Walker";
     private static final String VALID_PHONE = "123456";
@@ -156,6 +157,17 @@ public class ParserUtilTest {
     @Test
     public void parseTag_invalidValue_throwsParseException() {
         assertThrows(ParseException.class, () -> ParserUtil.parseTag(INVALID_TAG));
+    }
+
+    @Test
+    public void parseTag_overLengthLimit_throwsParseException() {
+        assertThrows(ParseException.class, Tag.MESSAGE_CONSTRAINTS, () -> ParserUtil.parseTag(TAG_OVER_LENGTH_LIMIT));
+    }
+
+    @Test
+    public void parseTag_atLengthLimit_returnsTag() throws Exception {
+        String tagAtLimit = "a".repeat(Tag.MAX_LENGTH);
+        assertEquals(new Tag(tagAtLimit), ParserUtil.parseTag(WHITESPACE + tagAtLimit + WHITESPACE));
     }
 
     @Test

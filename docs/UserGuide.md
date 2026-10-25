@@ -94,6 +94,8 @@ Adds a client to the client list.
 
 Format: `add n/NAME p/PHONE_NUMBER e/EMAIL a/ADDRESS [t/TAG]... `
 
+* Each `TAG` must contain only letters and digits (no spaces or symbols) and be at most 25 characters long.
+
 <box type="tip" seamless>
 
 **Tip:** A client can have any number of tags, including zero.
@@ -503,6 +505,7 @@ Format: `edit INDEX [n/NAME] [p/PHONE] [e/EMAIL] [a/ADDRESS] [t/TAG]... `
 * At least one of the optional fields must be provided.
 * Existing values will be updated to the input values.
 * When editing tags, all of the client's existing tags are removed; adding tags is not cumulative.
+  Each tag follows the same rules as in [`add`](#adding-a-client-add).
 * To remove all of a client's tags, enter `t/` without a tag after it.
 
 Examples:
