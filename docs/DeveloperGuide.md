@@ -120,6 +120,11 @@ the model. Invalid indexes and clients with associated gigs are rejected; only a
 **Note:** The lifeline for `DeleteClientCommandParser` should end at the destroy marker (X), but due to a limitation of PlantUML, the lifeline continues till the end of diagram.
 </box>
 
+The following sequence diagram shows how the `findgig` command parses title keywords,
+creates a predicate, and applies the search result to the gig list displayed in the UI.
+
+<puml src="diagrams/tracing/FindGigSequenceDiagram.puml" alt="Interactions for the `findgig` Command" />
+
 
 How the `Logic` component works:
 
