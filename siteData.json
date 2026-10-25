@@ -40,6 +40,7 @@
       "title": "Developer Guide",
       "headings": {
         "gigabyte-developer-guide": "Gigabyte Developer Guide",
+        "acknowledgements": "Acknowledgements",
         "setting-up-getting-started": "Setting up, getting started",
         "design": "Design",
         "architecture": "Architecture",
@@ -50,6 +51,13 @@
         "common-classes": "Common classes",
         "implementation": "Implementation",
         "stable-client-gig-and-payment-links": "Stable client, gig, and payment links",
+        "per-client-gig-and-payment-indexes": "Per-client gig and payment indexes",
+        "editing-a-gig": "Editing a gig",
+        "deleting-linked-records-safely": "Deleting linked records safely",
+        "cross-client-gig-and-payment-views": "Cross-client gig and payment views",
+        "work-and-payment-summary": "Work and payment summary",
+        "proposed-undo-redo-feature": "[Proposed] Undo/redo feature",
+        "proposed-data-archiving": "[Proposed] Data archiving",
         "documentation-logging-testing-dev-ops": "Documentation, logging, testing, dev-ops",
         "appendix-requirements": "Appendix: Requirements",
         "product-scope": "Product scope",
@@ -68,11 +76,13 @@
         "deleting-payment-obligations": "Deleting payment obligations",
         "editing-payment-obligations": "Editing payment obligations",
         "viewing-payment-obligations": "Viewing payment obligations",
+        "viewing-the-summary": "Viewing the summary",
         "commands-after-filtering-clients": "Commands after filtering clients",
         "deleting-gigs-safely": "Deleting gigs safely",
         "deleting-a-client-with-gigs": "Deleting a client with gigs",
         "persistence-and-data-file-recovery": "Persistence and data-file recovery",
-        "complete-end-to-end-workflow": "Complete end-to-end workflow"
+        "complete-end-to-end-workflow": "Complete end-to-end workflow",
+        "appendix-effort": "Appendix: Effort"
       },
       "headingKeywords": {}
     },
