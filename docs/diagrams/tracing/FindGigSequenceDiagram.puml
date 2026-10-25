@@ -7,6 +7,7 @@ Participant ":MainWindow" as window UI_COLOR
 Participant ":LogicManager" as logic LOGIC_COLOR
 Participant ":GigabyteParser" as parser LOGIC_COLOR
 Participant ":FindGigCommandParser" as findParser LOGIC_COLOR
+Participant "predicate:GigTitleContainsKeywordsPredicate" as predicate MODEL_COLOR
 Participant "command:FindGigCommand" as command LOGIC_COLOR
 Participant ":ModelManager" as model MODEL_COLOR
 Participant ":GigListPanel" as gigPanel UI_COLOR
@@ -16,9 +17,13 @@ activate window
 window -> logic ++: execute(commandText)
 logic -> parser ++: parseCommand(commandText)
 create findParser
-parser -> findParser : parse(arguments)
+parser -> findParser : new FindGigCommandParser()
+parser -> findParser ++: parse(arguments)
+create predicate
+findParser -> predicate ++: new GigTitleContainsKeywordsPredicate(keywords)
+predicate --> findParser --: predicate
 create command
-findParser -> command ++: keywords
+findParser -> command ++: new FindGigCommand(predicate)
 command --> findParser --
 findParser --> parser --: command
 parser --> logic --: command
