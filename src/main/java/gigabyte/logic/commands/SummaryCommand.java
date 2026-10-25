@@ -67,6 +67,7 @@ public class SummaryCommand extends Command {
                 + "  Marked paid: " + paid.format();
     }
 
+    /** Returns the count and total amount of the payments that satisfy {@code isIncluded}. */
     private static PaymentTotal sumPayments(List<PaymentObligation> payments,
             Predicate<PaymentObligation> isIncluded) {
         PaymentTotal total = PaymentTotal.EMPTY;
@@ -78,6 +79,7 @@ public class SummaryCommand extends Command {
         return total;
     }
 
+    /** Returns {@code cents} as a dollar amount, e.g. {@code 123456} becomes {@code $1,234.56}. */
     private static String formatCents(BigInteger cents) {
         BigInteger whole = cents.divide(BigInteger.valueOf(100));
         BigInteger fraction = cents.remainder(BigInteger.valueOf(100)).abs();
@@ -88,10 +90,12 @@ public class SummaryCommand extends Command {
     private record PaymentTotal(long count, BigInteger cents) {
         private static final PaymentTotal EMPTY = new PaymentTotal(0, BigInteger.ZERO);
 
+        /** Returns a new total that also includes one payment of {@code amountCents}. */
         private PaymentTotal add(BigInteger amountCents) {
             return new PaymentTotal(count + 1, cents.add(amountCents));
         }
 
+        /** Returns the count followed by the dollar total in brackets, e.g. {@code 2 ($150.00)}. */
         private String format() {
             return count + " (" + formatCents(cents) + ")";
         }
