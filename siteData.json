@@ -170,35 +170,6 @@
       "headingKeywords": {}
     },
     {
-      "src": "superpowers/plans/2026-10-10-add-gig-title.md",
-      "headings": {
-        "add-gig-title-implementation-plan": "Add Gig Title Implementation Plan",
-        "global-constraints": "Global Constraints",
-        "review-focus": "Review Focus",
-        "task-1-gig-title-value-object-and-core-model": "Task 1: Gig title value object and core model",
-        "task-2-add-gig-command-and-parser": "Task 2: Add-gig command and parser",
-        "task-3-json-persistence-and-format-validation": "Task 3: JSON persistence and format validation",
-        "task-4-ui-sample-data-and-user-guide": "Task 4: UI, sample data, and User Guide",
-        "task-5-end-to-end-verification": "Task 5: End-to-end verification"
-      },
-      "headingKeywords": {}
-    },
-    {
-      "src": "superpowers/specs/2026-10-10-add-gig-title-design.md",
-      "headings": {
-        "add-a-title-to-every-gig-design": "Add a Title to Every Gig — Design",
-        "purpose": "Purpose",
-        "domain-model": "Domain model",
-        "command-and-parsing": "Command and parsing",
-        "storage-validation": "Storage validation",
-        "ui-and-sample-data": "UI and sample data",
-        "course-constraint-compliance": "Course-constraint compliance",
-        "testing": "Testing",
-        "out-of-scope": "Out of scope"
-      },
-      "headingKeywords": {}
-    },
-    {
       "src": "team/ApproxNeo.md",
       "title": "Clement's Project Portfolio Page",
       "headings": {
