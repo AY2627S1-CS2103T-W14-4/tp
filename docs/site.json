@@ -16,7 +16,7 @@
     ".git/*",
     "node_modules/*"
   ],
-  "pagesExclude": ["node_modules/*"],
+  "pagesExclude": ["node_modules/*", "superpowers/**"],
   "pages": [
     {
       "glob": ["**/index.md", "**/*.md"]

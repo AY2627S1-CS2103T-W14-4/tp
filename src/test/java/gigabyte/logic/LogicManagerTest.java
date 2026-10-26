@@ -1,6 +1,7 @@
 package gigabyte.logic;
 
 import static gigabyte.logic.Messages.MESSAGE_INVALID_CLIENT_DISPLAYED_INDEX;
+import static gigabyte.logic.Messages.MESSAGE_INVALID_COMMAND_FORMAT;
 import static gigabyte.logic.Messages.MESSAGE_UNKNOWN_COMMAND;
 import static gigabyte.logic.commands.CommandTestUtil.ADDRESS_DESC_AMY;
 import static gigabyte.logic.commands.CommandTestUtil.EMAIL_DESC_AMY;
@@ -10,22 +11,30 @@ import static gigabyte.testutil.Assert.assertThrows;
 import static gigabyte.testutil.TypicalClients.ALICE;
 import static gigabyte.testutil.TypicalClients.AMY;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
 import java.nio.file.AccessDeniedException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 import gigabyte.logic.commands.AddClientCommand;
-import gigabyte.logic.commands.AddPaymentCommand;
 import gigabyte.logic.commands.CommandResult;
+import gigabyte.logic.commands.DeleteGigCommand;
+import gigabyte.logic.commands.DeletePaymentCommand;
+import gigabyte.logic.commands.EditGigCommand;
 import gigabyte.logic.commands.ListClientsCommand;
+import gigabyte.logic.commands.OutstandingCommand;
+import gigabyte.logic.commands.SetGigStatusCommand;
 import gigabyte.logic.commands.exceptions.CommandException;
+import gigabyte.logic.parser.CliSyntax;
 import gigabyte.logic.parser.exceptions.ParseException;
 import gigabyte.model.GigabyteData;
 import gigabyte.model.Model;
@@ -38,6 +47,8 @@ import gigabyte.model.gig.Fee;
 import gigabyte.model.gig.Gig;
 import gigabyte.model.gig.GigStatus;
 import gigabyte.model.gig.GigTitle;
+import gigabyte.model.gig.PaymentObligation;
+import gigabyte.model.gig.exceptions.GigHasPaymentsException;
 import gigabyte.storage.JsonGigabyteDataStorage;
 import gigabyte.storage.JsonUserPrefsStorage;
 import gigabyte.storage.StorageManager;
@@ -48,7 +59,7 @@ public class LogicManagerTest {
     private static final IOException DUMMY_AD_EXCEPTION = new AccessDeniedException("dummy access denied exception");
 
     @TempDir
-    public Path temporaryFolder;
+    Path temporaryFolder;
 
     private Model model = new ModelManager();
     private Logic logic;
@@ -88,6 +99,41 @@ public class LogicManagerTest {
     public void execute_validCommand_success() throws Exception {
         String listCommand = ListClientsCommand.COMMAND_WORD;
         assertCommandSuccess(listCommand, ListClientsCommand.MESSAGE_SUCCESS, model);
+    }
+
+    @Test
+    public void execute_outstanding_preservesRecordsAndRejectsArguments() throws Exception {
+        model.addClient(ALICE);
+        logic.execute("addgig 1 t/Website s/IN_PROGRESS d/2027-01-31 f/100");
+        logic.execute("addpayment 1 1 a/50 d/2027-02-28");
+        GigabyteData before = new GigabyteData(model.getGigabyteData());
+        Path path = temporaryFolder.resolve("gigabyteData.json");
+        String savedData = Files.readString(path);
+
+        assertEquals(CommandResult.forOutstandingPayments("1 outstanding payment obligation."),
+                logic.execute("outstanding"));
+        assertEquals(before, model.getGigabyteData());
+        assertEquals(savedData, Files.readString(path));
+        assertParseException("outstanding extra", String.format(Messages.MESSAGE_INVALID_COMMAND_FORMAT,
+                OutstandingCommand.MESSAGE_USAGE));
+        assertEquals(savedData, Files.readString(path));
+    }
+
+    @Test
+    public void execute_filterGigs_invalidInputPreservesRecordsAndSavedFile() throws Exception {
+        model.addClient(ALICE);
+        model.addGig(new Gig(ALICE, new GigTitle("Website"), GigStatus.IN_PROGRESS,
+                new Deadline("2027-01-31"), new Fee("100")));
+        logic.execute("addpayment 1 1 a/50 d/2027-02-28");
+        GigabyteData before = new GigabyteData(model.getGigabyteData());
+        Path path = temporaryFolder.resolve("gigabyteData.json");
+        String savedData = Files.readString(path);
+
+        assertEquals(GigStatus.IN_PROGRESS, logic.execute("gigs s/in_progress").getGigStatusFilter());
+        assertEquals(before, model.getGigabyteData());
+        assertEquals(savedData, Files.readString(path));
+        assertParseException("gigs s/WAITING", GigStatus.MESSAGE_CONSTRAINTS);
+        assertEquals(savedData, Files.readString(path));
     }
 
     @Test
@@ -134,7 +180,7 @@ public class LogicManagerTest {
         assertParseException("addpayment 1 1 a/0 d/2027-02-28", Fee.MESSAGE_CONSTRAINTS);
         assertParseException("addpayment 1 1 a/50 d/2027-02-29", Deadline.MESSAGE_CONSTRAINTS);
         assertCommandException("addpayment 2 1 a/50 d/2027-02-28", MESSAGE_INVALID_CLIENT_DISPLAYED_INDEX);
-        assertCommandException("addpayment 1 2 a/50 d/2027-02-28", AddPaymentCommand.MESSAGE_INVALID_GIG_INDEX);
+        assertCommandException("addpayment 1 2 a/50 d/2027-02-28", Messages.MESSAGE_INVALID_GIG_INDEX);
         assertEquals(before, model.getGigabyteData());
         assertEquals(savedData, Files.readString(path));
 
@@ -142,6 +188,293 @@ public class LogicManagerTest {
         ReadOnlyGigabyteData restored = new JsonGigabyteDataStorage(path).readGigabyteData().orElseThrow();
         assertEquals(before, new GigabyteData(restored));
         assertSame(restored.getGigList().get(0), restored.getPaymentObligationList().get(0).getGig());
+    }
+
+    @Test
+    public void execute_markPaid_savesPaidStateForReload() throws Exception {
+        model.addClient(ALICE);
+        model.addGig(new Gig(ALICE, new GigTitle("Website redesign"), GigStatus.IN_PROGRESS,
+                new Deadline("2027-01-31"), new Fee("100")));
+        logic.execute("addpayment 1 1 a/50.25 d/2027-02-28");
+
+        CommandResult result = logic.execute("markpaid 1 1 1");
+
+        assertEquals("Marked payment obligation for Alice Pauline, gig 1, payment 1 as paid: Amount: 50.25; "
+                + "Due date: 2027-02-28", result.getFeedbackToUser());
+        assertTrue(model.getPaymentObligationList().get(0).isPaid());
+        ReadOnlyGigabyteData restored = new JsonGigabyteDataStorage(temporaryFolder.resolve("gigabyteData.json"))
+                .readGigabyteData().orElseThrow();
+        assertTrue(restored.getPaymentObligationList().get(0).isPaid());
+        assertEquals(model.getGigabyteData(), new GigabyteData(restored));
+    }
+
+    @Test
+    public void execute_markUnpaid_savesUnpaidStateForReload() throws Exception {
+        model.addClient(ALICE);
+        model.addGig(new Gig(ALICE, new GigTitle("Website redesign"), GigStatus.IN_PROGRESS,
+                new Deadline("2027-01-31"), new Fee("100")));
+        logic.execute("addpayment 1 1 a/50.25 d/2027-02-28");
+        logic.execute("markpaid 1 1 1");
+
+        CommandResult result = logic.execute("markunpaid 1 1 1");
+
+        assertEquals("Marked payment obligation for Alice Pauline, gig 1, payment 1 as unpaid: Amount: 50.25; "
+                + "Due date: 2027-02-28", result.getFeedbackToUser());
+        PaymentObligation payment = model.getPaymentObligationList().get(0);
+        assertFalse(payment.isPaid());
+        assertEquals(new Fee("50.25"), payment.getAmount());
+        assertEquals(new Deadline("2027-02-28"), payment.getDueDate());
+        assertSame(model.getGigList().get(0), payment.getGig());
+        ReadOnlyGigabyteData restored = new JsonGigabyteDataStorage(temporaryFolder.resolve("gigabyteData.json"))
+                .readGigabyteData().orElseThrow();
+        PaymentObligation restoredPayment = restored.getPaymentObligationList().get(0);
+        assertFalse(restoredPayment.isPaid());
+        assertEquals(payment, restoredPayment);
+        assertSame(restored.getGigList().get(0), restoredPayment.getGig());
+    }
+
+    @Test
+    public void execute_deleteGig_persistsExactDeletionAndPreservesOtherPaymentsAcrossRestart() throws Exception {
+        model.addClient(ALICE);
+        String command = "addgig 1 t/Website s/IN_PROGRESS d/2099-01-31 f/100";
+        logic.execute(command);
+        logic.execute(command);
+        logic.execute("addpayment 1 1 a/50 d/2099-02-28");
+        Gig survivor = model.getGigList().get(0);
+        Gig removed = model.getGigList().get(1);
+        Path path = temporaryFolder.resolve("gigabyteData.json");
+        String saved = Files.readString(path);
+        for (String invalid : new String[] {"", "1", "1 2 3", "0 1", "1 -1", "1 abc", "2147483648 1"}) {
+            assertParseException("deletegig " + invalid,
+                    String.format(MESSAGE_INVALID_COMMAND_FORMAT, DeleteGigCommand.MESSAGE_USAGE));
+            assertEquals(saved, Files.readString(path));
+        }
+        assertCommandException("deletegig 2 1", MESSAGE_INVALID_CLIENT_DISPLAYED_INDEX);
+        assertCommandException("deletegig 1 3", Messages.MESSAGE_INVALID_GIG_INDEX);
+        for (int attempt = 0; attempt < 2; attempt++) {
+            assertCommandException("deletegig 1 1", GigHasPaymentsException.MESSAGE);
+            assertEquals(saved, Files.readString(path));
+            if (attempt == 0) {
+                logic.execute("markpaid 1 1 1");
+                saved = Files.readString(path);
+            }
+        }
+
+        logic.execute("deletegig 1 2");
+
+        ReadOnlyGigabyteData restored = new JsonGigabyteDataStorage(path).readGigabyteData().orElseThrow();
+        assertEquals(1, restored.getGigList().size());
+        assertEquals(survivor.getUid(), restored.getGigList().get(0).getUid());
+        assertFalse(restored.getGigList().stream().anyMatch(gig -> gig.hasSameUid(removed)));
+        assertEquals(1, restored.getClientList().size());
+        assertTrue(restored.getPaymentObligationList().get(0).isPaid());
+        assertSame(restored.getGigList().get(0), restored.getPaymentObligationList().get(0).getGig());
+        Model restarted = new ModelManager(restored, new UserPrefs());
+        assertThrows(GigHasPaymentsException.class, () -> restarted.deleteGig(restarted.getGigList().get(0)));
+    }
+
+    @Test
+    public void execute_deletePayment_unblocksGigDeletionOnlyAfterAllPaymentsAreRemoved() throws Exception {
+        model.addClient(ALICE);
+        String command = "addgig 1 t/Website s/IN_PROGRESS d/2099-01-31 f/100";
+        logic.execute(command);
+        logic.execute(command);
+        logic.execute("addpayment 1 1 a/75 d/2099-03-31");
+        logic.execute("addpayment 1 2 a/50 d/2099-02-28");
+        logic.execute("addpayment 1 2 a/50 d/2099-02-28");
+        logic.execute("markpaid 1 2 1");
+        Gig survivor = model.getGigList().get(0);
+        Gig target = model.getGigList().get(1);
+        PaymentObligation otherPayment = model.getPaymentObligationList().get(0);
+        assertCommandException("deletegig 1 2", GigHasPaymentsException.MESSAGE);
+
+        CommandResult paidDeletion = logic.execute("deletepayment 1 2 1");
+        assertTrue(paidDeletion.getFeedbackToUser().endsWith("Previous state: PAID"));
+        assertCommandException("deletegig 1 2", GigHasPaymentsException.MESSAGE);
+        CommandResult unpaidDeletion = logic.execute("deletepayment 1 2 1");
+        assertTrue(unpaidDeletion.getFeedbackToUser().endsWith("Previous state: UNPAID"));
+        assertSame(target, model.getGigList().get(1));
+
+        logic.execute("deletegig 1 2");
+
+        assertEquals(1, model.getGigList().size());
+        assertSame(survivor, model.getGigList().get(0));
+        assertSame(otherPayment, model.getPaymentObligationList().get(0));
+        ReadOnlyGigabyteData restored = new JsonGigabyteDataStorage(temporaryFolder.resolve("gigabyteData.json"))
+                .readGigabyteData().orElseThrow();
+        assertEquals(1, restored.getGigList().size());
+        assertEquals(survivor.getUid(), restored.getGigList().get(0).getUid());
+        assertEquals(List.of(otherPayment), restored.getPaymentObligationList());
+        assertSame(restored.getGigList().get(0), restored.getPaymentObligationList().get(0).getGig());
+        assertEquals(List.of(ALICE), restored.getClientList());
+    }
+
+    @Test
+    public void execute_deletePayment_savesDeletionAndRemainingOrderAcrossRestart() throws Exception {
+        model.addClient(ALICE);
+        logic.execute("addgig 1 t/Website s/IN_PROGRESS d/2099-01-31 f/100");
+        logic.execute("addpayment 1 1 a/75 d/2099-03-31");
+        logic.execute("addpayment 1 1 a/50 d/2099-02-28");
+        logic.execute("addpayment 1 1 a/50 d/2099-02-28");
+        logic.execute("addpayment 1 1 a/25 d/2000-01-01");
+        logic.execute("markpaid 1 1 1");
+
+        logic.execute("deletepayment 1 1 3");
+        logic.execute("deletepayment 1 1 1");
+
+        Path path = temporaryFolder.resolve("gigabyteData.json");
+        JsonGigabyteDataStorage storage = new JsonGigabyteDataStorage(path);
+        Model restarted = new ModelManager(storage.readGigabyteData().orElseThrow(), new UserPrefs());
+        assertEquals(model.getGigabyteData(), restarted.getGigabyteData());
+        assertEquals(List.of(new Fee("75"), new Fee("50")), restarted.getPaymentObligationList().stream()
+                .map(payment -> payment.getAmount()).toList());
+        assertSame(restarted.getGigList().get(0), restarted.getPaymentObligationList().get(0).getGig());
+        assertSame(restarted.getGigList().get(0), restarted.getPaymentObligationList().get(1).getGig());
+        assertEquals(model.getGigList().get(0).getUid(), restarted.getGigList().get(0).getUid());
+
+        Logic restartedLogic = new LogicManager(restarted, new StorageManager(storage,
+                new JsonUserPrefsStorage(temporaryFolder.resolve("userPrefs.json"))));
+        restartedLogic.execute("deletepayment 1 1 1");
+        restartedLogic.execute("deletepayment 1 1 1");
+
+        ReadOnlyGigabyteData restored = storage.readGigabyteData().orElseThrow();
+        assertTrue(restored.getPaymentObligationList().isEmpty());
+        assertEquals(restarted.getGigabyteData(), restored);
+        assertEquals(model.getGigabyteData().getClientList(), restored.getClientList());
+        assertEquals(model.getGigList(), restored.getGigList());
+    }
+
+    @Test
+    public void execute_deletePayment_invalidInputLeavesDataAndFileUnchanged() throws Exception {
+        model.addClient(ALICE);
+        logic.execute("addgig 1 t/Website s/IN_PROGRESS d/2099-01-31 f/100");
+        logic.execute("addpayment 1 1 a/50 d/2099-02-28");
+        GigabyteData before = new GigabyteData(model.getGigabyteData());
+        Path path = temporaryFolder.resolve("gigabyteData.json");
+        String savedData = Files.readString(path);
+        String usage = String.format(MESSAGE_INVALID_COMMAND_FORMAT, DeletePaymentCommand.MESSAGE_USAGE);
+
+        for (String args : new String[] {"", "1 1", "1 1 1 1", "0 1 1", "1 -1 1", "1 1 abc"}) {
+            assertParseException("deletepayment " + args, usage);
+            assertEquals(savedData, Files.readString(path));
+        }
+        assertCommandException("deletepayment 2 1 1", MESSAGE_INVALID_CLIENT_DISPLAYED_INDEX);
+        assertCommandException("deletepayment 1 2 1", Messages.MESSAGE_INVALID_GIG_INDEX);
+        assertCommandException("deletepayment 1 1 2", Messages.MESSAGE_INVALID_PAYMENT_INDEX);
+
+        assertEquals(before, model.getGigabyteData());
+        assertEquals(savedData, Files.readString(path));
+    }
+
+    @Test
+    public void execute_editPayment_savesEditedDetailsForReload() throws Exception {
+        model.addClient(ALICE);
+        model.addGig(new Gig(ALICE, new GigTitle("Website redesign"), GigStatus.IN_PROGRESS,
+                new Deadline("2027-01-31"), new Fee("100")));
+        logic.execute("addpayment 1 1 a/50.25 d/2027-02-28");
+        logic.execute("markpaid 1 1 1");
+
+        CommandResult result = logic.execute("editpayment 1 1 1 a/650 d/2027-05-15");
+
+        assertEquals("Edited payment obligation for Alice Pauline, gig 1, payment 1: Amount: 650.00; "
+                + "Due date: 2027-05-15", result.getFeedbackToUser());
+        assertEquals(new Fee("650"), model.getPaymentObligationList().get(0).getAmount());
+        assertEquals(new Deadline("2027-05-15"), model.getPaymentObligationList().get(0).getDueDate());
+        assertTrue(model.getPaymentObligationList().get(0).isPaid());
+        ReadOnlyGigabyteData restored = new JsonGigabyteDataStorage(temporaryFolder.resolve("gigabyteData.json"))
+                .readGigabyteData().orElseThrow();
+        assertEquals(model.getGigabyteData(), new GigabyteData(restored));
+        assertTrue(restored.getPaymentObligationList().get(0).isPaid());
+        assertSame(restored.getGigList().get(0), restored.getPaymentObligationList().get(0).getGig());
+    }
+
+    @Test
+    public void execute_editGig_rejectsInvalidEditsAtomicallyAndPersistsLinkedPayments() throws Exception {
+        model.addClient(ALICE);
+        logic.execute("addgig 1 t/Website s/IN_PROGRESS d/2027-01-31 f/100");
+        logic.execute("addpayment 1 1 a/50 d/2027-02-28");
+        logic.execute("markpaid 1 1 1");
+        logic.execute("addpayment 1 1 a/25 d/2027-03-31");
+        Gig original = model.getGigList().get(0);
+        GigabyteData before = new GigabyteData(model.getGigabyteData());
+        Path path = temporaryFolder.resolve("gigabyteData.json");
+        String saved = Files.readString(path);
+
+        assertParseException("editgig 1 1 t/Updated d/2027-02-29", Deadline.MESSAGE_CONSTRAINTS);
+        assertParseException("editgig 1 1 t/Updated f/0", Fee.MESSAGE_CONSTRAINTS);
+        assertParseException("editgig 1 1 t/Updated s/COMPLETED",
+                String.format(MESSAGE_INVALID_COMMAND_FORMAT, EditGigCommand.MESSAGE_USAGE));
+        assertCommandException("editgig 9 1 t/Updated", MESSAGE_INVALID_CLIENT_DISPLAYED_INDEX);
+        assertCommandException("editgig 1 9 t/Updated", Messages.MESSAGE_INVALID_GIG_INDEX);
+        assertCommandException("editgig 1 1 t/ Website f/100.00", EditGigCommand.MESSAGE_NOT_EDITED);
+        assertEquals(before, model.getGigabyteData());
+        assertEquals(saved, Files.readString(path));
+
+        logic.execute("editgig 1 1 t/ Updated website d/2027-04-30 f/1800");
+        ReadOnlyGigabyteData restored = new JsonGigabyteDataStorage(path).readGigabyteData().orElseThrow();
+        assertEquals(model.getGigabyteData(), new GigabyteData(restored));
+        Gig edited = restored.getGigList().get(0);
+        assertEquals(original.getUid(), edited.getUid());
+        assertEquals(original.getStatus(), edited.getStatus());
+        assertEquals(new GigTitle("Updated website"), edited.getTitle());
+        assertEquals(new Deadline("2027-04-30"), edited.getDeadline());
+        assertEquals(new Fee("1800"), edited.getAgreedFee());
+        assertSame(edited, restored.getPaymentObligationList().get(0).getGig());
+        assertSame(edited, restored.getPaymentObligationList().get(1).getGig());
+        assertTrue(restored.getPaymentObligationList().get(0).isPaid());
+        assertFalse(restored.getPaymentObligationList().get(1).isPaid());
+    }
+
+    @Test
+    public void execute_setGigStatus_usesFilteredClientsAndPersistsStatusAndPaymentLink() throws Exception {
+        model.addClient(ALICE);
+        model.addClient(AMY);
+        model.addGig(new Gig(ALICE, new GigTitle("Website"), GigStatus.NOT_STARTED,
+                new Deadline("2027-01-31"), new Fee("100")));
+        model.addGig(new Gig(AMY, new GigTitle("Logo"), GigStatus.IN_PROGRESS,
+                new Deadline("2027-02-28"), new Fee("200")));
+        logic.execute("addpayment 2 1 a/50 d/2027-03-31");
+        logic.execute("find Amy");
+        Gig targetGig = model.getGigList().get(1);
+
+        CommandResult result = logic.execute("setstatus 1 1 s/cOmPlEtEd");
+
+        assertEquals(GigStatus.COMPLETED, model.getGigList().get(1).getStatus());
+        assertEquals(targetGig.getUid(), model.getGigList().get(1).getUid());
+        assertSame(model.getGigList().get(1), model.getPaymentObligationList().get(0).getGig());
+        assertEquals(String.format(SetGigStatusCommand.MESSAGE_SUCCESS, AMY.getName(), 1, GigStatus.COMPLETED),
+                result.getFeedbackToUser());
+
+        Path path = temporaryFolder.resolve("gigabyteData.json");
+        ReadOnlyGigabyteData restored = new JsonGigabyteDataStorage(path).readGigabyteData().orElseThrow();
+        assertEquals(GigStatus.COMPLETED, restored.getGigList().get(1).getStatus());
+        assertEquals(model.getGigabyteData(), new GigabyteData(restored));
+        assertSame(restored.getGigList().get(1), restored.getPaymentObligationList().get(0).getGig());
+    }
+
+    @Test
+    public void execute_setGigStatus_invalidInputLeavesClientsGigsPaymentsAndFileUnchanged() throws Exception {
+        model.addClient(ALICE);
+        model.addGig(new Gig(ALICE, new GigTitle("Website"), GigStatus.IN_PROGRESS,
+                new Deadline("2027-01-31"), new Fee("100")));
+        logic.execute("addpayment 1 1 a/50 d/2027-02-28");
+        GigabyteData before = new GigabyteData(model.getGigabyteData());
+        Path path = temporaryFolder.resolve("gigabyteData.json");
+        String savedData = Files.readString(path);
+        String usage = String.format(MESSAGE_INVALID_COMMAND_FORMAT, SetGigStatusCommand.MESSAGE_USAGE);
+
+        assertParseException("setstatus 1 1", usage);
+        assertParseException("setstatus 1 1 s/WAITING", GigStatus.MESSAGE_CONSTRAINTS);
+        assertParseException("setstatus 1 1 s/COMPLETED s/NOT_STARTED",
+                Messages.getErrorMessageForDuplicatePrefixes(CliSyntax.PREFIX_STATUS));
+        assertParseException("setstatus 1 1 2 s/COMPLETED", usage);
+        assertCommandException("setstatus 2 1 s/COMPLETED", MESSAGE_INVALID_CLIENT_DISPLAYED_INDEX);
+        assertCommandException("setstatus 1 2 s/COMPLETED", Messages.MESSAGE_INVALID_GIG_INDEX);
+        assertCommandException("setstatus 1 1 s/IN_PROGRESS",
+                SetGigStatusCommand.MESSAGE_STATUS_UNCHANGED.formatted(GigStatus.IN_PROGRESS));
+
+        assertEquals(before, model.getGigabyteData());
+        assertEquals(savedData, Files.readString(path));
     }
 
     @Test

@@ -7,6 +7,7 @@ import java.util.Locale;
 
 import gigabyte.model.gig.Gig;
 import gigabyte.model.gig.PaymentObligation;
+import gigabyte.model.gig.PaymentObligationOrdering;
 import javafx.animation.PauseTransition;
 import javafx.application.Platform;
 import javafx.collections.ObservableList;
@@ -19,7 +20,9 @@ import javafx.scene.control.ListView;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.Region;
 
-/** Panel displaying payment obligations for the selected gig. */
+/**
+ * Panel displaying payments for a selected gig or unpaid payments across all clients.
+ */
 public class PaymentObligationListPanel extends UiPart<Region> {
     private static final String FXML = "PaymentObligationListPanel.fxml";
     private static final String NO_GIG = "Select a gig to view its payment obligations.";
@@ -34,6 +37,7 @@ public class PaymentObligationListPanel extends UiPart<Region> {
     private final Clock clock;
     private final PauseTransition paymentStateRefreshTimer = new PauseTransition();
     private Gig selectedGig;
+    private boolean isShowingOutstanding;
 
     @FXML
     private Label emptyState;
@@ -52,7 +56,8 @@ public class PaymentObligationListPanel extends UiPart<Region> {
         this.paymentObligations = paymentObligations;
         this.clock = clock;
         filteredPayments = new FilteredList<>(paymentObligations, payment -> false);
-        sortedPayments = new SortedList<>(filteredPayments, this::comparePayments);
+        sortedPayments = new SortedList<>(filteredPayments,
+                PaymentObligationOrdering.forSourceList(paymentObligations));
         paymentListView.setItems(sortedPayments);
         paymentListView.setCellFactory(unused -> createPaymentCell());
         sortedPayments.addListener((javafx.collections.ListChangeListener<PaymentObligation>) change ->
@@ -63,14 +68,27 @@ public class PaymentObligationListPanel extends UiPart<Region> {
 
     /** Displays only the payment obligations belonging to {@code gig}. */
     public void showPaymentsFor(Gig gig) {
+        paymentListView.getSelectionModel().clearSelection();
         selectedGig = gig;
+        isShowingOutstanding = false;
         filteredPayments.setPredicate(payment -> isPaymentForGig(payment, gig));
+        updateEmptyState();
+    }
+
+    /**
+     * Displays unpaid obligations across all gigs in due-date and source-list order.
+     */
+    public void showOutstandingPayments() {
+        paymentListView.getSelectionModel().clearSelection();
+        selectedGig = null;
+        isShowingOutstanding = true;
+        filteredPayments.setPredicate(payment -> !payment.isPaid());
         updateEmptyState();
     }
 
     /** Returns whether {@code payment} belongs to {@code gig}. */
     static boolean isPaymentForGig(PaymentObligation payment, Gig gig) {
-        return gig != null && payment.getGig().hasSameUid(gig);
+        return PaymentObligationOrdering.isForGig(payment, gig);
     }
 
     /** Returns the payment list displayed by this panel. */
@@ -88,26 +106,6 @@ public class PaymentObligationListPanel extends UiPart<Region> {
         paymentListView.refresh();
     }
 
-    /** Compares payments by due date and then by their stable source-list order. */
-    private int comparePayments(PaymentObligation firstPayment, PaymentObligation secondPayment) {
-        int dueDateComparison = firstPayment.getDueDate().getValue()
-                .compareTo(secondPayment.getDueDate().getValue());
-        if (dueDateComparison != 0) {
-            return dueDateComparison;
-        }
-        return Integer.compare(getSourceIndex(firstPayment), getSourceIndex(secondPayment));
-    }
-
-    /** Returns the identity-based position of {@code payment} in the source list. */
-    private int getSourceIndex(PaymentObligation payment) {
-        for (int index = 0; index < paymentObligations.size(); index++) {
-            if (paymentObligations.get(index) == payment) {
-                return index;
-            }
-        }
-        return Integer.MAX_VALUE;
-    }
-
     /** Creates a list cell that derives its text and visual state from the displayed payment. */
     private ListCell<PaymentObligation> createPaymentCell() {
         ListCell<PaymentObligation> cell = new ListCell<>() {
@@ -121,8 +119,9 @@ public class PaymentObligationListPanel extends UiPart<Region> {
                 }
 
                 String displayState = getDisplayState(payment);
-                setText(String.format("%d. Amount: $%s    Due: %s    %s",
-                        getIndex() + 1, payment.getAmount(), payment.getDueDate(), displayState));
+                setText(String.format("%d. Amount: $%s    Due: %s    %s%nClient: %s%nGig: %s",
+                        getIndex() + 1, payment.getAmount(), payment.getDueDate(), displayState,
+                        payment.getGig().getClient().getName(), payment.getGig().getTitle()));
                 getStyleClass().add("payment-" + displayState.toLowerCase(Locale.ROOT));
             }
         };
@@ -154,6 +153,10 @@ public class PaymentObligationListPanel extends UiPart<Region> {
     }
 
     private void updateEmptyState() {
+        if (isShowingOutstanding) {
+            emptyState.setText(sortedPayments.isEmpty() ? "No outstanding payment obligations." : "");
+            return;
+        }
         emptyState.setText(selectedGig == null ? NO_GIG : (sortedPayments.isEmpty() ? NO_PAYMENTS : ""));
     }
 }

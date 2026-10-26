@@ -9,10 +9,8 @@ import static gigabyte.testutil.TypicalClients.getTypicalGigabyteData;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertSame;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
@@ -37,7 +35,7 @@ public class JsonGigabyteDataStorageTest {
     private static final GigTitle LOGO_TITLE = new GigTitle("Logo design");
 
     @TempDir
-    public Path testFolder;
+    Path testFolder;
 
     @Test
     public void readGigabyteData_nullFilePath_throwsNullPointerException() {
@@ -163,16 +161,28 @@ public class JsonGigabyteDataStorageTest {
     }
 
     @Test
-    public void readLegacyGigWithoutTitle_thenSave_writesUntitledFallback() throws Exception {
-        ReadOnlyGigabyteData legacyData = readGigabyteData("legacyGigsWithoutTitlesGigabyteData.json")
-                .orElseThrow();
-        assertEquals(1, legacyData.getGigList().size());
-        assertEquals(GigTitle.UNTITLED, legacyData.getGigList().get(0).getTitle());
+    public void readAndSave_updatedGigStatus_preservesUpdatedGigAndPaymentLink() throws Exception {
+        GigabyteData original = new GigabyteData();
+        original.addClient(ALICE);
+        original.addGig(new Gig(ALICE, WEBSITE_TITLE, GigStatus.NOT_STARTED,
+                new Deadline("2027-01-31"), new Fee("1250.50")));
+        Gig existingGig = original.getGigList().get(0);
+        original.addPaymentObligation(new PaymentObligation(existingGig, new Fee("500"),
+                new Deadline("2027-02-28"), false));
+        original.setGig(existingGig, existingGig.withStatus(GigStatus.COMPLETED));
 
-        Path migratedFile = testFolder.resolve("migrated.json");
-        new JsonGigabyteDataStorage(migratedFile).saveGigabyteData(legacyData);
+        JsonGigabyteDataStorage storage = new JsonGigabyteDataStorage(testFolder.resolve("updated-status.json"));
+        storage.saveGigabyteData(original);
+        ReadOnlyGigabyteData restored = storage.readGigabyteData().orElseThrow();
 
-        assertTrue(Files.readString(migratedFile).contains("\"title\" : \"Untitled gig\""));
+        assertEquals(GigStatus.COMPLETED, restored.getGigList().get(0).getStatus());
+        assertEquals(original, new GigabyteData(restored));
+        assertSame(restored.getGigList().get(0), restored.getPaymentObligationList().get(0).getGig());
+    }
+
+    @Test
+    public void readLegacyGigWithoutTitle_throwsDataLoadingException() {
+        assertThrows(DataLoadingException.class, () -> readGigabyteData("legacyGigsWithoutTitlesGigabyteData.json"));
     }
 
     /**

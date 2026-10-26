@@ -11,7 +11,6 @@ import gigabyte.logic.Logic;
 import gigabyte.logic.commands.CommandResult;
 import gigabyte.logic.commands.exceptions.CommandException;
 import gigabyte.logic.parser.exceptions.ParseException;
-import javafx.application.Platform;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.geometry.Rectangle2D;
@@ -129,18 +128,12 @@ public class MainWindow extends UiPart<Stage> {
     void fillInnerParts() {
         CommandBox commandBox = new CommandBox(this::executeCommand);
         commandBoxPlaceholder.getChildren().add(commandBox.getRoot());
-        Runnable requestCommandBoxFocus = () -> Platform.runLater(() ->
-                commandBox.getRoot().lookup("#commandTextField").requestFocus());
 
         paymentObligationListPanel = new PaymentObligationListPanel(logic.getPaymentObligationList());
-        gigListPanel = new GigListPanel(logic.getGigList(), gig -> {
-            paymentObligationListPanel.showPaymentsFor(gig);
-            requestCommandBoxFocus.run();
-        });
+        gigListPanel = new GigListPanel(logic.getGigList(), paymentObligationListPanel::showPaymentsFor);
         clientListPanel = new ClientListPanel(logic.getFilteredClientList(), client -> {
             gigListPanel.showGigsFor(client);
             paymentObligationListPanel.showPaymentsFor(null);
-            requestCommandBoxFocus.run();
         });
         clientListPanelPlaceholder.getChildren().add(clientListPanel.getRoot());
         gigListPanelPlaceholder.getChildren().add(gigListPanel.getRoot());
@@ -152,6 +145,10 @@ public class MainWindow extends UiPart<Stage> {
         StatusBarFooter statusBarFooter = new StatusBarFooter(dataFilePath);
         statusbarPlaceholder.getChildren().add(statusBarFooter.getRoot());
 
+        ListNavigationController navigation = new ListNavigationController(
+                clientListPanel.getClientListView(), gigListPanel.getGigListView(),
+                paymentObligationListPanel.getPaymentListView(), commandBox);
+        navigation.install(primaryStage.getScene());
     }
 
     /**
@@ -257,12 +254,14 @@ public class MainWindow extends UiPart<Stage> {
             CommandResult commandResult = logic.execute(commandText);
             logger.info("Result: " + commandResult.getFeedbackToUser());
             resultDisplay.setFeedbackToUser(commandResult.getFeedbackToUser());
+            paymentObligationListPanel.refreshPaymentStates();
+            showRequestedView(commandResult);
 
-            if (commandResult.isShowHelp()) {
+            if (commandResult.shouldShowHelp()) {
                 handleHelp();
             }
 
-            if (commandResult.isExit()) {
+            if (commandResult.shouldExit()) {
                 handleExit();
             }
 
@@ -271,6 +270,36 @@ public class MainWindow extends UiPart<Stage> {
             logger.info("An error occurred while executing command: " + commandText);
             resultDisplay.setFeedbackToUser(e.getMessage());
             throw e;
+        }
+    }
+
+    /**
+     * Switches the client, gig, and payment lists to the view requested by {@code commandResult}, if any.
+     */
+    private void showRequestedView(CommandResult commandResult) {
+        if (commandResult.getGigStatusFilter() != null) {
+            // Clear the selection so clicking the same client restores their gigs too.
+            clientListPanel.getClientListView().getSelectionModel().clearSelection();
+            gigListPanel.showGigsWithStatus(commandResult.getGigStatusFilter());
+            paymentObligationListPanel.showPaymentsFor(null);
+        }
+
+        if (commandResult.getGigTitleSearch() != null) {
+            clientListPanel.getClientListView().getSelectionModel().clearSelection();
+            gigListPanel.showGigsMatchingTitle(commandResult.getGigTitleSearch());
+            paymentObligationListPanel.showPaymentsFor(null);
+        }
+
+        if (commandResult.shouldShowOutstandingPayments()) {
+            clientListPanel.getClientListView().getSelectionModel().clearSelection();
+            gigListPanel.getGigListView().getSelectionModel().clearSelection();
+            paymentObligationListPanel.showOutstandingPayments();
+        }
+
+        if (commandResult.shouldShowDeadlineOverview()) {
+            clientListPanel.getClientListView().getSelectionModel().clearSelection();
+            gigListPanel.showDeadlineOverview();
+            paymentObligationListPanel.showPaymentsFor(null);
         }
     }
 }

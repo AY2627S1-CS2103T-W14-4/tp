@@ -14,6 +14,7 @@ import gigabyte.model.client.Client;
 import gigabyte.model.gig.Deadline;
 import gigabyte.model.gig.Fee;
 import gigabyte.model.gig.Gig;
+import gigabyte.model.gig.GigOrdering;
 import gigabyte.model.gig.PaymentObligation;
 
 /**
@@ -27,7 +28,6 @@ public class AddPaymentCommand extends Command {
             + "Indexes must be positive integers; GIG_INDEX is the position in this client's gig panel. "
             + "AMOUNT must be positive with at most two decimal places; DUE_DATE must use yyyy-MM-dd.\n"
             + "Example: " + COMMAND_WORD + " 1 2 a/500.00 d/2027-01-31";
-    public static final String MESSAGE_INVALID_GIG_INDEX = "The gig index provided is invalid for this client.";
     public static final String MESSAGE_SUCCESS = "Recorded unpaid obligation for %1$s, gig %2$d: "
             + "Amount: %3$s; Due date: %4$s";
 
@@ -55,13 +55,13 @@ public class AddPaymentCommand extends Command {
             throw new CommandException(Messages.MESSAGE_INVALID_CLIENT_DISPLAYED_INDEX);
         }
         Client client = clients.get(clientIndex.getZeroBased());
-        List<Gig> gigs = model.getGigList().stream()
-                .filter(gig -> gig.getClient().hasSameUid(client)).toList();
+        List<Gig> gigs = GigOrdering.forClient(model.getGigList(), client);
         if (gigIndex.getZeroBased() >= gigs.size()) {
-            throw new CommandException(MESSAGE_INVALID_GIG_INDEX);
+            throw new CommandException(Messages.MESSAGE_INVALID_GIG_INDEX);
         }
 
-        model.addPaymentObligation(new PaymentObligation(gigs.get(gigIndex.getZeroBased()), amount, dueDate, false));
+        Gig gig = gigs.get(gigIndex.getZeroBased());
+        model.addPaymentObligation(new PaymentObligation(gig, amount, dueDate, false));
         return new CommandResult(String.format(MESSAGE_SUCCESS, client.getName(), gigIndex.getOneBased(),
                 amount, dueDate));
     }

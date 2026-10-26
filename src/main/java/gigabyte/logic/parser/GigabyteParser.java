@@ -13,12 +13,24 @@ import gigabyte.logic.commands.AddGigCommand;
 import gigabyte.logic.commands.AddPaymentCommand;
 import gigabyte.logic.commands.ClearClientsCommand;
 import gigabyte.logic.commands.Command;
+import gigabyte.logic.commands.DeadlinesCommand;
 import gigabyte.logic.commands.DeleteClientCommand;
+import gigabyte.logic.commands.DeleteGigCommand;
+import gigabyte.logic.commands.DeletePaymentCommand;
 import gigabyte.logic.commands.EditClientCommand;
+import gigabyte.logic.commands.EditGigCommand;
+import gigabyte.logic.commands.EditPaymentCommand;
 import gigabyte.logic.commands.ExitCommand;
+import gigabyte.logic.commands.FilterGigsCommand;
 import gigabyte.logic.commands.FindClientCommand;
+import gigabyte.logic.commands.FindGigCommand;
 import gigabyte.logic.commands.HelpCommand;
 import gigabyte.logic.commands.ListClientsCommand;
+import gigabyte.logic.commands.MarkPaymentPaidCommand;
+import gigabyte.logic.commands.MarkPaymentUnpaidCommand;
+import gigabyte.logic.commands.OutstandingCommand;
+import gigabyte.logic.commands.SetGigStatusCommand;
+import gigabyte.logic.commands.SummaryCommand;
 import gigabyte.logic.parser.exceptions.ParseException;
 
 /**
@@ -57,11 +69,29 @@ public class GigabyteParser {
             case AddClientCommand.COMMAND_WORD -> new AddClientCommandParser().parse(arguments);
             case AddGigCommand.COMMAND_WORD -> new AddGigCommandParser().parse(arguments);
             case AddPaymentCommand.COMMAND_WORD -> new AddPaymentCommandParser().parse(arguments);
+            case MarkPaymentPaidCommand.COMMAND_WORD -> new MarkPaymentPaidCommandParser().parse(arguments);
+            case MarkPaymentUnpaidCommand.COMMAND_WORD -> new MarkPaymentUnpaidCommandParser().parse(arguments);
+            case DeletePaymentCommand.COMMAND_WORD -> new DeletePaymentCommandParser().parse(arguments);
+            case EditPaymentCommand.COMMAND_WORD -> new EditPaymentCommandParser().parse(arguments);
+            case SetGigStatusCommand.COMMAND_WORD -> new SetGigStatusCommandParser().parse(arguments);
             case EditClientCommand.COMMAND_WORD -> new EditClientCommandParser().parse(arguments);
+            case EditGigCommand.COMMAND_WORD -> new EditGigCommandParser().parse(arguments);
             case DeleteClientCommand.COMMAND_WORD -> new DeleteClientCommandParser().parse(arguments);
+            case DeleteGigCommand.COMMAND_WORD -> new DeleteGigCommandParser().parse(arguments);
+            case DeadlinesCommand.COMMAND_WORD -> new DeadlinesCommand();
             case ClearClientsCommand.COMMAND_WORD -> new ClearClientsCommand();
             case FindClientCommand.COMMAND_WORD -> new FindClientCommandParser().parse(arguments);
+            case FindGigCommand.COMMAND_WORD -> new FindGigCommandParser().parse(arguments);
+            case FilterGigsCommand.COMMAND_WORD -> new FilterGigsCommandParser().parse(arguments);
             case ListClientsCommand.COMMAND_WORD -> new ListClientsCommand();
+            case OutstandingCommand.COMMAND_WORD -> {
+                if (!arguments.isBlank()) {
+                    throw new ParseException(String.format(MESSAGE_INVALID_COMMAND_FORMAT,
+                            OutstandingCommand.MESSAGE_USAGE));
+                }
+                yield new OutstandingCommand();
+            }
+            case SummaryCommand.COMMAND_WORD -> new SummaryCommand();
             case ExitCommand.COMMAND_WORD -> new ExitCommand();
             case HelpCommand.COMMAND_WORD -> new HelpCommand();
             default -> {

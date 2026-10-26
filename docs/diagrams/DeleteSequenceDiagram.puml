@@ -49,22 +49,53 @@ deactivate GigabyteParser
 LogicManager -> DeleteClientCommand : execute(m)
 activate DeleteClientCommand
 
-DeleteClientCommand -> Model : deleteClient(1)
+DeleteClientCommand -> Model : getFilteredClientList()
 activate Model
 
-Model --> DeleteClientCommand
+Model --> DeleteClientCommand : lastShownList
 deactivate Model
 
-create CommandResult
-DeleteClientCommand -> CommandResult
-activate CommandResult
+alt targetIndex.getZeroBased() >= lastShownList.size()
+    DeleteClientCommand --> LogicManager : throws CommandException\n(invalid displayed client index)
+    [<-- LogicManager : throws CommandException
+else index is within the displayed client list
+    note right of DeleteClientCommand
+        clientToDelete = lastShownList.get(targetIndex.getZeroBased())
+        For "delete 1", the zero-based index is 0.
+    end note
 
-CommandResult --> DeleteClientCommand
-deactivate CommandResult
+    DeleteClientCommand -> Model : deleteClient(clientToDelete)
+    activate Model
 
-DeleteClientCommand --> LogicManager : r
+    alt client has associated gigs
+        Model --> DeleteClientCommand : throws ClientHasGigsException
+        deactivate Model
+        note right of DeleteClientCommand
+            Wrap ClientHasGigsException in CommandException.
+            The client and its linked records remain unchanged.
+        end note
+        DeleteClientCommand --> LogicManager : throws CommandException
+        [<-- LogicManager : throws CommandException
+    else client has no associated gigs
+        Model --> DeleteClientCommand
+        deactivate Model
+
+        create CommandResult
+        DeleteClientCommand -> CommandResult : new CommandResult(successMessage)
+        activate CommandResult
+
+        CommandResult --> DeleteClientCommand : r
+        deactivate CommandResult
+
+        DeleteClientCommand --> LogicManager : r
+        note left of LogicManager
+            Save the updated data before returning r.
+            Storage interactions are omitted here.
+        end note
+        [<-- LogicManager : r
+    end
+end
+
 deactivate DeleteClientCommand
-
-[<--LogicManager
 deactivate LogicManager
 @enduml

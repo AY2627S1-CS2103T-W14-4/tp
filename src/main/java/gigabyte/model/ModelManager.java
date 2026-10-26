@@ -104,6 +104,17 @@ public class ModelManager implements Model {
     }
 
     @Override
+    public void deleteGig(Gig target) {
+        gigabyteData.removeGig(target);
+    }
+
+    @Override
+    public void setGig(Gig target, Gig replacement) {
+        requireAllNonNull(target, replacement);
+        gigabyteData.setGig(target, replacement);
+    }
+
+    @Override
     public ObservableList<Gig> getGigList() {
         return gigabyteData.getGigList();
     }
@@ -117,6 +128,24 @@ public class ModelManager implements Model {
     public void addPaymentObligation(PaymentObligation obligation) {
         requireNonNull(obligation);
         gigabyteData.addPaymentObligation(obligation);
+    }
+
+    @Override
+    public void setPaymentPaidState(PaymentObligation obligation, boolean isPaid) {
+        requireNonNull(obligation);
+        gigabyteData.setPaymentPaidState(obligation, isPaid);
+    }
+
+    @Override
+    public void deletePaymentObligation(PaymentObligation obligation) {
+        requireNonNull(obligation);
+        gigabyteData.deletePaymentObligation(obligation);
+    }
+
+    @Override
+    public void setPaymentObligation(PaymentObligation target, PaymentObligation replacement) {
+        requireAllNonNull(target, replacement);
+        gigabyteData.setPaymentObligation(target, replacement);
     }
 
     //=========== Filtered Client List Accessors =============================================================

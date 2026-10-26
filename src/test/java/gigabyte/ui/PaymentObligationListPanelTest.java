@@ -1,6 +1,7 @@
 package gigabyte.ui;
 
 import static gigabyte.testutil.TypicalClients.ALICE;
+import static gigabyte.testutil.TypicalClients.BENSON;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertSame;
@@ -13,11 +14,16 @@ import java.time.ZoneId;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
+import java.util.Optional;
 import java.util.UUID;
 
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+import gigabyte.commons.core.index.Index;
+import gigabyte.logic.commands.EditPaymentCommand;
+import gigabyte.logic.commands.MarkPaymentUnpaidCommand;
+import gigabyte.model.ModelManager;
 import gigabyte.model.gig.Deadline;
 import gigabyte.model.gig.Fee;
 import gigabyte.model.gig.Gig;
@@ -49,6 +55,123 @@ public class PaymentObligationListPanelTest {
 
         assertEquals(0, panel.getPaymentListView().getItems().size());
         assertEquals("Select a gig to view its payment obligations.", panel.getEmptyState().getText());
+    }
+
+    @Test
+    public void showOutstandingPayments_multipleClients_sortsExcludesPaidAndKeepsStableTies() {
+        Gig otherGig = new Gig(BENSON, new GigTitle("Logo"), GigStatus.COMPLETED,
+                new Deadline("2027-01-31"), new Fee("500"));
+        PaymentObligation future = createPayment(otherGig, "100", "2026-10-12", false);
+        PaymentObligation today = createPayment(FIRST_GIG, "200", "2026-10-11", false);
+        PaymentObligation paid = createPayment(otherGig, "300", "2026-10-09", true);
+        PaymentObligation overdue = createPayment(FIRST_GIG, "400", "2026-10-10", false);
+        PaymentObligation sameDate = createPayment(otherGig, "500", "2026-10-11", false);
+        PaymentObligation identical = createPayment(FIRST_GIG, "200", "2026-10-11", false);
+        List<PaymentObligation> original = List.of(future, today, paid, overdue, identical, sameDate);
+        ObservableList<PaymentObligation> payments = FXCollections.observableArrayList(original);
+        PaymentObligationListPanel panel = createPanel(payments);
+
+        panel.showOutstandingPayments();
+
+        assertEquals(List.of(overdue, today, identical, sameDate, future), panel.getPaymentListView().getItems());
+        assertSame(today, panel.getPaymentListView().getItems().get(1));
+        assertSame(identical, panel.getPaymentListView().getItems().get(2));
+        assertEquals(original, payments);
+        assertEquals("", panel.getEmptyState().getText());
+        new Scene(panel.getRoot(), 500, 500);
+        List<ListCell<PaymentObligation>> cells = renderCells(panel);
+        assertTrue(cells.get(0).getText().contains("OVERDUE"));
+        assertTrue(cells.get(0).getStyleClass().contains("payment-overdue"));
+        for (int i = 1; i < cells.size(); i++) {
+            assertTrue(cells.get(i).getText().contains("OUTSTANDING"));
+            assertFalse(cells.get(i).getStyleClass().contains("payment-overdue"));
+        }
+        assertTrue(cells.get(3).getText().contains("Client: " + BENSON.getName()));
+        assertTrue(cells.get(3).getText().contains("Gig: Logo"));
+        assertTrue(cells.get(3).getText().contains("Amount: $500.00"));
+        assertTrue(cells.get(3).getText().contains("Due: 2026-10-11"));
+    }
+
+    @Test
+    public void showOutstandingPayments_paidStateChanges_refreshesAndRestoresGigView() {
+        ObservableList<PaymentObligation> payments = FXCollections.observableArrayList();
+        PaymentObligationListPanel panel = createPanel(payments);
+        panel.showOutstandingPayments();
+        assertEquals("No outstanding payment obligations.", panel.getEmptyState().getText());
+        PaymentObligation unpaid = createPayment(FIRST_GIG, "100", "2026-10-11", false);
+        payments.add(unpaid);
+        assertEquals(List.of(unpaid), panel.getPaymentListView().getItems());
+
+        payments.set(0, unpaid.withPaid(true));
+        panel.showOutstandingPayments();
+        assertEquals(0, panel.getPaymentListView().getItems().size());
+        assertEquals("No outstanding payment obligations.", panel.getEmptyState().getText());
+
+        panel.showPaymentsFor(FIRST_GIG);
+        assertEquals(payments, panel.getPaymentListView().getItems());
+        assertTrue(renderCells(panel).get(0).getText().contains("PAID"));
+        panel.showPaymentsFor(null);
+        assertEquals("Select a gig to view its payment obligations.", panel.getEmptyState().getText());
+    }
+
+    @Test
+    public void markUnpaid_paidPayments_refreshesGigAndOutstandingViews() throws Exception {
+        ModelManager model = new ModelManager();
+        model.addClient(ALICE);
+        model.addGig(FIRST_GIG);
+        Gig storedGig = model.getGigList().get(0);
+        model.addPaymentObligation(createPayment(storedGig, "100", "2026-10-10", true));
+        model.addPaymentObligation(createPayment(storedGig, "200", "2026-10-11", true));
+        model.addPaymentObligation(createPayment(storedGig, "300", "2026-10-12", true));
+        PaymentObligationListPanel gigPanel = createPanel(model.getPaymentObligationList());
+        PaymentObligationListPanel outstandingPanel = createPanel(model.getPaymentObligationList());
+        gigPanel.showPaymentsFor(storedGig);
+        outstandingPanel.showOutstandingPayments();
+        Index first = Index.fromOneBased(1);
+        Index second = Index.fromOneBased(2);
+        Index third = Index.fromOneBased(3);
+
+        new MarkPaymentUnpaidCommand(first, first, first).execute(model);
+
+        assertTrue(renderCells(gigPanel).get(0).getText().contains("OVERDUE"));
+        assertTrue(renderCells(gigPanel).get(0).getStyleClass().contains("payment-overdue"));
+        assertEquals(List.of(model.getPaymentObligationList().get(0)),
+                outstandingPanel.getPaymentListView().getItems());
+        assertTrue(renderCells(outstandingPanel).get(0).getText().contains("OVERDUE"));
+
+        new MarkPaymentUnpaidCommand(first, first, second).execute(model);
+
+        assertEquals(List.of(model.getPaymentObligationList().get(0), model.getPaymentObligationList().get(1)),
+                outstandingPanel.getPaymentListView().getItems());
+        ListCell<PaymentObligation> todayCell = renderCells(outstandingPanel).get(1);
+        assertTrue(todayCell.getText().contains("OUTSTANDING"));
+        assertTrue(todayCell.getStyleClass().contains("payment-outstanding"));
+        assertFalse(todayCell.getStyleClass().contains("payment-overdue"));
+        assertTrue(renderCells(gigPanel).get(1).getText().contains("OUTSTANDING"));
+        assertTrue(renderCells(gigPanel).get(1).getStyleClass().contains("payment-outstanding"));
+
+        new MarkPaymentUnpaidCommand(first, first, third).execute(model);
+
+        assertTrue(renderCells(gigPanel).get(2).getText().contains("OUTSTANDING"));
+        assertTrue(renderCells(gigPanel).get(2).getStyleClass().contains("payment-outstanding"));
+        assertEquals(model.getPaymentObligationList(), outstandingPanel.getPaymentListView().getItems());
+        assertTrue(renderCells(outstandingPanel).get(2).getText().contains("OUTSTANDING"));
+    }
+
+    @Test
+    public void showOutstandingPayments_localMidnight_usesLocalDateAndRefreshesOverdueState() {
+        MutableClock localClock = new MutableClock(Instant.parse("2026-10-10T16:00:00Z"),
+                ZoneId.of("Asia/Kuala_Lumpur"));
+        PaymentObligation payment = createPayment(FIRST_GIG, "100", "2026-10-11", false);
+        PaymentObligationListPanel panel = new PaymentObligationListPanel(
+                FXCollections.observableArrayList(payment), localClock);
+        panel.showOutstandingPayments();
+        assertTrue(renderCells(panel).get(0).getText().contains("OUTSTANDING"));
+
+        localClock.advance(Duration.ofDays(1));
+        panel.refreshPaymentStates();
+        assertTrue(renderCells(panel).get(0).getText().contains("OVERDUE"));
+        assertFalse(payment.isPaid());
     }
 
     @Test
@@ -90,6 +213,78 @@ public class PaymentObligationListPanelTest {
 
         assertEquals(List.of(addedPayment), panel.getPaymentListView().getItems());
         assertEquals("", panel.getEmptyState().getText());
+    }
+
+    @Test
+    public void editPaymentCommand_dueDateCrossesToday_reordersAndRefreshesGigView() throws Exception {
+        ModelManager model = createModelWithFirstGig();
+        Gig storedGig = model.getGigList().get(0);
+        model.addPaymentObligation(createPayment(storedGig, "100", "2026-10-12", false));
+        model.addPaymentObligation(createPayment(storedGig, "200", "2026-10-11", false));
+        PaymentObligationListPanel panel = createPanel(model.getPaymentObligationList());
+        panel.showPaymentsFor(storedGig);
+        assertEquals(new Fee("200"), panel.getPaymentListView().getItems().get(0).getAmount());
+
+        new EditPaymentCommand(Index.fromOneBased(1), Index.fromOneBased(1), Index.fromOneBased(2),
+                Optional.empty(), Optional.of(new Deadline("2026-10-10"))).execute(model);
+
+        assertEquals(new Fee("100"), panel.getPaymentListView().getItems().get(0).getAmount());
+        List<ListCell<PaymentObligation>> cells = renderCells(panel);
+        assertTrue(cells.get(0).getText().contains("Due: 2026-10-10"));
+        assertTrue(cells.get(0).getStyleClass().contains("payment-overdue"));
+        assertTrue(cells.get(1).getStyleClass().contains("payment-outstanding"));
+
+        new EditPaymentCommand(Index.fromOneBased(1), Index.fromOneBased(1), Index.fromOneBased(1),
+                Optional.empty(), Optional.of(new Deadline("2026-10-12"))).execute(model);
+
+        assertEquals(new Fee("200"), panel.getPaymentListView().getItems().get(0).getAmount());
+        cells = renderCells(panel);
+        assertTrue(cells.get(1).getText().contains("Due: 2026-10-12"));
+        assertTrue(cells.get(1).getStyleClass().contains("payment-outstanding"));
+    }
+
+    @Test
+    public void editPaymentCommand_amountChanges_refreshesOutstandingViewImmediately() throws Exception {
+        ModelManager model = createModelWithFirstGig();
+        Gig storedGig = model.getGigList().get(0);
+        model.addPaymentObligation(createPayment(storedGig, "100", "2026-10-12", false));
+        PaymentObligationListPanel panel = createPanel(model.getPaymentObligationList());
+        panel.showOutstandingPayments();
+
+        new EditPaymentCommand(Index.fromOneBased(1), Index.fromOneBased(1), Index.fromOneBased(1),
+                Optional.of(new Fee("650")), Optional.empty()).execute(model);
+
+        assertEquals(new Fee("650"), panel.getPaymentListView().getItems().get(0).getAmount());
+        assertTrue(renderCells(panel).get(0).getText().contains("Amount: $650.00"));
+    }
+
+    @Test
+    public void editPaymentCommand_dueDateChanges_reordersAndRefreshesOutstandingView() throws Exception {
+        ModelManager model = createModelWithFirstGig();
+        Gig storedGig = model.getGigList().get(0);
+        model.addPaymentObligation(createPayment(storedGig, "100", "2026-10-12", false));
+        model.addPaymentObligation(createPayment(storedGig, "200", "2026-10-11", false));
+        PaymentObligationListPanel panel = createPanel(model.getPaymentObligationList());
+        panel.showOutstandingPayments();
+        assertEquals(new Fee("200"), panel.getPaymentListView().getItems().get(0).getAmount());
+
+        new EditPaymentCommand(Index.fromOneBased(1), Index.fromOneBased(1), Index.fromOneBased(2),
+                Optional.empty(), Optional.of(new Deadline("2026-10-10"))).execute(model);
+
+        assertEquals(new Fee("100"), panel.getPaymentListView().getItems().get(0).getAmount());
+        List<ListCell<PaymentObligation>> cells = renderCells(panel);
+        assertTrue(cells.get(0).getText().contains("Due: 2026-10-10"));
+        assertTrue(cells.get(0).getText().contains("OVERDUE"));
+        assertTrue(cells.get(0).getStyleClass().contains("payment-overdue"));
+
+        new EditPaymentCommand(Index.fromOneBased(1), Index.fromOneBased(1), Index.fromOneBased(1),
+                Optional.empty(), Optional.of(new Deadline("2026-10-12"))).execute(model);
+
+        assertEquals(new Fee("200"), panel.getPaymentListView().getItems().get(0).getAmount());
+        cells = renderCells(panel);
+        assertTrue(cells.get(1).getText().contains("Due: 2026-10-12"));
+        assertTrue(cells.get(1).getText().contains("OUTSTANDING"));
+        assertTrue(cells.get(1).getStyleClass().contains("payment-outstanding"));
     }
 
     @Test
@@ -160,19 +355,26 @@ public class PaymentObligationListPanelTest {
     @Test
     public void paymentCell_narrowPanel_wrapsWithoutHorizontalScrolling() {
         PaymentObligation payment = createPayment(FIRST_GIG, "500", "2099-02-28", false);
-        PaymentObligationListPanel panel = createPanel(FXCollections.observableArrayList(payment));
-        panel.showPaymentsFor(FIRST_GIG);
+        ObservableList<PaymentObligation> payments = FXCollections.observableArrayList(payment);
+        for (int i = 0; i < 29; i++) {
+            payments.add(createPayment(FIELD_IDENTICAL_GIG, "100", "2099-03-01", false));
+        }
+        PaymentObligationListPanel panel = createPanel(payments);
+        panel.showOutstandingPayments();
 
         new Scene(panel.getRoot(), 340, 300);
         List<ListCell<PaymentObligation>> cells = renderCells(panel);
 
-        assertEquals(1, cells.size());
+        assertEquals(30, panel.getPaymentListView().getItems().size());
+        assertFalse(cells.isEmpty());
         ListCell<PaymentObligation> cell = cells.get(0);
         assertTrue(cell.isWrapText());
         assertTrue(cell.getWidth() <= panel.getPaymentListView().getWidth());
         assertTrue(cell.getText().contains("Amount: $500.00"));
         assertTrue(cell.getText().contains("Due: 2099-02-28"));
         assertTrue(cell.getText().contains("OUTSTANDING"));
+        assertTrue(cell.getText().contains("Client: " + ALICE.getName()));
+        assertTrue(cell.getText().contains("Gig: " + FIRST_GIG.getTitle()));
 
         boolean hasVisibleHorizontalScrollBar = panel.getPaymentListView()
                 .lookupAll(".scroll-bar").stream()
@@ -181,10 +383,20 @@ public class PaymentObligationListPanelTest {
                         && scrollBar.isVisible());
 
         assertFalse(hasVisibleHorizontalScrollBar);
+        assertTrue(panel.getPaymentListView().lookupAll(".scroll-bar").stream()
+                .anyMatch(node -> node instanceof ScrollBar bar
+                        && bar.getOrientation() == Orientation.VERTICAL && bar.isVisible()));
     }
 
     private PaymentObligationListPanel createPanel(ObservableList<PaymentObligation> payments) {
         return new PaymentObligationListPanel(payments, TEST_CLOCK);
+    }
+
+    private ModelManager createModelWithFirstGig() {
+        ModelManager model = new ModelManager();
+        model.addClient(ALICE);
+        model.addGig(FIRST_GIG);
+        return model;
     }
 
     @SuppressWarnings("unchecked")

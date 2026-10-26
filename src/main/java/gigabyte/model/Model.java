@@ -78,6 +78,16 @@ public interface Model {
     void addGig(Gig gig);
 
     /**
+     * Deletes the gig with {@code target}'s UID only if it has no payment obligations.
+     */
+    void deleteGig(Gig target);
+
+    /**
+     * Replaces {@code target} with {@code replacement}, preserving the gig's UID and client association.
+     */
+    void setGig(Gig target, Gig replacement);
+
+    /**
      * Returns an unmodifiable view of all gigs.
      */
     ObservableList<Gig> getGigList();
@@ -91,4 +101,16 @@ public interface Model {
      * Adds a payment obligation linked to an existing gig.
      */
     void addPaymentObligation(PaymentObligation obligation);
+
+    /** Sets the exact stored payment obligation's paid state, preserving its gig, amount, and due date. */
+    void setPaymentPaidState(PaymentObligation obligation, boolean isPaid);
+
+    /**
+     * Deletes the exact stored payment obligation, preserving its gig and all other obligations.
+     * @throws IllegalArgumentException if the obligation is not a stored instance
+     */
+    void deletePaymentObligation(PaymentObligation obligation);
+
+    /** Replaces a payment obligation while preserving its gig association and paid state. */
+    void setPaymentObligation(PaymentObligation target, PaymentObligation replacement);
 }

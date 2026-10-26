@@ -1,6 +1,8 @@
 # Gigabyte
 
 [![CI Status](https://github.com/AY2627S1-CS2103T-W14-4/tp/actions/workflows/gradle.yml/badge.svg)](https://github.com/AY2627S1-CS2103T-W14-4/tp/actions/workflows/gradle.yml)
+[![codecov](https://codecov.io/gh/AY2627S1-CS2103T-W14-4/tp/graph/badge.svg?token=S4O2ICMM1L)](https://codecov.io/gh/AY2627S1-CS2103T-W14-4/tp)
+
 
 ![Ui](docs/images/Ui.png)
 
@@ -20,6 +22,8 @@ We help freelancers keep their client work and payment obligations organised, ma
 - Edit client details.
 - Create a gig linked to a client, including its status, deadline, and agreed fee.
 - View gigs by client or status.
+- Use `deadlines` to view all active gig deadlines across clients, ordered from
+  soonest to latest; overdue gigs are labelled `OVERDUE`.
 - Update a gig’s status.
 - View upcoming gig deadlines in date order.
 - Record an invoice or payment obligation linked to a gig.

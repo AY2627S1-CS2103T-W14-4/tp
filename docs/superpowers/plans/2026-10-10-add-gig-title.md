@@ -2,9 +2,11 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Require, display, and persist a validated title for every newly created gig while continuing to load v1.2 gigs that have no stored title.
+> Updated on 2026-10-17 to reflect support for the current save format only.
 
-**Architecture:** Add a focused immutable `GigTitle` value object and thread it through the existing `Gig` model, `addgig` command path, JSON adapter, and list rendering. Keep backward compatibility isolated in `JsonAdaptedGig`: only absent stored titles receive `Untitled gig`; all normal constructors continue to require an explicit title.
+**Goal:** Require, display, and persist a validated title for every gig, including saved gigs.
+
+**Architecture:** Add a focused immutable `GigTitle` value object and thread it through the existing `Gig` model, `addgig` command path, JSON adapter, and list rendering. Require an explicit title in `JsonAdaptedGig` and all model constructors. Reject save files that omit required fields or use older representations.
 
 **Tech Stack:** Java 25, JavaFX 17, Jackson 2.7, JUnit 5, Gradle
 
@@ -16,8 +18,8 @@
 - Normalize with leading/trailing whitespace removed; require 1–100 normalized characters.
 - Permit internal spaces, common punctuation, and duplicate titles.
 - Preserve titles in every `Gig` copy operation, including client relinking and UID replacement.
-- Load stored gigs whose `title` property is absent as `Untitled gig`, then write that title on the next save.
-- Do not remove any existing legacy client, gig, fee, UID, or payment-link migration behavior.
+- Reject stored gigs whose `title` property is absent or invalid.
+- Support only the current save format with required collections, UUIDs, UUID references, and integer-cent amounts.
 - Keep the feature CLI-first and single-command; do not add mouse-only input or a multi-step form.
 - Store titles as plain text in the existing local, human-editable JSON file; introduce no DBMS, server, network call, account, external software, or new dependency.
 - Use only platform-independent Java 25/JavaFX behavior and retain the existing single-JAR packaging.
@@ -45,7 +47,7 @@
 - Modify: all production and test call sites constructing `Gig`
 
 **Interfaces:**
-- Produces: `GigTitle(String)`, `GigTitle.isValidTitle(String)`, `GigTitle.MESSAGE_CONSTRAINTS`, `GigTitle.UNTITLED`, `Gig.getTitle()`.
+- Produces: `GigTitle(String)`, `GigTitle.isValidTitle(String)`, `GigTitle.MESSAGE_CONSTRAINTS`, `Gig.getTitle()`.
 - Produces: `Gig(Client, GigTitle, GigStatus, Deadline, Fee)` and `Gig(UUID, Client, GigTitle, GigStatus, Deadline, Fee)`.
 
 - [ ] **Step 1: Write failing `GigTitleTest` cases** for null, blank, surrounding whitespace, punctuation/internal spaces, 100 characters, and 101 characters; add `GigTest` assertions that constructors require a title and `withClient`/`withNewUid` preserve it.
@@ -76,26 +78,26 @@
 - [ ] **Step 4: Re-run the focused tests**, then run `./gradlew.bat test` and verify they pass.
 - [ ] **Step 5: Commit** with `feat(command): require title when adding gig`.
 
-### Task 3: JSON persistence and backward compatibility
+### Task 3: JSON persistence and format validation
 
 **Files:**
 - Modify: `src/main/java/gigabyte/storage/JsonAdaptedGig.java`
 - Modify: `src/test/java/gigabyte/storage/JsonAdaptedGigTest.java`
 - Modify: `src/test/java/gigabyte/storage/JsonGigabyteDataStorageTest.java`
-- Create: `src/test/data/JsonGigabyteDataStorageTest/legacyGigsWithoutTitlesGigabyteData.json`
+- Modify: `src/test/data/JsonGigabyteDataStorageTest/invalidNullTitleGigabyteData.json`
 - Modify: `src/test/java/gigabyte/model/GigabyteDataTest.java`
 
 **Interfaces:**
-- Consumes: `GigTitle.UNTITLED`, validation, getter, and title-aware `Gig` constructors.
-- Produces: JSON `title` serialization and absent-title migration to `Untitled gig`.
+- Consumes: title validation, getter, and title-aware `Gig` constructors.
+- Produces: JSON `title` serialization and required-title validation.
 
-- [ ] **Step 1: Write failing adapter tests** proving valid titles round-trip, invalid present titles are rejected, and an absent title maps to `GigTitle.UNTITLED`.
-- [ ] **Step 2: Write failing storage tests and fixture** proving old title-less JSON loads, the next save contains `"title" : "Untitled gig"`, and multiple titled gigs survive round trips.
+- [ ] **Step 1: Write failing adapter tests** proving valid titles round-trip and missing or invalid titles are rejected.
+- [ ] **Step 2: Write failing storage tests** proving title-less JSON is rejected and multiple titled gigs survive round trips.
 - [ ] **Step 3: Extend the existing client-edit/payment-link model test** to assert the gig title is unchanged after relinking.
 - [ ] **Step 4: Run the focused storage/model tests** and verify the expected title-related failures.
-- [ ] **Step 5: Add nullable JSON input plus required JSON output in `JsonAdaptedGig`**, validating present titles and using the fallback only when the property is absent.
+- [ ] **Step 5: Require JSON titles in `JsonAdaptedGig`**, rejecting missing and invalid titles during loading.
 - [ ] **Step 6: Re-run the focused tests**, then run `./gradlew.bat test` and verify they pass.
-- [ ] **Step 7: Commit** with `feat(storage): persist and migrate gig titles`.
+- [ ] **Step 7: Commit** with `feat(storage): persist and validate gig titles`.
 
 ### Task 4: UI, sample data, and User Guide
 
@@ -113,7 +115,7 @@
 - [ ] **Step 2: Write a failing sample-data test** asserting sample data contains titled gigs linked to its canonical clients.
 - [ ] **Step 3: Run the focused UI and sample-data tests** and verify the expected failures.
 - [ ] **Step 4: Render the title first in `GigListPanel`, allow long title text to wrap within the list cell, and add representative titled sample gigs** without changing client filtering, empty states, or the window's minimum width.
-- [ ] **Step 5: Update `docs/UserGuide.md`** with `t/TITLE`, validation rules, examples, confirmation fields, `Untitled gig` migration behavior, and the command summary.
+- [ ] **Step 5: Update `docs/UserGuide.md`** with `t/TITLE`, validation rules, examples, confirmation fields, the required save format, and the command summary.
 - [ ] **Step 6: Re-run the focused tests**, then run `./gradlew.bat test` and verify they pass.
 - [ ] **Step 7: Commit** with `docs(ui): show and document gig titles`.
 
@@ -130,5 +132,5 @@
 - [ ] **Step 3: Run `./gradlew.bat checkstyleMain checkstyleTest`** and verify both checks pass.
 - [ ] **Step 4: Run `./gradlew.bat shadowJar`** and verify `build/libs/gigabyte.jar` is produced, remains below 100 MB, and no new runtime dependency was added.
 - [ ] **Step 5: Inspect the generated test and checkstyle reports** for hidden failures or warnings.
-- [ ] **Step 6: Review the final diff against every acceptance criterion and course constraint**: CLI-first, local human-editable JSON, no DBMS/server/network/new dependency, OO Java 25, platform-independent behavior, usable long-title rendering, and retained legacy storage support.
+- [ ] **Step 6: Review the final diff against every acceptance criterion and course constraint**: CLI-first, local human-editable JSON, no DBMS/server/network/new dependency, OO Java 25, platform-independent behavior, usable long-title rendering, and rejection of unsupported save formats.
 - [ ] **Step 7: Commit any verification-only corrections** with a narrowly scoped conventional commit message.

@@ -12,7 +12,6 @@ import java.util.Objects;
 public class GigTitle {
     public static final String MESSAGE_CONSTRAINTS =
             "Gig titles must contain at least one non-whitespace character and must not exceed 100 characters";
-    public static final GigTitle UNTITLED = new GigTitle("Untitled gig");
 
     private static final int MAX_LENGTH = 100;
 

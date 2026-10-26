@@ -58,6 +58,8 @@ public class AddGigCommandTest {
 
         assertEquals(List.of(new Gig(BENSON, TITLE, GigStatus.IN_PROGRESS, DEADLINE, FEE)), model.getGigList());
         assertEquals(List.of(BENSON), model.getFilteredClientList());
+
+        // Index 2 exists in the full list but not in the filtered list
         assertThrows(CommandException.class, Messages.MESSAGE_INVALID_CLIENT_DISPLAYED_INDEX, () ->
                 new AddGigCommand(INDEX_SECOND_CLIENT, TITLE, GigStatus.IN_PROGRESS, DEADLINE, FEE).execute(model));
         assertEquals(1, model.getGigList().size());
@@ -74,7 +76,11 @@ public class AddGigCommandTest {
     @Test
     public void equals_differentFields_returnsFalse() {
         AddGigCommand command = new AddGigCommand(INDEX_FIRST_CLIENT, TITLE, GigStatus.NOT_STARTED, DEADLINE, FEE);
+
+        // same values -> returns true
         assertEquals(command, new AddGigCommand(INDEX_FIRST_CLIENT, TITLE, GigStatus.NOT_STARTED, DEADLINE, FEE));
+
+        // one field different at a time -> returns false
         assertNotEquals(command,
                 new AddGigCommand(INDEX_SECOND_CLIENT, TITLE, GigStatus.NOT_STARTED, DEADLINE, FEE));
         assertNotEquals(command,

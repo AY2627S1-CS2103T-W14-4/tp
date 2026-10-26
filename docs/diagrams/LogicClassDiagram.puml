@@ -39,7 +39,12 @@ LogicManager --> Storage
 Storage --[hidden] Model
 Command .[hidden]up.> Storage
 Command .right.> Model
-note right of XYZCommand: XYZCommand = AddClientCommand, \nFindClientCommand, etc
+note right of XYZCommand
+  Concrete v1.4 commands include AddGigCommand,
+  EditGigCommand, DeleteGigCommand, FindGigCommand,
+  EditPaymentCommand, DeletePaymentCommand,
+  MarkPaymentPaidCommand and MarkPaymentUnpaidCommand.
+end note
 
 Logic ..> CommandResult
 LogicManager .down.> CommandResult

@@ -4,6 +4,7 @@ import static gigabyte.testutil.Assert.assertThrows;
 import static gigabyte.testutil.TypicalClients.ALICE;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.junit.jupiter.api.Test;
@@ -16,9 +17,10 @@ public class PaymentObligationTest {
 
     @Test
     public void constructor_nullField_throwsNullPointerException() {
-        assertThrows(NullPointerException.class, () -> new PaymentObligation(null, AMOUNT, DUE_DATE, false));
-        assertThrows(NullPointerException.class, () -> new PaymentObligation(GIG, null, DUE_DATE, false));
-        assertThrows(NullPointerException.class, () -> new PaymentObligation(GIG, AMOUNT, null, false));
+        // One null field at a time
+        assertThrows(NullPointerException.class, () -> new PaymentObligation(null, AMOUNT, DUE_DATE, false)); // gig
+        assertThrows(NullPointerException.class, () -> new PaymentObligation(GIG, null, DUE_DATE, false)); // amount
+        assertThrows(NullPointerException.class, () -> new PaymentObligation(GIG, AMOUNT, null, false)); // due date
     }
 
     @Test
@@ -29,19 +31,39 @@ public class PaymentObligationTest {
     }
 
     @Test
+    public void withDetails_replacesDetailsAndPreservesAssociationAndState() {
+        PaymentObligation obligation = new PaymentObligation(GIG, AMOUNT, DUE_DATE, true);
+        Fee replacementAmount = new Fee("75.25");
+        Deadline replacementDueDate = new Deadline("2027-01-15");
+
+        PaymentObligation replacement = obligation.withDetails(replacementAmount, replacementDueDate);
+
+        assertSame(GIG, replacement.getGig());
+        assertEquals(replacementAmount, replacement.getAmount());
+        assertEquals(replacementDueDate, replacement.getDueDate());
+        assertTrue(replacement.isPaid());
+    }
+
+    @Test
     public void accessorsAndValueMethods_returnExpectedValues() {
         PaymentObligation obligation = new PaymentObligation(GIG, AMOUNT, DUE_DATE, false);
         PaymentObligation equivalent = new PaymentObligation(GIG, AMOUNT, DUE_DATE, false);
 
+        // accessors
         assertEquals(GIG, obligation.getGig());
         assertEquals(AMOUNT, obligation.getAmount());
         assertEquals(DUE_DATE, obligation.getDueDate());
+
+        // same values or same object -> equal, with the same hash code
         assertTrue(obligation.equals(equivalent));
         assertTrue(obligation.equals(obligation));
         assertEquals(obligation.hashCode(), equivalent.hashCode());
-        assertTrue(obligation.toString().contains("PaymentObligation"));
+
+        // null or a different type -> not equal
         assertFalse(obligation.equals(null));
         assertFalse(obligation.equals("not an obligation"));
+
+        assertTrue(obligation.toString().contains("PaymentObligation"));
     }
 
     @Test
