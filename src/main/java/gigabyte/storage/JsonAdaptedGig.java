@@ -7,6 +7,7 @@ import java.util.UUID;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.node.TextNode;
 
 import gigabyte.commons.exceptions.IllegalValueException;
@@ -35,7 +36,9 @@ class JsonAdaptedGig {
     @JsonCreator
     public JsonAdaptedGig(@JsonProperty("uid") String uid, @JsonProperty("clientUid") String clientUid,
             @JsonProperty("title") JsonNode title, @JsonProperty("status") String status,
-            @JsonProperty("deadline") String deadline, @JsonProperty("feeCents") BigInteger feeCents) {
+            @JsonProperty("deadline") String deadline,
+            @JsonProperty("feeCents") @JsonDeserialize(using = StrictJsonDeserializers.IntegerDeserializer.class)
+            BigInteger feeCents) {
         this.uid = uid;
         this.clientUid = clientUid;
         this.title = title;

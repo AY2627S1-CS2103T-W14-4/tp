@@ -214,9 +214,12 @@ The `Storage` component,
   `JsonAdaptedPaymentObligation`. Gigs store `clientUid`; payment obligations store `gigUid`; monetary values are
   stored as integer cents.
 * reads only the current save format through `JsonUtil.readJsonFileStrict`, rejecting unknown fields and
-  fractional values for integer fields. The adapters require all three top-level arrays and each record's required
-  fields; IDs and titles are never generated during loading. Older formats fail with `DataLoadingException`.
-  User preferences continue to use the separate, permissive `JsonUtil.readJsonFile` path.
+  fractional values for integer fields. `JsonAdaptedGig` and `JsonAdaptedPaymentObligation` read `feeCents`,
+  `amountCents` and `paid` through `StrictJsonDeserializers`, which accept only a JSON integer or a JSON boolean
+  and reject quoted values such as `"5025"` or `"true"` instead of converting them. The adapters require all three
+  top-level arrays and each record's required fields; IDs and titles are never generated during loading. Older
+  formats fail with `DataLoadingException`. User preferences continue to use the separate, permissive
+  `JsonUtil.readJsonFile` path.
 * migrates `data/addressbook.json` to `data/gigabyte.json` during `MainApp.init`, before loading data, if the current
   file does not exist. `JsonGigabyteDataStorage.migrateLegacyDataFile` moves the file without changing its contents
   or replacing an existing destination. An `IOException` during migration stops startup.
@@ -231,8 +234,9 @@ The save-file fields are:
 | Payment obligation | `gigUid`, `amountCents`, `dueDate`, `paid` |
 
 UUIDs must be valid, references must resolve to saved records, titles must be valid text, and monetary values must
-be positive integer cents. Null collections and null records are rejected. There is no automatic conversion of
-`persons`, name- or index-based references, decimal amount fields, or missing IDs and titles.
+be positive JSON integers of cents. `paid` must be JSON `true` or `false`. Null collections and null records are
+rejected. There is no automatic conversion of quoted numbers or booleans, `persons`, name- or index-based
+references, decimal amount fields, or missing IDs and titles.
 
 #### Data file format
 
