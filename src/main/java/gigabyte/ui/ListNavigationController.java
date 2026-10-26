@@ -62,21 +62,21 @@ final class ListNavigationController {
             }
 
             switch (event.getCode()) {
-            case UP -> moveSelection(view, -1);
-            case DOWN -> moveSelection(view, 1);
-            case RIGHT -> {
-                if (i + 1 < views.size()) {
-                    views.get(i + 1).requestFocus();
+                case UP -> moveSelection(view, -1);
+                case DOWN -> moveSelection(view, 1);
+                case RIGHT -> {
+                    if (i + 1 < views.size()) {
+                        views.get(i + 1).requestFocus();
+                    }
                 }
-            }
-            case LEFT -> {
-                if (i > 0) {
-                    views.get(i - 1).requestFocus();
+                case LEFT -> {
+                    if (i > 0) {
+                        views.get(i - 1).requestFocus();
+                    }
                 }
-            }
-            default -> {
-                return;
-            }
+                default -> {
+                    return;
+                }
             }
             event.consume();
             return;
