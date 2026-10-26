@@ -1526,13 +1526,13 @@ figure.
 1. **Summary of the sample data**
    1. Test case: `summary`<br>
       Expected: The result shows `Clients: 6` and `Gigs: 4 total`, with `NOT_STARTED: 1`, `IN_PROGRESS: 2`, and
-      `COMPLETED: 1`. Under `Payments:`, it shows `Outstanding: 2 ($3,000.00)`, `Of which overdue: 0 ($0.00)`, and
-      `Marked paid: 1 ($1,250.00)`.
+      `COMPLETED: 1`. It shows `Payments: 3 total`, with `Outstanding: 2 ($3,000.00)`,
+      `Of which overdue: 0 ($0.00)`, and `Marked paid: 1 ($1,250.00)`.
 
 1. **Summary ignores the client filter**
    1. Test case: `find Alex`, then `addpayment 1 1 a/100.50 d/2000-01-01`, then `summary`.<br>
-      Expected: The result still shows `Clients: 6`. It now shows `Outstanding: 3 ($3,100.50)` and
-      `Of which overdue: 1 ($100.50)`. The filtered client list and the current panels are unchanged.
+      Expected: The result still shows `Clients: 6`. It now shows `Payments: 4 total`,
+      `Outstanding: 3 ($3,100.50)`, and `Of which overdue: 1 ($100.50)`. The filtered client list and the current panels are unchanged.
 
 ### Commands after filtering clients
 

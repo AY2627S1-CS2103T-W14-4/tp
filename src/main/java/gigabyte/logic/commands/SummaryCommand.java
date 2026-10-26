@@ -66,7 +66,7 @@ public class SummaryCommand extends Command {
             result.append("  ").append(status).append(": ").append(gigCounts.get(status)).append('\n');
         }
         return new CommandResult(result
-                .append("Payments:\n")
+                .append("Payments: ").append(model.getPaymentObligationList().size()).append(" total\n")
                 .append("  Outstanding: ").append(outstandingCount).append(" (").append(formatCents(outstandingTotal))
                         .append(")\n")
                 .append("  Of which overdue: ").append(overdueCount).append(" (").append(formatCents(overdueTotal))
