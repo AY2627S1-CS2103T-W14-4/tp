@@ -11,7 +11,6 @@ import gigabyte.logic.Logic;
 import gigabyte.logic.commands.CommandResult;
 import gigabyte.logic.commands.exceptions.CommandException;
 import gigabyte.logic.parser.exceptions.ParseException;
-import javafx.application.Platform;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.geometry.Rectangle2D;
@@ -129,18 +128,12 @@ public class MainWindow extends UiPart<Stage> {
     void fillInnerParts() {
         CommandBox commandBox = new CommandBox(this::executeCommand);
         commandBoxPlaceholder.getChildren().add(commandBox.getRoot());
-        Runnable requestCommandBoxFocus = () -> Platform.runLater(() ->
-                commandBox.getRoot().lookup("#commandTextField").requestFocus());
 
         paymentObligationListPanel = new PaymentObligationListPanel(logic.getPaymentObligationList());
-        gigListPanel = new GigListPanel(logic.getGigList(), gig -> {
-            paymentObligationListPanel.showPaymentsFor(gig);
-            requestCommandBoxFocus.run();
-        });
+        gigListPanel = new GigListPanel(logic.getGigList(), paymentObligationListPanel::showPaymentsFor);
         clientListPanel = new ClientListPanel(logic.getFilteredClientList(), client -> {
             gigListPanel.showGigsFor(client);
             paymentObligationListPanel.showPaymentsFor(null);
-            requestCommandBoxFocus.run();
         });
         clientListPanelPlaceholder.getChildren().add(clientListPanel.getRoot());
         gigListPanelPlaceholder.getChildren().add(gigListPanel.getRoot());
@@ -152,6 +145,10 @@ public class MainWindow extends UiPart<Stage> {
         StatusBarFooter statusBarFooter = new StatusBarFooter(dataFilePath);
         statusbarPlaceholder.getChildren().add(statusBarFooter.getRoot());
 
+        ListNavigationController navigation = new ListNavigationController(
+                clientListPanel.getClientListView(), gigListPanel.getGigListView(),
+                paymentObligationListPanel.getPaymentListView(), commandBox);
+        navigation.install(primaryStage.getScene());
     }
 
     /**
