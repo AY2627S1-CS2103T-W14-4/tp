@@ -52,6 +52,44 @@ public class ClientTest {
     }
 
     @Test
+    public void hasSameNormalizedName() {
+        // null -> returns false
+        assertFalse(BOB.hasSameNormalizedName(null));
+
+        // same name -> returns true
+        assertTrue(BOB.hasSameNormalizedName(new ClientBuilder().withName(VALID_NAME_BOB).build()));
+
+        // name differs in case -> returns true
+        assertTrue(BOB.hasSameNormalizedName(new ClientBuilder().withName("BOB choo").build()));
+
+        // name differs in repeated or trailing spaces -> returns true
+        assertTrue(BOB.hasSameNormalizedName(new ClientBuilder().withName("Bob   Choo").build()));
+        assertTrue(BOB.hasSameNormalizedName(new ClientBuilder().withName(VALID_NAME_BOB + "  ").build()));
+
+        // name differs in letters -> returns false
+        assertFalse(BOB.hasSameNormalizedName(new ClientBuilder().withName("Bob Chew").build()));
+        assertFalse(BOB.hasSameNormalizedName(new ClientBuilder().withName("BobChoo").build()));
+    }
+
+    @Test
+    public void hasSamePhone() {
+        assertFalse(ALICE.hasSamePhone(null));
+        assertTrue(ALICE.hasSamePhone(new ClientBuilder(BOB).withPhone(ALICE.getPhone().value).build()));
+        assertFalse(ALICE.hasSamePhone(BOB));
+    }
+
+    @Test
+    public void hasSameEmail() {
+        assertFalse(ALICE.hasSameEmail(null));
+        assertTrue(ALICE.hasSameEmail(new ClientBuilder(BOB).withEmail(ALICE.getEmail().value).build()));
+
+        // email differs only in case -> returns true
+        assertTrue(ALICE.hasSameEmail(new ClientBuilder(BOB).withEmail("ALICE@Example.com").build()));
+
+        assertFalse(ALICE.hasSameEmail(BOB));
+    }
+
+    @Test
     public void equals() {
         // same values -> returns true
         Client aliceCopy = new ClientBuilder(ALICE).build();

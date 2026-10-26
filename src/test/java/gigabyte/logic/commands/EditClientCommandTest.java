@@ -132,6 +132,98 @@ public class EditClientCommandTest {
     }
 
     @Test
+    public void execute_renameToOtherClientNameDifferingInCaseOrSpacing_failure() {
+        // EP: target name differs from ALICE's only in case and spacing
+        EditClientCommand editCommand = new EditClientCommand(INDEX_SECOND_CLIENT,
+                new EditClientDescriptorBuilder().withName("alice  PAULINE").build());
+
+        assertCommandFailure(editCommand, model, Messages.MESSAGE_DUPLICATE_CLIENT_NAME);
+    }
+
+    @Test
+    public void execute_ownNameCaseOrSpacingOnlyChange_success() {
+        Client clientToEdit = model.getFilteredClientList().get(INDEX_FIRST_CLIENT.getZeroBased());
+        Client editedClient = new ClientBuilder(clientToEdit).withName("ALICE  pauline").build();
+        EditClientCommand editCommand = new EditClientCommand(INDEX_FIRST_CLIENT,
+                new EditClientDescriptorBuilder().withName("ALICE  pauline").build());
+
+        Model expectedModel = new ModelManager(new GigabyteData(model.getGigabyteData()), new UserPrefs());
+        expectedModel.setClient(clientToEdit, editedClient);
+
+        assertCommandSuccess(editCommand, model, String.format(EditClientCommand.MESSAGE_EDIT_CLIENT_SUCCESS,
+                Messages.format(editedClient)), expectedModel);
+    }
+
+    @Test
+    public void execute_samePhoneOrEmailAsOtherClient_successWithNote() {
+        Client clientToEdit = model.getFilteredClientList().get(INDEX_FIRST_CLIENT.getZeroBased());
+        Client benson = model.getFilteredClientList().get(INDEX_SECOND_CLIENT.getZeroBased());
+        Client editedClient = new ClientBuilder(clientToEdit).withPhone(benson.getPhone().value)
+                .withEmail(benson.getEmail().value).build();
+        EditClientCommand editCommand = new EditClientCommand(INDEX_FIRST_CLIENT,
+                new EditClientDescriptorBuilder().withPhone(benson.getPhone().value)
+                        .withEmail(benson.getEmail().value).build());
+
+        Model expectedModel = new ModelManager(new GigabyteData(model.getGigabyteData()), new UserPrefs());
+        expectedModel.setClient(clientToEdit, editedClient);
+
+        assertCommandSuccess(editCommand, model, String.format(EditClientCommand.MESSAGE_EDIT_CLIENT_SUCCESS,
+                Messages.format(editedClient)) + "\nNote: Benson Meier has the same phone number and email.",
+                expectedModel);
+    }
+
+    @Test
+    public void execute_unchangedPhoneAndEmail_noNoteAboutItself() {
+        Client clientToEdit = model.getFilteredClientList().get(INDEX_FIRST_CLIENT.getZeroBased());
+        Client editedClient = new ClientBuilder(clientToEdit).withAddress("1 New Road").build();
+        EditClientCommand editCommand = new EditClientCommand(INDEX_FIRST_CLIENT,
+                new EditClientDescriptorBuilder().withAddress("1 New Road").build());
+
+        Model expectedModel = new ModelManager(new GigabyteData(model.getGigabyteData()), new UserPrefs());
+        expectedModel.setClient(clientToEdit, editedClient);
+
+        assertCommandSuccess(editCommand, model, String.format(EditClientCommand.MESSAGE_EDIT_CLIENT_SUCCESS,
+                Messages.format(editedClient)), expectedModel);
+    }
+
+    @Test
+    public void execute_legacyCaseVariantPair_otherFieldsAndCaseOnlyRenamesEditable() throws Exception {
+        Client johnDoe = new ClientBuilder().withName("John Doe").withPhone("90000001")
+                .withEmail("john1@example.com").build();
+        Client lowerCaseJohnDoe = new ClientBuilder().withName("john doe").withPhone("90000002")
+                .withEmail("john2@example.com").build();
+        GigabyteData legacyData = new GigabyteData();
+        legacyData.addClient(johnDoe);
+        legacyData.addClient(lowerCaseJohnDoe);
+        Model legacyModel = new ModelManager(legacyData, new UserPrefs());
+
+        // EP: phone, email, address or tag only edit, for both clients of the pair
+        for (Index index : new Index[] {INDEX_FIRST_CLIENT, INDEX_SECOND_CLIENT}) {
+            new EditClientCommand(index, new EditClientDescriptorBuilder().withPhone("8000000"
+                    + index.getOneBased()).build()).execute(legacyModel);
+            new EditClientCommand(index, new EditClientDescriptorBuilder().withEmail("new"
+                    + index.getOneBased() + "@example.com").build()).execute(legacyModel);
+            new EditClientCommand(index, new EditClientDescriptorBuilder().withAddress("New Road").build())
+                    .execute(legacyModel);
+            new EditClientCommand(index, new EditClientDescriptorBuilder().withTags(VALID_TAG_HUSBAND).build())
+                    .execute(legacyModel);
+        }
+
+        // EP: capitalisation-only and spacing-only rename of own name
+        new EditClientCommand(INDEX_FIRST_CLIENT, new EditClientDescriptorBuilder().withName("JOHN DOE").build())
+                .execute(legacyModel);
+        new EditClientCommand(INDEX_FIRST_CLIENT, new EditClientDescriptorBuilder().withName("John  Doe").build())
+                .execute(legacyModel);
+        assertEquals("John  Doe", legacyModel.getFilteredClientList().get(0).getName().fullName);
+        assertEquals(2, legacyModel.getFilteredClientList().size());
+
+        // EP: rename to exactly the other client's name -> rejected by the exact-name check
+        assertCommandFailure(new EditClientCommand(INDEX_FIRST_CLIENT,
+                new EditClientDescriptorBuilder().withName("john doe").build()), legacyModel,
+                EditClientCommand.MESSAGE_DUPLICATE_CLIENT);
+    }
+
+    @Test
     public void execute_invalidClientIndexUnfilteredList_failure() {
         Index outOfBoundIndex = Index.fromOneBased(model.getFilteredClientList().size() + 1);
         EditClientDescriptor descriptor = new EditClientDescriptorBuilder().withName(VALID_NAME_BOB).build();

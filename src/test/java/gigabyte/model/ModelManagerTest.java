@@ -80,6 +80,27 @@ public class ModelManagerTest {
     }
 
     @Test
+    public void hasOtherClientWithSameNormalizedName_nullClient_throwsNullPointerException() {
+        assertThrows(NullPointerException.class, () -> modelManager.hasOtherClientWithSameNormalizedName(null));
+    }
+
+    @Test
+    public void hasOtherClientWithSameNormalizedName() {
+        modelManager.addClient(ALICE);
+
+        // the same client, compared by UID -> returns false
+        Client renamedAlice = new ClientBuilder(ALICE).withName("ALICE  pauline").build();
+        assertFalse(modelManager.hasOtherClientWithSameNormalizedName(renamedAlice));
+
+        // another client whose name differs only in case and spacing -> returns true
+        Client otherAlice = new ClientBuilder().withName("ALICE  pauline").build();
+        assertTrue(modelManager.hasOtherClientWithSameNormalizedName(otherAlice));
+
+        // another client with a different name -> returns false
+        assertFalse(modelManager.hasOtherClientWithSameNormalizedName(BENSON));
+    }
+
+    @Test
     public void getFilteredClientList_modifyList_throwsUnsupportedOperationException() {
         assertThrows(UnsupportedOperationException.class, () -> modelManager.getFilteredClientList().remove(0));
     }
