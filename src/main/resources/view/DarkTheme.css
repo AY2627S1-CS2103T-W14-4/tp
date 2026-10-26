@@ -374,3 +374,7 @@
     -fx-background-radius: 2;
     -fx-font-size: 11;
 }
+
+.split-pane-divider {
+-fx-background-color: grey; /* Change to your desired color */
+}
