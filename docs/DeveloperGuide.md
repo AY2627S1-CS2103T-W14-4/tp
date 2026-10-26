@@ -1215,6 +1215,10 @@ and the selected client's normal recorded gig order, even while an overview is o
    1. Test case: `findgig no-such-title`, then `findgig`.<br>
       Expected: The first command shows `No gigs match the supplied title keywords.`; the second is rejected
       without changing stored records. Input `list` to restore all clients.
+   1. Test case: `addgig 1 t/Invoice, overdue s/NOT_STARTED d/2027-06-30 f/100`, then `findgig invoice`, then
+      `findgig voice`.<br>
+      Expected: `findgig invoice` shows the new gig because the trailing comma is ignored. `findgig voice` does not
+      show it because `voice` is only part of a word.
 
 ### Updating gig statuses and reviewing gigs
 
