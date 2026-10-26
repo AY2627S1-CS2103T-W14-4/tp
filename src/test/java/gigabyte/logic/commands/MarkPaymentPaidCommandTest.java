@@ -131,11 +131,16 @@ public class MarkPaymentPaidCommandTest {
         model.addPaymentObligation(new PaymentObligation(gig, AMOUNT, DUE_DATE, false));
         GigabyteData before = new GigabyteData(model.getGigabyteData());
 
+        // EP: client index beyond the displayed client list
         assertThrows(CommandException.class, Messages.MESSAGE_INVALID_CLIENT_DISPLAYED_INDEX, () ->
                 new MarkPaymentPaidCommand(THIRD, FIRST, FIRST).execute(model));
-        assertThrows(CommandException.class, MarkPaymentPaidCommand.MESSAGE_INVALID_GIG_INDEX, () ->
+
+        // EP: gig index beyond the client's gigs
+        assertThrows(CommandException.class, Messages.MESSAGE_INVALID_GIG_INDEX, () ->
                 new MarkPaymentPaidCommand(FIRST, SECOND, FIRST).execute(model));
-        assertThrows(CommandException.class, MarkPaymentPaidCommand.MESSAGE_INVALID_PAYMENT_INDEX, () ->
+
+        // EP: payment index beyond the gig's payments
+        assertThrows(CommandException.class, Messages.MESSAGE_INVALID_PAYMENT_INDEX, () ->
                 new MarkPaymentPaidCommand(FIRST, FIRST, SECOND).execute(model));
 
         assertEquals(before, model.getGigabyteData());
@@ -144,10 +149,15 @@ public class MarkPaymentPaidCommandTest {
     @Test
     public void equals_comparesAllIndexes() {
         MarkPaymentPaidCommand command = new MarkPaymentPaidCommand(FIRST, SECOND, THIRD);
+        // same values or same object -> returns true
         assertEquals(command, new MarkPaymentPaidCommand(FIRST, SECOND, THIRD));
         assertTrue(command.equals(command));
+
+        // null or a different type -> returns false
         assertFalse(command.equals(null));
         assertFalse(command.equals("markpaid"));
+
+        // different client, gig, or payment index -> returns false
         assertFalse(command.equals(new MarkPaymentPaidCommand(SECOND, SECOND, THIRD)));
         assertFalse(command.equals(new MarkPaymentPaidCommand(FIRST, FIRST, THIRD)));
         assertFalse(command.equals(new MarkPaymentPaidCommand(FIRST, SECOND, SECOND)));

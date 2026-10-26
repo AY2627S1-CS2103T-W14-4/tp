@@ -65,11 +65,17 @@ public class FilterGigsCommandTest {
     @Test
     public void equalsAndToString_compareStatus() {
         FilterGigsCommand command = new FilterGigsCommand(GigStatus.IN_PROGRESS);
+        // same object or same status -> returns true
         assertTrue(command.equals(command));
         assertTrue(command.equals(new FilterGigsCommand(GigStatus.IN_PROGRESS)));
+
+        // different status -> returns false
         assertFalse(command.equals(new FilterGigsCommand(GigStatus.COMPLETED)));
+
+        // null or a different type -> returns false
         assertFalse(command.equals(null));
         assertFalse(command.equals("IN_PROGRESS"));
+
         assertEquals(FilterGigsCommand.class.getCanonicalName() + "{status=IN_PROGRESS}", command.toString());
     }
 }

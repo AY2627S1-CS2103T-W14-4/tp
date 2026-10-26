@@ -46,7 +46,7 @@ public class JsonGigabyteDataFormatTest {
             """;
 
     @TempDir
-    public Path testFolder;
+    Path testFolder;
 
     @Test
     public void readAndSave_currentFormat_preservesAllFieldsAndLinks() throws Exception {
@@ -74,6 +74,7 @@ public class JsonGigabyteDataFormatTest {
 
     @Test
     public void read_missingOrNullCollections_throwsDataLoadingException() throws Exception {
+        // EP: one collection missing or null
         for (String field : List.of("clients", "gigs", "paymentObligations")) {
             ObjectNode json = currentJson();
             json.remove(field);
@@ -81,6 +82,8 @@ public class JsonGigabyteDataFormatTest {
             json.putNull(field);
             assertInvalidSave(json);
         }
+
+        // EP: every collection missing, or the whole file is null
         assertInvalidSave(JsonUtil.fromJsonString("{}", ObjectNode.class));
         assertInvalidSave(NullNode.getInstance());
     }
@@ -105,16 +108,20 @@ public class JsonGigabyteDataFormatTest {
 
     @Test
     public void read_obsoleteFieldsAlongsideCurrentFields_throwsDataLoadingException() throws Exception {
+        // EP: obsolete top-level collection
         ObjectNode json = currentJson();
         json.set("persons", json.get("clients"));
         assertInvalidSave(json);
 
+        // EP: obsolete gig fields
         for (String field : List.of("clientName", "fee")) {
             json = currentJson();
             ObjectNode gig = (ObjectNode) json.get("gigs").get(0);
             gig.put(field, "old value");
             assertInvalidSave(json);
         }
+
+        // EP: obsolete payment fields
         for (String field : List.of("gigIndex", "amount")) {
             json = currentJson();
             ObjectNode payment = (ObjectNode) json.get("paymentObligations").get(0);
@@ -125,10 +132,12 @@ public class JsonGigabyteDataFormatTest {
 
     @Test
     public void read_olderFieldNames_throwsDataLoadingException() throws Exception {
+        // EP: clients saved under the old collection name
         ObjectNode json = currentJson();
         json.set("persons", json.remove("clients"));
         assertInvalidSave(json);
 
+        // EP: gig saved with old field names
         json = currentJson();
         ObjectNode gig = (ObjectNode) json.get("gigs").get(0);
         gig.remove("clientUid");
@@ -137,6 +146,7 @@ public class JsonGigabyteDataFormatTest {
         gig.put("fee", "1250.50");
         assertInvalidSave(json);
 
+        // EP: payment saved with old field names
         json = currentJson();
         ObjectNode payment = (ObjectNode) json.get("paymentObligations").get(0);
         payment.remove("gigUid");

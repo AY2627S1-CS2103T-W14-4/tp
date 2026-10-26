@@ -19,8 +19,11 @@ public class GigTitleContainsKeywordsPredicateTest {
         GigTitleContainsKeywordsPredicate predicate =
                 new GigTitleContainsKeywordsPredicate(List.of("WEBSITE", "logo"));
 
+        // EP: title contains one keyword in a different case
         assertTrue(predicate.test(createGig("Website redesign")));
         assertTrue(predicate.test(createGig("Brand logo")));
+
+        // EP: title contains no keywords
         assertFalse(predicate.test(createGig("Mobile application")));
     }
 
@@ -29,7 +32,10 @@ public class GigTitleContainsKeywordsPredicateTest {
         GigTitleContainsKeywordsPredicate predicate =
                 new GigTitleContainsKeywordsPredicate(List.of("site"));
 
+        // EP: keyword is only part of a word in the title
         assertFalse(predicate.test(createGig("Website redesign")));
+
+        // EP: keyword matches a whole word in the title
         assertTrue(new GigTitleContainsKeywordsPredicate(List.of("website")).test(createGig("Website redesign")));
     }
 }

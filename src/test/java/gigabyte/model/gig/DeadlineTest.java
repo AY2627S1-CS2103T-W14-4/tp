@@ -32,15 +32,22 @@ public class DeadlineTest {
 
     @Test
     public void isValidDeadline() {
+        // EP: null deadline
         assertThrows(NullPointerException.class, () -> Deadline.isValidDeadline(null));
 
+        // EP: empty deadline
         assertFalse(Deadline.isValidDeadline(""));
+
+        // EP: not in yyyy-MM-dd format
         assertFalse(Deadline.isValidDeadline("31-01-2027"));
         assertFalse(Deadline.isValidDeadline("2027-1-31"));
-        assertFalse(Deadline.isValidDeadline("2027-02-29"));
         assertFalse(Deadline.isValidDeadline("not-a-date"));
 
-        assertTrue(Deadline.isValidDeadline("2024-02-29"));
+        // EP: correct format but the date does not exist
+        assertFalse(Deadline.isValidDeadline("2027-02-29")); // Not a leap year
+
+        // EP: real dates in yyyy-MM-dd format, should return true
+        assertTrue(Deadline.isValidDeadline("2024-02-29")); // Leap day
         assertTrue(Deadline.isValidDeadline("2027-01-31"));
     }
 }

@@ -258,37 +258,13 @@ public class MainWindow extends UiPart<Stage> {
             logger.info("Result: " + commandResult.getFeedbackToUser());
             resultDisplay.setFeedbackToUser(commandResult.getFeedbackToUser());
             paymentObligationListPanel.refreshPaymentStates();
+            showRequestedView(commandResult);
 
-            if (commandResult.getGigStatusFilter() != null) {
-                // Clear the selection so clicking the same client restores their gigs too.
-                clientListPanel.getClientListView().getSelectionModel().clearSelection();
-                gigListPanel.showGigsWithStatus(commandResult.getGigStatusFilter());
-                paymentObligationListPanel.showPaymentsFor(null);
-            }
-
-            if (commandResult.getGigTitleSearch() != null) {
-                clientListPanel.getClientListView().getSelectionModel().clearSelection();
-                gigListPanel.showGigsMatchingTitle(commandResult.getGigTitleSearch());
-                paymentObligationListPanel.showPaymentsFor(null);
-            }
-
-            if (commandResult.isShowOutstandingPayments()) {
-                clientListPanel.getClientListView().getSelectionModel().clearSelection();
-                gigListPanel.getGigListView().getSelectionModel().clearSelection();
-                paymentObligationListPanel.showOutstandingPayments();
-            }
-
-            if (commandResult.isShowDeadlineOverview()) {
-                clientListPanel.getClientListView().getSelectionModel().clearSelection();
-                gigListPanel.showDeadlineOverview();
-                paymentObligationListPanel.showPaymentsFor(null);
-            }
-
-            if (commandResult.isShowHelp()) {
+            if (commandResult.shouldShowHelp()) {
                 handleHelp();
             }
 
-            if (commandResult.isExit()) {
+            if (commandResult.shouldExit()) {
                 handleExit();
             }
 
@@ -297,6 +273,36 @@ public class MainWindow extends UiPart<Stage> {
             logger.info("An error occurred while executing command: " + commandText);
             resultDisplay.setFeedbackToUser(e.getMessage());
             throw e;
+        }
+    }
+
+    /**
+     * Switches the client, gig, and payment lists to the view requested by {@code commandResult}, if any.
+     */
+    private void showRequestedView(CommandResult commandResult) {
+        if (commandResult.getGigStatusFilter() != null) {
+            // Clear the selection so clicking the same client restores their gigs too.
+            clientListPanel.getClientListView().getSelectionModel().clearSelection();
+            gigListPanel.showGigsWithStatus(commandResult.getGigStatusFilter());
+            paymentObligationListPanel.showPaymentsFor(null);
+        }
+
+        if (commandResult.getGigTitleSearch() != null) {
+            clientListPanel.getClientListView().getSelectionModel().clearSelection();
+            gigListPanel.showGigsMatchingTitle(commandResult.getGigTitleSearch());
+            paymentObligationListPanel.showPaymentsFor(null);
+        }
+
+        if (commandResult.shouldShowOutstandingPayments()) {
+            clientListPanel.getClientListView().getSelectionModel().clearSelection();
+            gigListPanel.getGigListView().getSelectionModel().clearSelection();
+            paymentObligationListPanel.showOutstandingPayments();
+        }
+
+        if (commandResult.shouldShowDeadlineOverview()) {
+            clientListPanel.getClientListView().getSelectionModel().clearSelection();
+            gigListPanel.showDeadlineOverview();
+            paymentObligationListPanel.showPaymentsFor(null);
         }
     }
 }

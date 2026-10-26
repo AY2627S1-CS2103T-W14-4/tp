@@ -22,7 +22,7 @@ public class UiPartTest {
     private static final TestFxmlObject VALID_FILE_ROOT = new TestFxmlObject("Hello World!");
 
     @TempDir
-    public Path testFolder;
+    Path testFolder;
 
     @Test
     public void constructor_nullFileUrl_throwsNullPointerException() {

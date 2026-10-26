@@ -133,11 +133,16 @@ public class MarkPaymentUnpaidCommandTest {
         model.addPaymentObligation(new PaymentObligation(gig, AMOUNT, DUE_DATE, true));
         GigabyteData before = new GigabyteData(model.getGigabyteData());
 
+        // EP: client index beyond the displayed client list
         assertThrows(CommandException.class, Messages.MESSAGE_INVALID_CLIENT_DISPLAYED_INDEX, () ->
                 new MarkPaymentUnpaidCommand(THIRD, FIRST, FIRST).execute(model));
-        assertThrows(CommandException.class, MarkPaymentUnpaidCommand.MESSAGE_INVALID_GIG_INDEX, () ->
+
+        // EP: gig index beyond the client's gigs
+        assertThrows(CommandException.class, Messages.MESSAGE_INVALID_GIG_INDEX, () ->
                 new MarkPaymentUnpaidCommand(FIRST, SECOND, FIRST).execute(model));
-        assertThrows(CommandException.class, MarkPaymentUnpaidCommand.MESSAGE_INVALID_PAYMENT_INDEX, () ->
+
+        // EP: payment index beyond the gig's payments
+        assertThrows(CommandException.class, Messages.MESSAGE_INVALID_PAYMENT_INDEX, () ->
                 new MarkPaymentUnpaidCommand(FIRST, FIRST, SECOND).execute(model));
 
         assertEquals(before, model.getGigabyteData());
@@ -146,10 +151,15 @@ public class MarkPaymentUnpaidCommandTest {
     @Test
     public void equals_comparesAllIndexes() {
         MarkPaymentUnpaidCommand command = new MarkPaymentUnpaidCommand(FIRST, SECOND, THIRD);
+        // same values or same object -> returns true
         assertEquals(command, new MarkPaymentUnpaidCommand(FIRST, SECOND, THIRD));
         assertTrue(command.equals(command));
+
+        // null or a different type -> returns false
         assertFalse(command.equals(null));
         assertFalse(command.equals("markunpaid"));
+
+        // different client, gig, or payment index -> returns false
         assertFalse(command.equals(new MarkPaymentUnpaidCommand(SECOND, SECOND, THIRD)));
         assertFalse(command.equals(new MarkPaymentUnpaidCommand(FIRST, FIRST, THIRD)));
         assertFalse(command.equals(new MarkPaymentUnpaidCommand(FIRST, SECOND, SECOND)));

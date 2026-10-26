@@ -121,12 +121,12 @@ public class GigabyteDataTest {
 
     @Test
     public void removeGig_paidOrUnpaidPayments_rejectsWithoutChangingRecords() {
-        for (boolean paid : new boolean[] {false, true}) {
+        for (boolean isPaid : new boolean[] {false, true}) {
             GigabyteData data = new GigabyteData();
             data.addClient(ALICE);
             data.addGig(new Gig(ALICE, TITLE, GigStatus.IN_PROGRESS, new Deadline("2099-01-31"), new Fee("100")));
             Gig gig = data.getGigList().get(0);
-            data.addPaymentObligation(new PaymentObligation(gig, new Fee("50"), new Deadline("2099-02-28"), paid));
+            data.addPaymentObligation(new PaymentObligation(gig, new Fee("50"), new Deadline("2099-02-28"), isPaid));
             GigabyteData before = new GigabyteData(data);
             PaymentObligation payment = data.getPaymentObligationList().get(0);
 
@@ -337,10 +337,14 @@ public class GigabyteDataTest {
         PaymentObligation changedState = new PaymentObligation(stored.getGig(), new Fee("75"),
                 stored.getDueDate(), true);
 
+        // EP: replacement linked to a different gig
         assertThrows(IllegalArgumentException.class, () ->
                 gigabyteData.setPaymentObligation(stored, changedAssociation));
+
+        // EP: replacement with a different paid state
         assertThrows(IllegalArgumentException.class, () ->
                 gigabyteData.setPaymentObligation(stored, changedState));
+
         assertSame(stored, gigabyteData.getPaymentObligationList().get(0));
     }
 

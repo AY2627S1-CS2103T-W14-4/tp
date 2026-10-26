@@ -25,7 +25,6 @@ public class DeleteGigCommand extends Command {
             + "Parameters: CLIENT_INDEX GIG_INDEX (positive integers)\n"
             + "Uses the displayed client list and that client's normal gig order.\n"
             + "Example: " + COMMAND_WORD + " 2 1";
-    public static final String MESSAGE_INVALID_GIG_INDEX = "The gig index provided is invalid for this client.";
     public static final String MESSAGE_SUCCESS = "Deleted gig for %1$s, gig %2$d: %3$s";
 
     private final Index clientIndex;
@@ -50,7 +49,7 @@ public class DeleteGigCommand extends Command {
         Client client = clients.get(clientIndex.getZeroBased());
         List<Gig> gigs = GigOrdering.forClient(model.getGigList(), client);
         if (gigIndex.getZeroBased() >= gigs.size()) {
-            throw new CommandException(MESSAGE_INVALID_GIG_INDEX);
+            throw new CommandException(Messages.MESSAGE_INVALID_GIG_INDEX);
         }
         Gig target = gigs.get(gigIndex.getZeroBased());
         try {

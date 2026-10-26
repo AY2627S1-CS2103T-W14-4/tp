@@ -15,6 +15,9 @@ import gigabyte.logic.commands.SetGigStatusCommand;
 import gigabyte.model.gig.GigStatus;
 
 public class SetGigStatusCommandParserTest {
+    private static final String INVALID_FORMAT =
+            String.format(MESSAGE_INVALID_COMMAND_FORMAT, SetGigStatusCommand.MESSAGE_USAGE);
+
     private final SetGigStatusCommandParser parser = new SetGigStatusCommandParser();
 
     @Test
@@ -28,22 +31,49 @@ public class SetGigStatusCommandParserTest {
     }
 
     @Test
-    public void parse_missingOrUnexpectedIndexes_rejectsInput() {
-        String usage = String.format(MESSAGE_INVALID_COMMAND_FORMAT, SetGigStatusCommand.MESSAGE_USAGE);
-        for (String input : new String[] {"", "1", "1 2", "1 2 3 s/COMPLETED", "one 2 s/COMPLETED",
-            "0 2 s/COMPLETED", "1 -2 s/COMPLETED", "2147483648 2 s/COMPLETED"}) {
-            assertParseFailure(parser, input, usage);
-        }
+    public void parse_missingFieldsOrWrongNumberOfIndexes_rejectsInput() {
+        // EP: missing status
+        assertParseFailure(parser, "", INVALID_FORMAT);
+        assertParseFailure(parser, "1", INVALID_FORMAT);
+        assertParseFailure(parser, "1 2", INVALID_FORMAT);
+
+        // EP: more than two indexes
+        assertParseFailure(parser, "1 2 3 s/COMPLETED", INVALID_FORMAT);
     }
 
     @Test
-    public void parse_missingUnsupportedOrExtraArguments_rejectsInput() {
-        String usage = String.format(MESSAGE_INVALID_COMMAND_FORMAT, SetGigStatusCommand.MESSAGE_USAGE);
-        assertParseFailure(parser, "1 2 s/", usage);
-        for (String input : new String[] {"1 2 s/WAITING", "1 2 s/IN PROGRESS", "1 2 s/COMPLETED extra",
-            "1 2 s/COMPLETED d/2027-01-31"}) {
-            assertParseFailure(parser, input, GigStatus.MESSAGE_CONSTRAINTS);
-        }
+    public void parse_zeroOrNegativeIndex_rejectsInput() {
+        assertParseFailure(parser, "0 2 s/COMPLETED", INVALID_FORMAT); // Boundary value
+        assertParseFailure(parser, "1 -2 s/COMPLETED", INVALID_FORMAT);
+    }
+
+    @Test
+    public void parse_nonNumericIndex_rejectsInput() {
+        assertParseFailure(parser, "one 2 s/COMPLETED", INVALID_FORMAT);
+    }
+
+    @Test
+    public void parse_indexAboveIntegerMaxValue_rejectsInput() {
+        // Boundary value: Integer.MAX_VALUE + 1
+        assertParseFailure(parser, "2147483648 2 s/COMPLETED", INVALID_FORMAT);
+    }
+
+    @Test
+    public void parse_emptyStatus_rejectsInput() {
+        assertParseFailure(parser, "1 2 s/", INVALID_FORMAT);
+    }
+
+    @Test
+    public void parse_unsupportedStatusOrExtraArguments_rejectsInput() {
+        // EP: unknown status
+        assertParseFailure(parser, "1 2 s/WAITING", GigStatus.MESSAGE_CONSTRAINTS);
+
+        // EP: known status written with a space instead of an underscore
+        assertParseFailure(parser, "1 2 s/IN PROGRESS", GigStatus.MESSAGE_CONSTRAINTS);
+
+        // EP: valid status followed by extra text or an unsupported prefix
+        assertParseFailure(parser, "1 2 s/COMPLETED extra", GigStatus.MESSAGE_CONSTRAINTS);
+        assertParseFailure(parser, "1 2 s/COMPLETED d/2027-01-31", GigStatus.MESSAGE_CONSTRAINTS);
     }
 
     @Test

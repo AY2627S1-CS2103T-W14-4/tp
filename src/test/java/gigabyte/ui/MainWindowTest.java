@@ -55,7 +55,7 @@ public class MainWindowTest {
             BENSON_GIG, new Fee("600"), new Deadline("2027-04-15"), false);
 
     @TempDir
-    public Path temporaryFolder;
+    Path temporaryFolder;
 
     @BeforeAll
     public static void setUpJavaFx() {
@@ -88,7 +88,8 @@ public class MainWindowTest {
                 assertEquals(List.of(BENSON_GIG), window.getGigListPanel().getGigListView().getItems());
                 assertNull(window.getClientListPanel().getClientListView().getSelectionModel().getSelectedItem());
                 assertEquals(0, window.getPaymentObligationListPanel().getPaymentListView().getItems().size());
-                assertEquals(model.getFilteredClientList(), window.getClientListPanel().getClientListView().getItems());
+                assertEquals(model.getFilteredClientList(),
+                        window.getClientListPanel().getClientListView().getItems());
 
                 window.getGigListPanel().getGigListView().getSelectionModel().select(0);
                 assertEquals(List.of(BENSON_PAYMENT),
@@ -246,7 +247,8 @@ public class MainWindowTest {
                     new JsonGigabyteDataStorage(temporaryFolder.resolve("delete-gig.json")),
                     new JsonUserPrefsStorage(temporaryFolder.resolve("delete-gig-preferences.json"))));
             MainWindow window = callOnJavaFxThread(() -> {
-                MainWindow mainWindow = new MainWindow(new Stage(), logic, temporaryFolder.resolve("delete-gig.json"));
+                MainWindow mainWindow = new MainWindow(new Stage(), logic,
+                        temporaryFolder.resolve("delete-gig.json"));
                 mainWindow.fillInnerParts();
                 return mainWindow;
             });
@@ -259,7 +261,8 @@ public class MainWindowTest {
                     int targetIndex = window.getGigListPanel().getGigListView().getItems().get(0).hasSameUid(target)
                             ? 0 : 1;
                     window.getGigListPanel().getGigListView().getSelectionModel().select(targetIndex);
-                    assertSame(target, window.getGigListPanel().getGigListView().getSelectionModel().getSelectedItem());
+                    assertSame(target, window.getGigListPanel().getGigListView()
+                            .getSelectionModel().getSelectedItem());
 
                     enterCommand(window, "deletegig 1 2");
 
@@ -303,7 +306,8 @@ public class MainWindowTest {
                 new JsonGigabyteDataStorage(temporaryFolder.resolve("keep-selection.json")),
                 new JsonUserPrefsStorage(temporaryFolder.resolve("keep-selection-preferences.json"))));
         MainWindow window = callOnJavaFxThread(() -> {
-            MainWindow mainWindow = new MainWindow(new Stage(), logic, temporaryFolder.resolve("keep-selection.json"));
+            MainWindow mainWindow = new MainWindow(new Stage(), logic,
+                    temporaryFolder.resolve("keep-selection.json"));
             mainWindow.fillInnerParts();
             return mainWindow;
         });
@@ -314,10 +318,12 @@ public class MainWindowTest {
 
                 enterCommand(window, "deletegig 1 1");
 
-                assertSame(selected, window.getGigListPanel().getGigListView().getSelectionModel().getSelectedItem());
+                assertSame(selected, window.getGigListPanel().getGigListView()
+                        .getSelectionModel().getSelectedItem());
                 assertSame(payment, window.getPaymentObligationListPanel().getPaymentListView().getItems().get(0));
                 enterCommand(window, "deletegig 1 1");
-                assertSame(selected, window.getGigListPanel().getGigListView().getSelectionModel().getSelectedItem());
+                assertSame(selected, window.getGigListPanel().getGigListView()
+                        .getSelectionModel().getSelectedItem());
                 assertSame(payment, model.getPaymentObligationList().get(0));
                 return null;
             });
