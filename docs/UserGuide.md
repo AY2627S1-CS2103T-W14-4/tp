@@ -137,6 +137,12 @@ recorded. These displayed payment indexes restart from 1 for each selected gig; 
 `markunpaid` use them. `editpayment` resolves the selected payment before applying a due-date change that might move
 the payment to a new displayed position.
 
+When a list has keyboard focus, use **Up** and **Down** to select entries. **Right** moves focus from clients to gigs
+or from gigs to payment obligations; **Left** moves back one list. Press **Tab** from any list to focus the
+command box; press **Tab** from the command box to focus Clients. When a list gains focus with no selected row,
+its first row is selected automatically if it has one. Selecting an entry keeps focus in its list so you can continue
+browsing.
+
 Each payment row shows its amount, due date, and current display state:
 
 * `PAID`: the obligation has been marked as paid.

@@ -1054,11 +1054,14 @@ Start each test in this section from a fresh test folder unless the test says ot
    1. Select the second `Identical gig` (gig 4).<br>
       Expected: Only the `$222.00` payment appears, confirming that field-identical gigs keep separate payments.
 
-1. **Keyboard focus after selection**
-   1. Select a client, then immediately type `list` without clicking the command box.<br>
-      Expected: `list` appears in the command box and pressing Enter runs it.
-   1. Select a client and one of its gigs, then immediately type `list` without clicking the command box.<br>
-      Expected: `list` again appears in the command box and pressing Enter runs it.
+1. **Keyboard navigation across lists**
+   1. With the command box focused, press Tab, then Down and Up.<br>
+      Expected: The first client is selected on Tab; the selected client then changes and the gig list follows the
+      selection without moving keyboard focus.
+   1. Press Right, Down, Right, Down, then Left twice.<br>
+      Expected: Focus moves through gigs and payment obligations, selects a row in each, then returns to clients.
+   1. Press Right twice to reach payment obligations, then Tab, type `list`, and press Tab again.<br>
+      Expected: Focus moves to the command box, retains the text, then moves to the client list.
 
 1. **Usability at the supported scaled viewport**
    1. Set the display resolution to 1280×720 and display scaling to 150%, then launch the JAR.<br>
