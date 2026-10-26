@@ -62,6 +62,8 @@ public class PaymentObligationListPanel extends UiPart<Region> {
         paymentListView.setCellFactory(unused -> createPaymentCell());
         sortedPayments.addListener((javafx.collections.ListChangeListener<PaymentObligation>) change ->
                 updateEmptyState());
+        // A blank hint gives its height to the list, which matters in short windows.
+        emptyState.managedProperty().bind(emptyState.textProperty().isNotEmpty());
         updateEmptyState();
         Platform.runLater(this::scheduleNextPaymentStateRefresh);
     }
