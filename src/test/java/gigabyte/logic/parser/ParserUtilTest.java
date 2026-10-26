@@ -1,8 +1,11 @@
 package gigabyte.logic.parser;
 
+import static gigabyte.logic.Messages.MESSAGE_INVALID_COMMAND_FORMAT;
 import static gigabyte.logic.parser.ParserUtil.MESSAGE_INVALID_INDEX;
 import static gigabyte.testutil.Assert.assertThrows;
 import static gigabyte.testutil.TypicalIndexes.INDEX_FIRST_CLIENT;
+import static gigabyte.testutil.TypicalIndexes.INDEX_SECOND_CLIENT;
+import static gigabyte.testutil.TypicalIndexes.INDEX_THIRD_CLIENT;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -37,6 +40,9 @@ public class ParserUtilTest {
 
     private static final String WHITESPACE = " \t\r\n";
 
+    private static final String USAGE = "command INDEX...";
+    private static final String INVALID_FORMAT = String.format(MESSAGE_INVALID_COMMAND_FORMAT, USAGE);
+
     @Test
     public void parseIndex_invalidInput_throwsParseException() {
         assertThrows(ParseException.class, () -> ParserUtil.parseIndex("10 a"));
@@ -55,6 +61,31 @@ public class ParserUtilTest {
 
         // Leading and trailing whitespaces
         assertEquals(INDEX_FIRST_CLIENT, ParserUtil.parseIndex("  1  "));
+    }
+
+    @Test
+    public void parseIndexes_validInput_returnsIndexesInOrder() throws Exception {
+        assertEquals(List.of(INDEX_SECOND_CLIENT, INDEX_FIRST_CLIENT, INDEX_THIRD_CLIENT),
+                ParserUtil.parseIndexes(" 2 \t1  3 ", 3, USAGE));
+    }
+
+    @Test
+    public void parseIndexes_wrongNumberOfIndexes_throwsInvalidFormat() {
+        // EP: no index
+        assertThrows(ParseException.class, INVALID_FORMAT, () -> ParserUtil.parseIndexes(WHITESPACE, 1, USAGE));
+
+        // EP: fewer indexes than expected
+        assertThrows(ParseException.class, INVALID_FORMAT, () -> ParserUtil.parseIndexes("1 2", 3, USAGE));
+
+        // EP: more indexes than expected, even if the extra one is invalid
+        assertThrows(ParseException.class, INVALID_FORMAT, () -> ParserUtil.parseIndexes("1 2 0", 2, USAGE));
+    }
+
+    @Test
+    public void parseIndexes_invalidIndexValue_throwsInvalidIndex() {
+        // EP: invalid value in the first and the last position
+        assertThrows(ParseException.class, MESSAGE_INVALID_INDEX, () -> ParserUtil.parseIndexes("0 1", 2, USAGE));
+        assertThrows(ParseException.class, MESSAGE_INVALID_INDEX, () -> ParserUtil.parseIndexes("1 abc", 2, USAGE));
     }
 
     @Test

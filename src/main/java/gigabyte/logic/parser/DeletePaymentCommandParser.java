@@ -1,6 +1,6 @@
 package gigabyte.logic.parser;
 
-import static gigabyte.logic.Messages.MESSAGE_INVALID_COMMAND_FORMAT;
+import java.util.List;
 
 import gigabyte.commons.core.index.Index;
 import gigabyte.logic.commands.DeletePaymentCommand;
@@ -10,21 +10,7 @@ import gigabyte.logic.parser.exceptions.ParseException;
 public class DeletePaymentCommandParser implements Parser<DeletePaymentCommand> {
     @Override
     public DeletePaymentCommand parse(String args) throws ParseException {
-        String trimmedArgs = args.trim();
-        String[] indexes = trimmedArgs.isEmpty() ? new String[0] : trimmedArgs.split("\\s+");
-        if (indexes.length != 3) {
-            throw new ParseException(
-                    String.format(MESSAGE_INVALID_COMMAND_FORMAT, DeletePaymentCommand.MESSAGE_USAGE));
-        }
-
-        try {
-            Index clientIndex = ParserUtil.parseIndex(indexes[0]);
-            Index gigIndex = ParserUtil.parseIndex(indexes[1]);
-            Index paymentIndex = ParserUtil.parseIndex(indexes[2]);
-            return new DeletePaymentCommand(clientIndex, gigIndex, paymentIndex);
-        } catch (ParseException exception) {
-            String message = String.format(MESSAGE_INVALID_COMMAND_FORMAT, DeletePaymentCommand.MESSAGE_USAGE);
-            throw new ParseException(message, exception);
-        }
+        List<Index> indexes = ParserUtil.parseIndexes(args, 3, DeletePaymentCommand.MESSAGE_USAGE);
+        return new DeletePaymentCommand(indexes.get(0), indexes.get(1), indexes.get(2));
     }
 }

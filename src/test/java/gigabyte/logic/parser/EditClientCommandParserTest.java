@@ -28,6 +28,7 @@ import static gigabyte.logic.parser.CliSyntax.PREFIX_PHONE;
 import static gigabyte.logic.parser.CliSyntax.PREFIX_TAG;
 import static gigabyte.logic.parser.CommandParserTestUtil.assertParseFailure;
 import static gigabyte.logic.parser.CommandParserTestUtil.assertParseSuccess;
+import static gigabyte.logic.parser.ParserUtil.MESSAGE_INVALID_INDEX;
 import static gigabyte.testutil.TypicalIndexes.INDEX_FIRST_CLIENT;
 import static gigabyte.testutil.TypicalIndexes.INDEX_SECOND_CLIENT;
 import static gigabyte.testutil.TypicalIndexes.INDEX_THIRD_CLIENT;
@@ -62,17 +63,29 @@ public class EditClientCommandParserTest {
         // no field specified
         assertParseFailure(parser, "1", EditClientCommand.MESSAGE_NOT_EDITED);
 
+        // no index but a field specified
+        assertParseFailure(parser, NAME_DESC_AMY, MESSAGE_INVALID_FORMAT);
+
         // no index and no field specified
         assertParseFailure(parser, "", MESSAGE_INVALID_FORMAT);
     }
 
     @Test
-    public void parse_invalidPreamble_failure() {
+    public void parse_invalidIndex_failure() {
         // negative index
-        assertParseFailure(parser, "-5" + NAME_DESC_AMY, MESSAGE_INVALID_FORMAT);
+        assertParseFailure(parser, "-5" + NAME_DESC_AMY, MESSAGE_INVALID_INDEX);
 
         // zero index
-        assertParseFailure(parser, "0" + NAME_DESC_AMY, MESSAGE_INVALID_FORMAT);
+        assertParseFailure(parser, "0" + NAME_DESC_AMY, MESSAGE_INVALID_INDEX);
+
+        // non-integer index
+        assertParseFailure(parser, "abc" + NAME_DESC_AMY, MESSAGE_INVALID_INDEX);
+    }
+
+    @Test
+    public void parse_extraArgumentsInPreamble_failure() {
+        // more than one index
+        assertParseFailure(parser, "1 2" + NAME_DESC_AMY, MESSAGE_INVALID_FORMAT);
 
         // invalid arguments being parsed as preamble
         assertParseFailure(parser, "1 some random string", MESSAGE_INVALID_FORMAT);

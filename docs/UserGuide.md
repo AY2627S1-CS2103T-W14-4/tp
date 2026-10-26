@@ -130,6 +130,15 @@ numbers, decimals, text, and indexes larger than the displayed list are invalid.
 
 Example: after `find Bernice`, `addgig 1 ...` targets Bernice. After `list`, Bernice is client 2 in the sample data.
 
+When an index is wrong, the error message tells you what kind of mistake it is:
+
+* An index that is zero, negative, a decimal, or text, such as `delete 0` or `markpaid 1 -1 1`, shows
+  `Index must be a positive integer.`
+* A missing or extra index, or extra words before the first prefix, such as `markpaid 1 1`, `markpaid 1 1 1 2`, or
+  `editgig 1 2 extra t/Website`, shows `Invalid command format!` followed by the command's correct format.
+* An index larger than the displayed list, such as `delete 99`, shows that the index is invalid, for example
+  `The client index provided is invalid.`
+
 ### Viewing gigs and payment obligations
 
 Select a client in the client list to show only that client's gigs in the **Gigs** panel. Select a gig to show only

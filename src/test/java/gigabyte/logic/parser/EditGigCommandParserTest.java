@@ -6,6 +6,7 @@ import static gigabyte.logic.parser.CliSyntax.PREFIX_FEE;
 import static gigabyte.logic.parser.CliSyntax.PREFIX_TITLE;
 import static gigabyte.logic.parser.CommandParserTestUtil.assertParseFailure;
 import static gigabyte.logic.parser.CommandParserTestUtil.assertParseSuccess;
+import static gigabyte.logic.parser.ParserUtil.MESSAGE_INVALID_INDEX;
 
 import java.util.Optional;
 
@@ -54,6 +55,9 @@ public class EditGigCommandParserTest {
         // EP: fewer or more than two indexes
         assertParseFailure(parser, "1 t/Website", usage);
         assertParseFailure(parser, "1 2 3 t/Website", usage);
+
+        // EP: extra words before the first prefix
+        assertParseFailure(parser, "1 2 extra t/Website", usage);
     }
 
     @Test
@@ -136,7 +140,7 @@ public class EditGigCommandParserTest {
 
     /** Asserts that {@code invalidIndex} is rejected as both the client index and the gig index. */
     private void assertInvalidIndexRejected(String invalidIndex) {
-        assertParseFailure(parser, invalidIndex + " 1 t/Website", usage);
-        assertParseFailure(parser, "1 " + invalidIndex + " t/Website", usage);
+        assertParseFailure(parser, invalidIndex + " 1 t/Website", MESSAGE_INVALID_INDEX);
+        assertParseFailure(parser, "1 " + invalidIndex + " t/Website", MESSAGE_INVALID_INDEX);
     }
 }

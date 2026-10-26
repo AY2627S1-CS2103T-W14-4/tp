@@ -7,6 +7,7 @@ import static gigabyte.logic.parser.CliSyntax.PREFIX_STATUS;
 import static gigabyte.logic.parser.CliSyntax.PREFIX_TITLE;
 import static gigabyte.logic.parser.CommandParserTestUtil.assertParseFailure;
 import static gigabyte.logic.parser.CommandParserTestUtil.assertParseSuccess;
+import static gigabyte.logic.parser.ParserUtil.MESSAGE_INVALID_INDEX;
 import static gigabyte.testutil.TypicalIndexes.INDEX_FIRST_CLIENT;
 
 import org.junit.jupiter.api.Test;
@@ -51,20 +52,29 @@ public class AddGigCommandParserTest {
     }
 
     @Test
+    public void parse_extraIndexOrWords_throwsParseException() {
+        // EP: more than one index
+        assertParseFailure(parser, "1 2" + VALID_FIELDS, INVALID_FORMAT);
+
+        // EP: extra words before the first prefix
+        assertParseFailure(parser, "1 extra" + VALID_FIELDS, INVALID_FORMAT);
+    }
+
+    @Test
     public void parse_zeroOrNegativeIndex_throwsParseException() {
-        assertParseFailure(parser, "0" + VALID_FIELDS, INVALID_FORMAT); // Boundary value
-        assertParseFailure(parser, "-1" + VALID_FIELDS, INVALID_FORMAT);
+        assertParseFailure(parser, "0" + VALID_FIELDS, MESSAGE_INVALID_INDEX); // Boundary value
+        assertParseFailure(parser, "-1" + VALID_FIELDS, MESSAGE_INVALID_INDEX);
     }
 
     @Test
     public void parse_nonNumericIndex_throwsParseException() {
-        assertParseFailure(parser, "abc" + VALID_FIELDS, INVALID_FORMAT);
+        assertParseFailure(parser, "abc" + VALID_FIELDS, MESSAGE_INVALID_INDEX);
     }
 
     @Test
     public void parse_indexAboveIntegerMaxValue_throwsParseException() {
         // Boundary value: Integer.MAX_VALUE + 1
-        assertParseFailure(parser, "2147483648" + VALID_FIELDS, INVALID_FORMAT);
+        assertParseFailure(parser, "2147483648" + VALID_FIELDS, MESSAGE_INVALID_INDEX);
     }
 
     @Test

@@ -1,9 +1,12 @@
 package gigabyte.logic.parser;
 
+import static gigabyte.logic.Messages.MESSAGE_INVALID_COMMAND_FORMAT;
 import static java.util.Objects.requireNonNull;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 import gigabyte.commons.core.index.Index;
@@ -37,6 +40,36 @@ public class ParserUtil {
             throw new ParseException(MESSAGE_INVALID_INDEX);
         }
         return Index.fromOneBased(Integer.parseInt(trimmedIndex));
+    }
+
+    /**
+     * Parses the whitespace-separated indexes in {@code indexes} and returns them in order.
+     * The number of indexes is checked before any index is parsed, so a wrong number of indexes is a format error,
+     * while the right number of indexes with an invalid value is an index error.
+     *
+     * @param indexes The part of the user input that holds only the indexes, such as a command's preamble.
+     * @param expectedCount The number of indexes the command takes.
+     * @param commandUsage The usage message of the command, shown if the number of indexes is wrong.
+     * @throws ParseException with the invalid command format message if there are not exactly
+     *     {@code expectedCount} indexes, or with {@link #MESSAGE_INVALID_INDEX} if any index is invalid.
+     */
+    public static List<Index> parseIndexes(String indexes, int expectedCount, String commandUsage)
+            throws ParseException {
+        requireNonNull(indexes);
+        requireNonNull(commandUsage);
+        assert expectedCount > 0;
+
+        String trimmedIndexes = indexes.trim();
+        String[] tokens = trimmedIndexes.isEmpty() ? new String[0] : trimmedIndexes.split("\\s+");
+        if (tokens.length != expectedCount) {
+            throw new ParseException(String.format(MESSAGE_INVALID_COMMAND_FORMAT, commandUsage));
+        }
+
+        List<Index> parsedIndexes = new ArrayList<>();
+        for (String token : tokens) {
+            parsedIndexes.add(parseIndex(token));
+        }
+        return parsedIndexes;
     }
 
     /**

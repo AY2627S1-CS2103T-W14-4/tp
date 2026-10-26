@@ -27,15 +27,9 @@ public class AddGigCommandParser implements Parser<AddGigCommand> {
                 || arguments.getValue(PREFIX_FEE).isEmpty()) {
             throw new ParseException(String.format(MESSAGE_INVALID_COMMAND_FORMAT, AddGigCommand.MESSAGE_USAGE));
         }
+        Index clientIndex = ParserUtil.parseIndexes(arguments.getPreamble(), 1, AddGigCommand.MESSAGE_USAGE).get(0);
         arguments.verifyNoDuplicatePrefixesFor(PREFIX_TITLE, PREFIX_STATUS, PREFIX_DEADLINE, PREFIX_FEE);
 
-        Index clientIndex;
-        try {
-            clientIndex = ParserUtil.parseIndex(arguments.getPreamble());
-        } catch (ParseException exception) {
-            throw new ParseException(String.format(MESSAGE_INVALID_COMMAND_FORMAT, AddGigCommand.MESSAGE_USAGE),
-                    exception);
-        }
         GigTitle title = ParserUtil.parseGigTitle(arguments.getValue(PREFIX_TITLE).get());
         GigStatus status = ParserUtil.parseGigStatus(arguments.getValue(PREFIX_STATUS).get());
         Deadline deadline = ParserUtil.parseDeadline(arguments.getValue(PREFIX_DEADLINE).get());
