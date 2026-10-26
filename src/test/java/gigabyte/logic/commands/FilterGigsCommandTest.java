@@ -51,6 +51,17 @@ public class FilterGigsCommandTest {
     }
 
     @Test
+    public void execute_oneMatch_usesSingularGig() {
+        Model model = new ModelManager();
+        model.addClient(ALICE);
+        model.addGig(new Gig(ALICE, new GigTitle("Poster"), GigStatus.COMPLETED,
+                new Deadline("2027-03-31"), new Fee("300")));
+
+        assertEquals(new CommandResult("1 gig with status COMPLETED.", GigStatus.COMPLETED),
+                new FilterGigsCommand(GigStatus.COMPLETED).execute(model));
+    }
+
+    @Test
     public void execute_emptyModel_returnsZeroMatches() {
         assertEquals(new CommandResult("0 gigs with status COMPLETED.", GigStatus.COMPLETED),
                 new FilterGigsCommand(GigStatus.COMPLETED).execute(new ModelManager()));
