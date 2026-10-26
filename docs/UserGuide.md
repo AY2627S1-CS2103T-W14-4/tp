@@ -73,8 +73,9 @@
 * Parameters can be in any order.<br>
   For example, if the command specifies `n/NAME p/PHONE_NUMBER`, `p/PHONE_NUMBER n/NAME` is also acceptable.
 
-* Extraneous parameters for commands that take no parameters, such as `help`, `list`, `exit`, and `clear`, are ignored.<br>
-  For example, `help 123` is interpreted as `help`.
+* Extraneous parameters for `summary`, `help`, `list`, `exit`, and `clear` are ignored.<br>
+  For example, `help 123` is interpreted as `help`.<br>
+  `deadlines` and `outstanding` also take no parameters, but reject any extra input with an invalid command format message.
 
 * If you are using a PDF version of this document, be careful when copying and pasting commands that span multiple lines as space characters surrounding line-breaks may be omitted when copied over to the application.
 </box>
@@ -201,6 +202,9 @@ the panel to that client's normal gig view, and running `deadlines` again restor
 overview updates automatically when gigs are added, changed, or removed.
 
 If there are no active gigs, the panel displays `There are no active gig deadlines.`
+
+`deadlines` takes no parameters. Extra input, such as `deadlines 1`, is rejected with an invalid command format
+message, and the current view stays unchanged.
 
 ### Creating a gig: `addgig`
 

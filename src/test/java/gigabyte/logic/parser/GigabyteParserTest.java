@@ -78,8 +78,13 @@ public class GigabyteParserTest {
     }
 
     @Test
-    public void parseCommand_deadlines() throws Exception {
+    public void parseCommand_deadlines_acceptsNoArgumentsAndRejectsExtraInput() throws Exception {
         assertTrue(parser.parseCommand(DeadlinesCommand.COMMAND_WORD) instanceof DeadlinesCommand);
+        assertTrue(parser.parseCommand("  deadlines  ") instanceof DeadlinesCommand);
+        String error = String.format(MESSAGE_INVALID_COMMAND_FORMAT, DeadlinesCommand.MESSAGE_USAGE);
+        assertThrows(ParseException.class, error, () -> parser.parseCommand("deadlines unexpected"));
+        assertThrows(ParseException.class, error, () -> parser.parseCommand("deadlines 1"));
+        assertThrows(ParseException.class, error, () -> parser.parseCommand("deadlines s/IN_PROGRESS"));
     }
 
     @Test

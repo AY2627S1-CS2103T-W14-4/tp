@@ -153,9 +153,9 @@ How the parsing works:
 * Some prefixes are shared by different commands (e.g., `t/` is a tag for `add` but a title for `addgig`, and `a/` is
   an address for `add` but an amount for `addpayment`). Each `XYZCommandParser` passes only the prefixes it accepts
   to `ArgumentTokenizer`, so the meaning of a prefix depends on the command being parsed.
-* `deadlines`, `summary`, `list`, `clear`, `help`, and `exit` have no parser class: `GigabyteParser` creates these
-  commands directly and ignores any arguments. `outstanding` is also created directly, but `GigabyteParser` rejects
-  any arguments supplied to it. Overview commands return `CommandResult` view instructions that `MainWindow` applies
+* `summary`, `list`, `clear`, `help`, and `exit` have no parser class: `GigabyteParser` creates these commands
+  directly and ignores any arguments. `deadlines` and `outstanding` are also created directly, but `GigabyteParser`
+  rejects any arguments supplied to them. Overview commands return `CommandResult` view instructions that `MainWindow` applies
   without changing the current client filter.
 
 ### Model component
@@ -1237,6 +1237,9 @@ Start each test in this section from a fresh test folder.
    1. Test case: `deadlines`<br>
       Expected: Every non-completed gig appears across all clients, ordered by deadline. `Overdue follow-up` is
       first and labelled `OVERDUE`; `Brand identity refresh` is absent because it is completed.
+   1. Test case: `deadlines unexpected`<br>
+      Expected: An invalid command format message with the `deadlines` usage is shown. The deadline overview stays
+      visible and no data changes.
    1. Select `Bernice Yu`.<br>
       Expected: The overview closes and Bernice's normal gig list is restored.
 
