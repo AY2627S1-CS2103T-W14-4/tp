@@ -323,9 +323,11 @@ reported as `DataLoadingException` is logged and causes the app to start with em
 overwrite that file, but the next successful save, even after `list`, replaces it with the current model. Preserve
 the original file before running commands when investigating a load failure.
 
-GUI preferences are saved separately during initialization and shutdown. Missing or unreadable preferences fall
-back to defaults; failures to save preferences are logged. Shutdown does not provide an additional application-data
-save, so it does not retry a failed command save.
+GUI preferences are saved separately during initialization and shutdown. If `preferences.json` is missing, malformed,
+has `"guiSettings": null`, or contains a GUI-setting value of the wrong type, `MainApp` starts with default window
+settings and writes those defaults to `preferences.json`. Valid saved window size and position are restored. Failures
+to save preferences are logged. Shutdown does not provide an additional application-data save, so it does not retry
+a failed command save.
 
 ### Common classes
 
@@ -1143,7 +1145,7 @@ each command.
 1. **Empty client list**
    1. Test case: `clear`<br>
       Expected: The client list becomes empty, all gigs disappear, and the result display says
-      `Address book has been cleared!`.
+      `Cleared all clients, gigs, and payment obligations.`
 
 1. **Window preferences**
    1. Resize and move the window, close it, then relaunch the JAR.<br>

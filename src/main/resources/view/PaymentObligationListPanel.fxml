@@ -11,12 +11,12 @@
     <Insets top="5" right="10" bottom="5" left="10" />
   </padding>
   <top>
-    <Label style="-fx-font-size: 18px; -fx-font-weight: bold;" text="Payment obligations" />
+    <Label style="-fx-font-size: 18px; -fx-font-weight: bold; -fx-text-fill: #D3D3D3;" text="Payment obligations" />
   </top>
   <center>
     <ListView fx:id="paymentListView" />
   </center>
   <bottom>
-    <Label fx:id="emptyState" wrapText="true" />
+    <Label fx:id="emptyState" style="-fx-text-fill: #D3D3D3;" wrapText="true" />
   </bottom>
 </fx:root>
