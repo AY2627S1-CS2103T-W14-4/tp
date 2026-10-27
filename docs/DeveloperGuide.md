@@ -1145,7 +1145,7 @@ each command.
 1. **Empty client list**
    1. Test case: `clear`<br>
       Expected: The client list becomes empty, all gigs disappear, and the result display says
-      `Address book has been cleared!`.
+      `Cleared all clients, gigs, and payment obligations.`
 
 1. **Window preferences**
    1. Resize and move the window, close it, then relaunch the JAR.<br>
