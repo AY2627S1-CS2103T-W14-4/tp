@@ -343,6 +343,16 @@ Classes used by multiple components are in the `gigabyte.commons` package.
 
 This section describes some noteworthy details on how certain features are implemented.
 
+### Similar client-name warnings
+
+`AddClientCommand` rejects exact normalized-name duplicates, then checks all stored clients, including those hidden
+by a filter, for a possible typo. The comparison uses lower-case names with surrounding spaces trimmed and repeated
+spaces collapsed. Both names must have at least five characters and differ by exactly one insertion, deletion,
+replacement, or adjacent-character swap. Restricting warnings to one edit and excluding short names reduces false
+positives. A linear scan uses a linear-time comparison per name pair. A match adds a warning to successful feedback,
+alongside any shared-phone or shared-email notes; the client is still added as a separate record. This warning is
+limited to `add` and does not affect editing or loading saved records.
+
 ### Stable client, gig, and payment links
 
 Each `Client` and `Gig` has an immutable UUID. A `Gig` holds the canonical `Client` object from `GigabyteData`, while a
@@ -1268,6 +1278,16 @@ Start each test in this section from a fresh test folder.
 1. **Add a client**
    1. Test case: `add n/Jamie Tan p/81234567 e/jamie@example.com a/10 Clementi Road t/new`<br>
       Expected: Jamie is added, appears in the displayed client list, and the result shows the supplied details.
+
+1. **Similar names warn without preventing addition**
+   1. In a fresh test folder, input `add n/John Doe p/90000001 e/john@example.com a/Test address`, then `find Charlotte`.
+   1. Input `add n/Jon Doe p/90000001 e/jon@example.com a/Other address`.<br>
+      Expected: Jon is added despite John being hidden by the filter. Feedback includes
+      `Warning: John Doe has a similar name. Check for an accidental duplicate.` and the shared-phone note.
+   1. Input `add n/JOHN  DOE p/90000002 e/duplicate@example.com a/Test address`.<br>
+      Expected: The exact normalized-name duplicate is rejected and no record is added.
+   1. Restart from the same folder and input `find John Jon`.<br>
+      Expected: John Doe and Jon Doe both remain as separate clients with their original details.
 
 1. **Edit a client**
    1. Test case: `find Jamie`, followed by `edit 1 p/87654321 t/priority`.<br>

@@ -106,8 +106,11 @@ Format: `add n/NAME p/PHONE_NUMBER e/EMAIL a/ADDRESS [t/TAG]... `
 * The client is rejected if its name matches an existing client's name after ignoring case, leading and trailing
   spaces, and repeated spaces between words. For example, if `John Doe` exists, `john doe`, `JOHN DOE` and
   `John  Doe` are all rejected.
-* Names that differ in any other way count as different clients, even if they look alike. For example, `Jon Doe`,
-  `JohnDoe` and `John A Doe` are all accepted alongside `John Doe`. Typos and nicknames are not detected.
+* Other names are still accepted, but `add` warns about a possible typo when both normalized names have at least
+  five characters and differ by one inserted, deleted, or replaced character, or one adjacent-character swap.
+  For example, adding `Jon Doe` after `John Doe` succeeds with
+  `Warning: John Doe has a similar name. Check for an accidental duplicate.` The check includes clients hidden by
+  `find`. It does not detect other typos or arbitrary nicknames, and does not run during `edit` or data-file loading.
 * If another client already has the same phone number, or the same email (ignoring case), the client is still added,
   and the result names that client, e.g. `Note: Bernice Yu has the same phone number.` This lets you record people who
   share a phone number or email, while still spotting accidental duplicates.
@@ -543,7 +546,7 @@ Format: `edit INDEX [n/NAME] [p/PHONE] [e/EMAIL] [a/ADDRESS] [t/TAG]... `
 * When editing tags, all of the client's existing tags are removed; adding tags is not cumulative.
   Each tag follows the same rules as in [`add`](#adding-a-client-add).
 * To remove all of a client's tags, enter `t/` without a tag after it.
-* A new name is checked against every other client using the same rule as in [`add`](#adding-a-client-add).
+* A new name is checked against every other client for exact normalized duplicates, as in [`add`](#adding-a-client-add).
   Changing only the capitalisation or spacing of a client's own name (e.g. `John Doe` to `JOHN DOE`) is allowed,
   unless another client already has exactly the new name.
 * If the edited client then has the same phone number or email as another client, the edit is still saved, and the
