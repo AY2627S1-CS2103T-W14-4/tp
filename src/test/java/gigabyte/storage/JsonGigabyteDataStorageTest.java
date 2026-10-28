@@ -35,7 +35,7 @@ public class JsonGigabyteDataStorageTest {
     private static final GigTitle LOGO_TITLE = new GigTitle("Logo design");
 
     @TempDir
-    public Path testFolder;
+    Path testFolder;
 
     @Test
     public void readGigabyteData_nullFilePath_throwsNullPointerException() {

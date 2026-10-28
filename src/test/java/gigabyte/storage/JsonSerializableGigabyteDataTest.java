@@ -68,7 +68,8 @@ public class JsonSerializableGigabyteDataTest {
     public void toModelType_nullClient_throwsIllegalValueException() {
         JsonSerializableGigabyteData data = new JsonSerializableGigabyteData(Arrays.asList((JsonAdaptedClient) null),
                 List.of(), List.of());
-        assertThrows(IllegalValueException.class, JsonSerializableGigabyteData.MESSAGE_NULL_CLIENT, data::toModelType);
+        assertThrows(IllegalValueException.class, JsonSerializableGigabyteData.MESSAGE_NULL_CLIENT,
+                data::toModelType);
     }
 
     @Test

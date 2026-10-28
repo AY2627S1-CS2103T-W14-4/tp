@@ -92,12 +92,16 @@ public class AddPaymentCommandTest {
         model.addPaymentObligation(new PaymentObligation(model.getGigList().get(0), AMOUNT, DUE_DATE, false));
         GigabyteData before = new GigabyteData(model.getGigabyteData());
 
+        // EP: client index beyond the displayed client list
         assertThrows(CommandException.class, Messages.MESSAGE_INVALID_CLIENT_DISPLAYED_INDEX, () ->
                 new AddPaymentCommand(Index.fromOneBased(3), FIRST, AMOUNT, DUE_DATE).execute(model));
-        assertThrows(CommandException.class, AddPaymentCommand.MESSAGE_INVALID_GIG_INDEX, () ->
+
+        // EP: gig index beyond the client's gigs
+        assertThrows(CommandException.class, Messages.MESSAGE_INVALID_GIG_INDEX, () ->
                 new AddPaymentCommand(FIRST, SECOND, AMOUNT, DUE_DATE).execute(model));
-        assertThrows(CommandException.class, AddPaymentCommand.MESSAGE_INVALID_GIG_INDEX, () ->
-                new AddPaymentCommand(SECOND, FIRST, AMOUNT, DUE_DATE).execute(model));
+        assertThrows(CommandException.class, Messages.MESSAGE_INVALID_GIG_INDEX, () ->
+                new AddPaymentCommand(SECOND, FIRST, AMOUNT, DUE_DATE).execute(model)); // Client has no gigs
+
         assertEquals(before, model.getGigabyteData());
         assertEquals(before.getClientList(), model.getFilteredClientList());
     }
@@ -113,10 +117,16 @@ public class AddPaymentCommandTest {
     @Test
     public void equals_comparesAllFieldsAndHandlesOtherTypes() {
         AddPaymentCommand command = new AddPaymentCommand(FIRST, FIRST, AMOUNT, DUE_DATE);
+
+        // same object or same values -> returns true
         assertTrue(command.equals(command));
+        assertEquals(command, new AddPaymentCommand(FIRST, FIRST, AMOUNT, DUE_DATE));
+
+        // null or a different type -> returns false
         assertFalse(command.equals(null));
         assertFalse(command.equals("payment"));
-        assertEquals(command, new AddPaymentCommand(FIRST, FIRST, AMOUNT, DUE_DATE));
+
+        // one field different at a time -> returns false
         assertNotEquals(command, new AddPaymentCommand(SECOND, FIRST, AMOUNT, DUE_DATE));
         assertNotEquals(command, new AddPaymentCommand(FIRST, SECOND, AMOUNT, DUE_DATE));
         assertNotEquals(command, new AddPaymentCommand(FIRST, FIRST, new Fee("75"), DUE_DATE));

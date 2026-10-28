@@ -26,7 +26,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 import gigabyte.logic.commands.AddClientCommand;
-import gigabyte.logic.commands.AddPaymentCommand;
 import gigabyte.logic.commands.CommandResult;
 import gigabyte.logic.commands.DeleteGigCommand;
 import gigabyte.logic.commands.DeletePaymentCommand;
@@ -60,7 +59,7 @@ public class LogicManagerTest {
     private static final IOException DUMMY_AD_EXCEPTION = new AccessDeniedException("dummy access denied exception");
 
     @TempDir
-    public Path temporaryFolder;
+    Path temporaryFolder;
 
     private Model model = new ModelManager();
     private Logic logic;
@@ -138,6 +137,17 @@ public class LogicManagerTest {
     }
 
     @Test
+    public void execute_addAndEditFormattedPhone_keepsPhoneAsTypedAcrossReload() throws Exception {
+        logic.execute("add n/Amy Bee p/+65 9123 4567 e/amy@example.com a/1 Test Street");
+        assertEquals("+65 9123 4567", model.getFilteredClientList().get(0).getPhone().value);
+        assertEquals("+65 9123 4567", readSavedData().getClientList().get(0).getPhone().value);
+
+        logic.execute("edit 1 p/+1-202-555-0143");
+        assertEquals("+1-202-555-0143", model.getFilteredClientList().get(0).getPhone().value);
+        assertEquals("+1-202-555-0143", readSavedData().getClientList().get(0).getPhone().value);
+    }
+
+    @Test
     public void execute_addGig_persistsAcrossReloadAndSubsequentCommands() throws Exception {
         model.addClient(ALICE);
         CommandResult result = logic.execute(
@@ -181,7 +191,7 @@ public class LogicManagerTest {
         assertParseException("addpayment 1 1 a/0 d/2027-02-28", Fee.MESSAGE_CONSTRAINTS);
         assertParseException("addpayment 1 1 a/50 d/2027-02-29", Deadline.MESSAGE_CONSTRAINTS);
         assertCommandException("addpayment 2 1 a/50 d/2027-02-28", MESSAGE_INVALID_CLIENT_DISPLAYED_INDEX);
-        assertCommandException("addpayment 1 2 a/50 d/2027-02-28", AddPaymentCommand.MESSAGE_INVALID_GIG_INDEX);
+        assertCommandException("addpayment 1 2 a/50 d/2027-02-28", Messages.MESSAGE_INVALID_GIG_INDEX);
         assertEquals(before, model.getGigabyteData());
         assertEquals(savedData, Files.readString(path));
 
@@ -251,7 +261,7 @@ public class LogicManagerTest {
             assertEquals(saved, Files.readString(path));
         }
         assertCommandException("deletegig 2 1", MESSAGE_INVALID_CLIENT_DISPLAYED_INDEX);
-        assertCommandException("deletegig 1 3", DeleteGigCommand.MESSAGE_INVALID_GIG_INDEX);
+        assertCommandException("deletegig 1 3", Messages.MESSAGE_INVALID_GIG_INDEX);
         for (int attempt = 0; attempt < 2; attempt++) {
             assertCommandException("deletegig 1 1", GigHasPaymentsException.MESSAGE);
             assertEquals(saved, Files.readString(path));
@@ -360,8 +370,8 @@ public class LogicManagerTest {
             assertEquals(savedData, Files.readString(path));
         }
         assertCommandException("deletepayment 2 1 1", MESSAGE_INVALID_CLIENT_DISPLAYED_INDEX);
-        assertCommandException("deletepayment 1 2 1", DeletePaymentCommand.MESSAGE_INVALID_GIG_INDEX);
-        assertCommandException("deletepayment 1 1 2", DeletePaymentCommand.MESSAGE_INVALID_PAYMENT_INDEX);
+        assertCommandException("deletepayment 1 2 1", Messages.MESSAGE_INVALID_GIG_INDEX);
+        assertCommandException("deletepayment 1 1 2", Messages.MESSAGE_INVALID_PAYMENT_INDEX);
 
         assertEquals(before, model.getGigabyteData());
         assertEquals(savedData, Files.readString(path));
@@ -406,7 +416,7 @@ public class LogicManagerTest {
         assertParseException("editgig 1 1 t/Updated s/COMPLETED",
                 String.format(MESSAGE_INVALID_COMMAND_FORMAT, EditGigCommand.MESSAGE_USAGE));
         assertCommandException("editgig 9 1 t/Updated", MESSAGE_INVALID_CLIENT_DISPLAYED_INDEX);
-        assertCommandException("editgig 1 9 t/Updated", EditGigCommand.MESSAGE_INVALID_GIG_INDEX);
+        assertCommandException("editgig 1 9 t/Updated", Messages.MESSAGE_INVALID_GIG_INDEX);
         assertCommandException("editgig 1 1 t/ Website f/100.00", EditGigCommand.MESSAGE_NOT_EDITED);
         assertEquals(before, model.getGigabyteData());
         assertEquals(saved, Files.readString(path));
@@ -470,7 +480,7 @@ public class LogicManagerTest {
                 Messages.getErrorMessageForDuplicatePrefixes(CliSyntax.PREFIX_STATUS));
         assertParseException("setstatus 1 1 2 s/COMPLETED", usage);
         assertCommandException("setstatus 2 1 s/COMPLETED", MESSAGE_INVALID_CLIENT_DISPLAYED_INDEX);
-        assertCommandException("setstatus 1 2 s/COMPLETED", SetGigStatusCommand.MESSAGE_INVALID_GIG_INDEX);
+        assertCommandException("setstatus 1 2 s/COMPLETED", Messages.MESSAGE_INVALID_GIG_INDEX);
         assertCommandException("setstatus 1 1 s/IN_PROGRESS",
                 SetGigStatusCommand.MESSAGE_STATUS_UNCHANGED.formatted(GigStatus.IN_PROGRESS));
 
@@ -493,6 +503,14 @@ public class LogicManagerTest {
     @Test
     public void getFilteredClientList_modifyList_throwsUnsupportedOperationException() {
         assertThrows(UnsupportedOperationException.class, () -> logic.getFilteredClientList().remove(0));
+    }
+
+    /**
+     * Reads the data file that {@code logic} saves to, as a fresh load from disk.
+     */
+    private ReadOnlyGigabyteData readSavedData() throws Exception {
+        JsonGigabyteDataStorage storage = new JsonGigabyteDataStorage(temporaryFolder.resolve("gigabyteData.json"));
+        return storage.readGigabyteData().orElseThrow();
     }
 
     /**

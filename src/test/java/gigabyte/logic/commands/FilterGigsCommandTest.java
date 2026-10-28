@@ -51,6 +51,17 @@ public class FilterGigsCommandTest {
     }
 
     @Test
+    public void execute_oneMatch_usesSingularGig() {
+        Model model = new ModelManager();
+        model.addClient(ALICE);
+        model.addGig(new Gig(ALICE, new GigTitle("Poster"), GigStatus.COMPLETED,
+                new Deadline("2027-03-31"), new Fee("300")));
+
+        assertEquals(new CommandResult("1 gig with status COMPLETED.", GigStatus.COMPLETED),
+                new FilterGigsCommand(GigStatus.COMPLETED).execute(model));
+    }
+
+    @Test
     public void execute_emptyModel_returnsZeroMatches() {
         assertEquals(new CommandResult("0 gigs with status COMPLETED.", GigStatus.COMPLETED),
                 new FilterGigsCommand(GigStatus.COMPLETED).execute(new ModelManager()));
@@ -65,11 +76,17 @@ public class FilterGigsCommandTest {
     @Test
     public void equalsAndToString_compareStatus() {
         FilterGigsCommand command = new FilterGigsCommand(GigStatus.IN_PROGRESS);
+        // same object or same status -> returns true
         assertTrue(command.equals(command));
         assertTrue(command.equals(new FilterGigsCommand(GigStatus.IN_PROGRESS)));
+
+        // different status -> returns false
         assertFalse(command.equals(new FilterGigsCommand(GigStatus.COMPLETED)));
+
+        // null or a different type -> returns false
         assertFalse(command.equals(null));
         assertFalse(command.equals("IN_PROGRESS"));
+
         assertEquals(FilterGigsCommand.class.getCanonicalName() + "{status=IN_PROGRESS}", command.toString());
     }
 }

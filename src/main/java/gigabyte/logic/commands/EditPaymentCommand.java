@@ -32,9 +32,6 @@ public class EditPaymentCommand extends Command {
             + "that client's gig list, and the gig's due-date-ordered payment list, respectively.\n"
             + "Example: " + COMMAND_WORD + " 1 2 1 a/650.00 d/2027-05-15";
     public static final String MESSAGE_NOT_EDITED = "At least one field to edit must be provided.";
-    public static final String MESSAGE_INVALID_GIG_INDEX = "The gig index provided is invalid for this client.";
-    public static final String MESSAGE_INVALID_PAYMENT_INDEX =
-            "The payment index provided is invalid for this gig.";
     public static final String MESSAGE_PAYMENT_NOT_EDITED =
             "The payment obligation already has the specified details.";
     public static final String MESSAGE_SUCCESS = "Edited payment obligation for %1$s, gig %2$d, payment %3$d: "
@@ -71,13 +68,13 @@ public class EditPaymentCommand extends Command {
         Client client = clients.get(clientIndex.getZeroBased());
         List<Gig> gigs = GigOrdering.forClient(model.getGigList(), client);
         if (gigIndex.getZeroBased() >= gigs.size()) {
-            throw new CommandException(MESSAGE_INVALID_GIG_INDEX);
+            throw new CommandException(Messages.MESSAGE_INVALID_GIG_INDEX);
         }
 
         Gig gig = gigs.get(gigIndex.getZeroBased());
         List<PaymentObligation> payments = PaymentObligationOrdering.forGig(model.getPaymentObligationList(), gig);
         if (paymentIndex.getZeroBased() >= payments.size()) {
-            throw new CommandException(MESSAGE_INVALID_PAYMENT_INDEX);
+            throw new CommandException(Messages.MESSAGE_INVALID_PAYMENT_INDEX);
         }
 
         PaymentObligation payment = payments.get(paymentIndex.getZeroBased());

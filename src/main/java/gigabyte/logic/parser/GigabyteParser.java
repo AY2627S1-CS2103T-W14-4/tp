@@ -3,6 +3,7 @@ package gigabyte.logic.parser;
 import static gigabyte.logic.Messages.MESSAGE_INVALID_COMMAND_FORMAT;
 import static gigabyte.logic.Messages.MESSAGE_UNKNOWN_COMMAND;
 
+import java.util.Locale;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -57,7 +58,8 @@ public class GigabyteParser {
             throw new ParseException(String.format(MESSAGE_INVALID_COMMAND_FORMAT, HelpCommand.MESSAGE_USAGE));
         }
 
-        final String commandWord = matcher.group("commandWord");
+        // Command words are not case-sensitive; arguments keep their case.
+        final String commandWord = matcher.group("commandWord").toLowerCase(Locale.ROOT);
         final String arguments = matcher.group("arguments");
 
         // Note to developers: Change LOG_LEVEL in LogsCenter to enable lower level (i.e., FINE, FINER and lower)
@@ -78,17 +80,17 @@ public class GigabyteParser {
             case EditGigCommand.COMMAND_WORD -> new EditGigCommandParser().parse(arguments);
             case DeleteClientCommand.COMMAND_WORD -> new DeleteClientCommandParser().parse(arguments);
             case DeleteGigCommand.COMMAND_WORD -> new DeleteGigCommandParser().parse(arguments);
-            case DeadlinesCommand.COMMAND_WORD -> new DeadlinesCommand();
+            case DeadlinesCommand.COMMAND_WORD -> {
+                requireNoArguments(arguments, DeadlinesCommand.MESSAGE_USAGE);
+                yield new DeadlinesCommand();
+            }
             case ClearClientsCommand.COMMAND_WORD -> new ClearClientsCommand();
             case FindClientCommand.COMMAND_WORD -> new FindClientCommandParser().parse(arguments);
             case FindGigCommand.COMMAND_WORD -> new FindGigCommandParser().parse(arguments);
             case FilterGigsCommand.COMMAND_WORD -> new FilterGigsCommandParser().parse(arguments);
             case ListClientsCommand.COMMAND_WORD -> new ListClientsCommand();
             case OutstandingCommand.COMMAND_WORD -> {
-                if (!arguments.isBlank()) {
-                    throw new ParseException(String.format(MESSAGE_INVALID_COMMAND_FORMAT,
-                            OutstandingCommand.MESSAGE_USAGE));
-                }
+                requireNoArguments(arguments, OutstandingCommand.MESSAGE_USAGE);
                 yield new OutstandingCommand();
             }
             case SummaryCommand.COMMAND_WORD -> new SummaryCommand();
@@ -99,6 +101,19 @@ public class GigabyteParser {
                 throw new ParseException(MESSAGE_UNKNOWN_COMMAND);
             }
         };
+    }
+
+    /**
+     * Rejects any input after the command word of a command that takes no parameters.
+     *
+     * @param arguments the input after the command word
+     * @param messageUsage the usage message of the command
+     * @throws ParseException if {@code arguments} is not blank
+     */
+    private static void requireNoArguments(String arguments, String messageUsage) throws ParseException {
+        if (!arguments.isBlank()) {
+            throw new ParseException(String.format(MESSAGE_INVALID_COMMAND_FORMAT, messageUsage));
+        }
     }
 
 }

@@ -12,6 +12,9 @@ import gigabyte.commons.core.index.Index;
 import gigabyte.logic.commands.MarkPaymentUnpaidCommand;
 
 public class MarkPaymentUnpaidCommandParserTest {
+    private static final String INVALID_FORMAT =
+            String.format(MESSAGE_INVALID_COMMAND_FORMAT, MarkPaymentUnpaidCommand.MESSAGE_USAGE);
+
     private final MarkPaymentUnpaidCommandParser parser = new MarkPaymentUnpaidCommandParser();
 
     @Test
@@ -22,19 +25,37 @@ public class MarkPaymentUnpaidCommandParserTest {
 
     @Test
     public void parse_missingOrExtraIndexes_throwsParseException() {
-        String expected = String.format(MESSAGE_INVALID_COMMAND_FORMAT, MarkPaymentUnpaidCommand.MESSAGE_USAGE);
-        for (String args : new String[] {"", "1", "1 2", "1 2 3 4", "1 2 3 extra"}) {
-            assertParseFailure(parser, args, expected);
-        }
+        // EP: fewer than three indexes
+        assertParseFailure(parser, "", INVALID_FORMAT);
+        assertParseFailure(parser, "1", INVALID_FORMAT);
+        assertParseFailure(parser, "1 2", INVALID_FORMAT);
+
+        // EP: extra argument after three indexes
+        assertParseFailure(parser, "1 2 3 4", INVALID_FORMAT);
+        assertParseFailure(parser, "1 2 3 extra", INVALID_FORMAT);
     }
 
     @Test
-    public void parse_invalidIndexes_throwsParseException() {
-        String expected = String.format(MESSAGE_INVALID_COMMAND_FORMAT, MarkPaymentUnpaidCommand.MESSAGE_USAGE);
-        for (String invalidIndex : new String[] {"abc", "0", "-1", "1.5", "2147483648"}) {
-            assertParseFailure(parser, invalidIndex + " 1 1", expected);
-            assertParseFailure(parser, "1 " + invalidIndex + " 1", expected);
-            assertParseFailure(parser, "1 1 " + invalidIndex, expected);
-        }
+    public void parse_zeroOrNegativeIndex_throwsParseException() {
+        assertInvalidIndexRejected("0"); // Boundary value
+        assertInvalidIndexRejected("-1");
+    }
+
+    @Test
+    public void parse_nonIntegerIndex_throwsParseException() {
+        assertInvalidIndexRejected("abc");
+        assertInvalidIndexRejected("1.5");
+    }
+
+    @Test
+    public void parse_indexAboveIntegerMaxValue_throwsParseException() {
+        assertInvalidIndexRejected("2147483648"); // Boundary value: Integer.MAX_VALUE + 1
+    }
+
+    /** Asserts that {@code invalidIndex} is rejected as the client, gig, and payment index. */
+    private void assertInvalidIndexRejected(String invalidIndex) {
+        assertParseFailure(parser, invalidIndex + " 1 1", INVALID_FORMAT);
+        assertParseFailure(parser, "1 " + invalidIndex + " 1", INVALID_FORMAT);
+        assertParseFailure(parser, "1 1 " + invalidIndex, INVALID_FORMAT);
     }
 }

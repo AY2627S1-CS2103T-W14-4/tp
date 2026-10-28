@@ -70,16 +70,24 @@ public class GigabyteParserTest {
 
     @Test
     public void parseCommand_outstanding_acceptsNoArgumentsAndRejectsExtraInput() throws Exception {
+        // EP: command word only, with or without surrounding spaces
         assertTrue(parser.parseCommand("outstanding") instanceof OutstandingCommand);
         assertTrue(parser.parseCommand("  outstanding  ") instanceof OutstandingCommand);
+
+        // EP: command word followed by any argument
         String error = String.format(MESSAGE_INVALID_COMMAND_FORMAT, OutstandingCommand.MESSAGE_USAGE);
         assertThrows(ParseException.class, error, () -> parser.parseCommand("outstanding 1"));
         assertThrows(ParseException.class, error, () -> parser.parseCommand("outstanding s/PAID"));
     }
 
     @Test
-    public void parseCommand_deadlines() throws Exception {
+    public void parseCommand_deadlines_acceptsNoArgumentsAndRejectsExtraInput() throws Exception {
         assertTrue(parser.parseCommand(DeadlinesCommand.COMMAND_WORD) instanceof DeadlinesCommand);
+        assertTrue(parser.parseCommand("  deadlines  ") instanceof DeadlinesCommand);
+        String error = String.format(MESSAGE_INVALID_COMMAND_FORMAT, DeadlinesCommand.MESSAGE_USAGE);
+        assertThrows(ParseException.class, error, () -> parser.parseCommand("deadlines unexpected"));
+        assertThrows(ParseException.class, error, () -> parser.parseCommand("deadlines 1"));
+        assertThrows(ParseException.class, error, () -> parser.parseCommand("deadlines s/IN_PROGRESS"));
     }
 
     @Test
@@ -207,6 +215,34 @@ public class GigabyteParserTest {
     }
 
     @Test
+    public void parseCommand_upperAndMixedCaseCommandWords_parsedAsLowerCase() throws Exception {
+        // EP: upper-case command word
+        assertTrue(parser.parseCommand("LIST") instanceof ListClientsCommand);
+        assertTrue(parser.parseCommand("OUTSTANDING") instanceof OutstandingCommand);
+
+        // EP: mixed-case command word
+        assertTrue(parser.parseCommand("List") instanceof ListClientsCommand);
+        assertTrue(parser.parseCommand("hElP") instanceof HelpCommand);
+        assertEquals(new AddGigCommand(INDEX_FIRST_CLIENT, new GigTitle("Website redesign"),
+                GigStatus.NOT_STARTED, new Deadline("2027-01-31"), new Fee("1250.00")),
+                parser.parseCommand("AddGig 1 t/Website redesign s/NOT_STARTED d/2027-01-31 f/1250.00"));
+
+        // Argument validation still applies after the command word is lower-cased
+        assertThrows(ParseException.class,
+                String.format(MESSAGE_INVALID_COMMAND_FORMAT, OutstandingCommand.MESSAGE_USAGE), () ->
+                        parser.parseCommand("OUTSTANDING 1"));
+    }
+
+    @Test
+    public void parseCommand_upperCaseCommandWord_preservesArgumentCase() throws Exception {
+        assertEquals(new AddGigCommand(INDEX_FIRST_CLIENT, new GigTitle("Website Redesign"),
+                GigStatus.NOT_STARTED, new Deadline("2027-01-31"), new Fee("1250.00")),
+                parser.parseCommand("ADDGIG 1 t/Website Redesign s/NOT_STARTED d/2027-01-31 f/1250.00"));
+        assertEquals(new FindGigCommand(new GigTitleContainsKeywordsPredicate(List.of("Website", "REDESIGN"))),
+                parser.parseCommand("FINDGIG Website REDESIGN"));
+    }
+
+    @Test
     public void parseCommand_unrecognisedInput_throwsParseException() {
         assertThrows(ParseException.class, String.format(MESSAGE_INVALID_COMMAND_FORMAT, HelpCommand.MESSAGE_USAGE), ()
             -> parser.parseCommand(""));
@@ -215,5 +251,6 @@ public class GigabyteParserTest {
     @Test
     public void parseCommand_unknownCommand_throwsParseException() {
         assertThrows(ParseException.class, MESSAGE_UNKNOWN_COMMAND, () -> parser.parseCommand("unknownCommand"));
+        assertThrows(ParseException.class, MESSAGE_UNKNOWN_COMMAND, () -> parser.parseCommand("LISTS"));
     }
 }

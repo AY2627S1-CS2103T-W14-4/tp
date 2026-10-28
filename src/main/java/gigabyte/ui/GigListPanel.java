@@ -41,7 +41,7 @@ public class GigListPanel extends UiPart<Region> {
     private final PauseTransition deadlineRefreshTimer = new PauseTransition();
     private Client selectedClient;
     private GigStatus selectedStatus;
-    private boolean deadlineOverview;
+    private boolean isShowingDeadlineOverview;
     private boolean isTitleSearchActive;
     @javafx.fxml.FXML private Label emptyState;
     @javafx.fxml.FXML private ListView<Gig> gigListView;
@@ -99,7 +99,7 @@ public class GigListPanel extends UiPart<Region> {
         gigListView.getSelectionModel().clearSelection();
         selectedClient = client;
         selectedStatus = null;
-        deadlineOverview = false;
+        isShowingDeadlineOverview = false;
         isTitleSearchActive = false;
         getSortedGigs().setComparator(null);
         filteredGigs.setPredicate(gig -> isGigForClient(gig, client));
@@ -114,7 +114,7 @@ public class GigListPanel extends UiPart<Region> {
         gigListView.getSelectionModel().clearSelection();
         selectedClient = null;
         selectedStatus = status;
-        deadlineOverview = false;
+        isShowingDeadlineOverview = false;
         isTitleSearchActive = false;
         getSortedGigs().setComparator(null);
         filteredGigs.setPredicate(gig -> gig.getStatus() == status);
@@ -124,7 +124,7 @@ public class GigListPanel extends UiPart<Region> {
     /** Displays all non-completed gigs in deadline order. */
     public void showDeadlineOverview() {
         gigListView.getSelectionModel().clearSelection();
-        deadlineOverview = true;
+        isShowingDeadlineOverview = true;
         selectedClient = null;
         selectedStatus = null;
         isTitleSearchActive = false;
@@ -139,7 +139,7 @@ public class GigListPanel extends UiPart<Region> {
         gigListView.getSelectionModel().clearSelection();
         selectedClient = null;
         selectedStatus = null;
-        deadlineOverview = false;
+        isShowingDeadlineOverview = false;
         isTitleSearchActive = true;
         getSortedGigs().setComparator(null);
         filteredGigs.setPredicate(predicate);
@@ -189,7 +189,7 @@ public class GigListPanel extends UiPart<Region> {
             emptyState.setText(filteredGigs.isEmpty() ? "No gigs with status " + selectedStatus + "." : "");
             return;
         }
-        if (deadlineOverview) {
+        if (isShowingDeadlineOverview) {
             emptyState.setText(filteredGigs.isEmpty() ? NO_DEADLINES : "");
             return;
         }

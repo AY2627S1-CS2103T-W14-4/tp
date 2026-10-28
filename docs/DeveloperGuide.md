@@ -153,9 +153,9 @@ How the parsing works:
 * Some prefixes are shared by different commands (e.g., `t/` is a tag for `add` but a title for `addgig`, and `a/` is
   an address for `add` but an amount for `addpayment`). Each `XYZCommandParser` passes only the prefixes it accepts
   to `ArgumentTokenizer`, so the meaning of a prefix depends on the command being parsed.
-* `deadlines`, `summary`, `list`, `clear`, `help`, and `exit` have no parser class: `GigabyteParser` creates these
-  commands directly and ignores any arguments. `outstanding` is also created directly, but `GigabyteParser` rejects
-  any arguments supplied to it. Overview commands return `CommandResult` view instructions that `MainWindow` applies
+* `summary`, `list`, `clear`, `help`, and `exit` have no parser class: `GigabyteParser` creates these commands
+  directly and ignores any arguments. `deadlines` and `outstanding` are also created directly, but `GigabyteParser`
+  rejects any arguments supplied to them. Overview commands return `CommandResult` view instructions that `MainWindow` applies
   without changing the current client filter.
 
 ### Model component
@@ -323,9 +323,11 @@ reported as `DataLoadingException` is logged and causes the app to start with em
 overwrite that file, but the next successful save, even after `list`, replaces it with the current model. Preserve
 the original file before running commands when investigating a load failure.
 
-GUI preferences are saved separately during initialization and shutdown. Missing or unreadable preferences fall
-back to defaults; failures to save preferences are logged. Shutdown does not provide an additional application-data
-save, so it does not retry a failed command save.
+GUI preferences are saved separately during initialization and shutdown. If `preferences.json` is missing, malformed,
+has `"guiSettings": null`, or contains a GUI-setting value of the wrong type, `MainApp` starts with default window
+settings and writes those defaults to `preferences.json`. Valid saved window size and position are restored. Failures
+to save preferences are logged. Shutdown does not provide an additional application-data save, so it does not retry
+a failed command save.
 
 ### Common classes
 
@@ -1143,7 +1145,7 @@ each command.
 1. **Empty client list**
    1. Test case: `clear`<br>
       Expected: The client list becomes empty, all gigs disappear, and the result display says
-      `Address book has been cleared!`.
+      `Cleared all clients, gigs, and payment obligations.`
 
 1. **Window preferences**
    1. Resize and move the window, close it, then relaunch the JAR.<br>
@@ -1237,6 +1239,9 @@ Start each test in this section from a fresh test folder.
    1. Test case: `deadlines`<br>
       Expected: Every non-completed gig appears across all clients, ordered by deadline. `Overdue follow-up` is
       first and labelled `OVERDUE`; `Brand identity refresh` is absent because it is completed.
+   1. Test case: `deadlines unexpected`<br>
+      Expected: An invalid command format message with the `deadlines` usage is shown. The deadline overview stays
+      visible and no data changes.
    1. Select `Bernice Yu`.<br>
       Expected: The overview closes and Bernice's normal gig list is restored.
 
@@ -1504,11 +1509,14 @@ Start each test in this section from a fresh test folder unless the test says ot
    1. Select the second `Identical gig` (gig 4).<br>
       Expected: Only the `$222.00` payment appears, confirming that field-identical gigs keep separate payments.
 
-1. **Keyboard focus after selection**
-   1. Select a client, then immediately type `list` without clicking the command box.<br>
-      Expected: `list` appears in the command box and pressing Enter runs it.
-   1. Select a client and one of its gigs, then immediately type `list` without clicking the command box.<br>
-      Expected: `list` again appears in the command box and pressing Enter runs it.
+1. **Keyboard navigation across lists**
+   1. With the command box focused, press Tab, then Down and Up.<br>
+      Expected: The first client is selected on Tab; the selected client then changes and the gig list follows the
+      selection without moving keyboard focus.
+   1. Press Right, Down, Right, Down, then Left twice.<br>
+      Expected: Focus moves through gigs and payment obligations, selects a row in each, then returns to clients.
+   1. Press Right twice to reach payment obligations, then Tab, type `list`, and press Tab again.<br>
+      Expected: Focus moves to the command box, retains the text, then moves to the client list.
 
 1. **Usability at the supported scaled viewport**
    1. Set the display resolution to 1280×720 and display scaling to 150%, then launch the JAR.<br>

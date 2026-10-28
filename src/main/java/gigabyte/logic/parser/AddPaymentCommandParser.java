@@ -20,7 +20,8 @@ public class AddPaymentCommandParser implements Parser<AddPaymentCommand> {
         String[] indexes = arguments.getPreamble().split("\\s+");
         if (indexes.length != 2 || arguments.getValue(PREFIX_AMOUNT).isEmpty()
                 || arguments.getValue(PREFIX_DEADLINE).isEmpty()) {
-            throw new ParseException(String.format(MESSAGE_INVALID_COMMAND_FORMAT, AddPaymentCommand.MESSAGE_USAGE));
+            throw new ParseException(
+                    String.format(MESSAGE_INVALID_COMMAND_FORMAT, AddPaymentCommand.MESSAGE_USAGE));
         }
         arguments.verifyNoDuplicatePrefixesFor(PREFIX_AMOUNT, PREFIX_DEADLINE);
 
@@ -30,8 +31,8 @@ public class AddPaymentCommandParser implements Parser<AddPaymentCommand> {
             clientIndex = ParserUtil.parseIndex(indexes[0]);
             gigIndex = ParserUtil.parseIndex(indexes[1]);
         } catch (ParseException exception) {
-            throw new ParseException(String.format(MESSAGE_INVALID_COMMAND_FORMAT, AddPaymentCommand.MESSAGE_USAGE),
-                    exception);
+            throw new ParseException(
+                    String.format(MESSAGE_INVALID_COMMAND_FORMAT, AddPaymentCommand.MESSAGE_USAGE), exception);
         }
         Fee amount = ParserUtil.parseFee(arguments.getValue(PREFIX_AMOUNT).get());
         Deadline dueDate = ParserUtil.parseDeadline(arguments.getValue(PREFIX_DEADLINE).get());

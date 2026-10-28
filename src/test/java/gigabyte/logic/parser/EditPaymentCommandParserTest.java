@@ -20,6 +20,8 @@ import gigabyte.model.gig.Fee;
 
 public class EditPaymentCommandParserTest {
     private static final Index THIRD = Index.fromOneBased(3);
+    private static final String INVALID_FORMAT =
+            String.format(MESSAGE_INVALID_COMMAND_FORMAT, EditPaymentCommand.MESSAGE_USAGE);
 
     private final EditPaymentCommandParser parser = new EditPaymentCommandParser();
 
@@ -37,32 +39,66 @@ public class EditPaymentCommandParserTest {
     }
 
     @Test
-    public void parse_missingFieldsOrWrongNumberOfIndexes_throwsParseException() {
-        String expectedFormat = String.format(MESSAGE_INVALID_COMMAND_FORMAT, EditPaymentCommand.MESSAGE_USAGE);
-        assertParseFailure(parser, "", expectedFormat);
-        assertParseFailure(parser, "1 2 a/650", expectedFormat);
-        assertParseFailure(parser, "1 2 3 4 a/650", expectedFormat);
+    public void parse_wrongNumberOfIndexes_throwsParseException() {
+        // EP: fewer than three indexes
+        assertParseFailure(parser, "", INVALID_FORMAT);
+        assertParseFailure(parser, "1 2 a/650", INVALID_FORMAT);
+
+        // EP: more than three indexes
+        assertParseFailure(parser, "1 2 3 4 a/650", INVALID_FORMAT);
+    }
+
+    @Test
+    public void parse_noFieldToEdit_throwsParseException() {
         assertParseFailure(parser, "1 2 3", EditPaymentCommand.MESSAGE_NOT_EDITED);
     }
 
     @Test
-    public void parse_invalidIndexes_throwsParseException() {
-        String expected = String.format(MESSAGE_INVALID_COMMAND_FORMAT, EditPaymentCommand.MESSAGE_USAGE);
-        for (String invalidIndex : new String[] {"0", "-1", "abc", "1.5", "2147483648"}) {
-            assertParseFailure(parser, invalidIndex + " 1 1 a/650", expected);
-            assertParseFailure(parser, "1 " + invalidIndex + " 1 a/650", expected);
-            assertParseFailure(parser, "1 1 " + invalidIndex + " a/650", expected);
-        }
+    public void parse_zeroOrNegativeIndex_throwsParseException() {
+        assertInvalidIndexRejected("0"); // Boundary value
+        assertInvalidIndexRejected("-1");
     }
 
     @Test
-    public void parse_invalidAmountOrDueDate_throwsParseException() {
-        for (String amount : new String[] {"", "0", "-50", "1.234", "abc", "1e3"}) {
-            assertParseFailure(parser, "1 1 1 a/" + amount, Fee.MESSAGE_CONSTRAINTS);
-        }
-        for (String date : new String[] {"", "2027-02-29", "2027-13-01", "31-01-2027", "2027-1-1"}) {
-            assertParseFailure(parser, "1 1 1 d/" + date, Deadline.MESSAGE_CONSTRAINTS);
-        }
+    public void parse_nonIntegerIndex_throwsParseException() {
+        assertInvalidIndexRejected("abc");
+        assertInvalidIndexRejected("1.5");
+    }
+
+    @Test
+    public void parse_indexAboveIntegerMaxValue_throwsParseException() {
+        assertInvalidIndexRejected("2147483648"); // Boundary value: Integer.MAX_VALUE + 1
+    }
+
+    @Test
+    public void parse_invalidAmount_throwsParseException() {
+        // EP: empty amount
+        assertParseFailure(parser, "1 1 1 a/", Fee.MESSAGE_CONSTRAINTS);
+
+        // EP: zero or negative amount
+        assertParseFailure(parser, "1 1 1 a/0", Fee.MESSAGE_CONSTRAINTS); // Boundary value
+        assertParseFailure(parser, "1 1 1 a/-50", Fee.MESSAGE_CONSTRAINTS);
+
+        // EP: more than two decimal places
+        assertParseFailure(parser, "1 1 1 a/1.234", Fee.MESSAGE_CONSTRAINTS);
+
+        // EP: not a plain decimal number
+        assertParseFailure(parser, "1 1 1 a/abc", Fee.MESSAGE_CONSTRAINTS);
+        assertParseFailure(parser, "1 1 1 a/1e3", Fee.MESSAGE_CONSTRAINTS);
+    }
+
+    @Test
+    public void parse_invalidDueDate_throwsParseException() {
+        // EP: empty due date
+        assertParseFailure(parser, "1 1 1 d/", Deadline.MESSAGE_CONSTRAINTS);
+
+        // EP: correct format but the date does not exist
+        assertParseFailure(parser, "1 1 1 d/2027-02-29", Deadline.MESSAGE_CONSTRAINTS); // Not a leap year
+        assertParseFailure(parser, "1 1 1 d/2027-13-01", Deadline.MESSAGE_CONSTRAINTS);
+
+        // EP: wrong date format
+        assertParseFailure(parser, "1 1 1 d/31-01-2027", Deadline.MESSAGE_CONSTRAINTS);
+        assertParseFailure(parser, "1 1 1 d/2027-1-1", Deadline.MESSAGE_CONSTRAINTS);
     }
 
     @Test
@@ -71,5 +107,12 @@ public class EditPaymentCommandParserTest {
                 Messages.getErrorMessageForDuplicatePrefixes(PREFIX_AMOUNT));
         assertParseFailure(parser, "1 1 1 d/2027-01-31 d/2027-02-28",
                 Messages.getErrorMessageForDuplicatePrefixes(PREFIX_DEADLINE));
+    }
+
+    /** Asserts that {@code invalidIndex} is rejected as the client, gig, and payment index. */
+    private void assertInvalidIndexRejected(String invalidIndex) {
+        assertParseFailure(parser, invalidIndex + " 1 1 a/650", INVALID_FORMAT);
+        assertParseFailure(parser, "1 " + invalidIndex + " 1 a/650", INVALID_FORMAT);
+        assertParseFailure(parser, "1 1 " + invalidIndex + " a/650", INVALID_FORMAT);
     }
 }

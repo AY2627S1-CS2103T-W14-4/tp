@@ -28,6 +28,7 @@ public class MarkPaymentPaidCommandParser implements Parser<MarkPaymentPaidComma
     }
 
     private static ParseException invalidFormat() {
-        return new ParseException(String.format(MESSAGE_INVALID_COMMAND_FORMAT, MarkPaymentPaidCommand.MESSAGE_USAGE));
+        return new ParseException(
+                String.format(MESSAGE_INVALID_COMMAND_FORMAT, MarkPaymentPaidCommand.MESSAGE_USAGE));
     }
 }

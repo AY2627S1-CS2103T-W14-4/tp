@@ -25,9 +25,6 @@ public class DeletePaymentCommand extends Command {
             + "Indexes are positive integers in the displayed client list, that client's gig list, and "
             + "the gig's payment list, respectively.\n"
             + "Example: " + COMMAND_WORD + " 1 2 3";
-    public static final String MESSAGE_INVALID_GIG_INDEX = "The gig index provided is invalid for this client.";
-    public static final String MESSAGE_INVALID_PAYMENT_INDEX =
-            "The payment index provided is invalid for this gig.";
     public static final String MESSAGE_SUCCESS = "Deleted payment obligation for %1$s, gig %2$d (%3$s), "
             + "payment %4$d: Amount: %5$s; Due date: %6$s; Previous state: %7$s";
 
@@ -54,13 +51,13 @@ public class DeletePaymentCommand extends Command {
         Client client = clients.get(clientIndex.getZeroBased());
         List<Gig> gigs = GigOrdering.forClient(model.getGigList(), client);
         if (gigIndex.getZeroBased() >= gigs.size()) {
-            throw new CommandException(MESSAGE_INVALID_GIG_INDEX);
+            throw new CommandException(Messages.MESSAGE_INVALID_GIG_INDEX);
         }
 
         Gig gig = gigs.get(gigIndex.getZeroBased());
         List<PaymentObligation> payments = PaymentObligationOrdering.forGig(model.getPaymentObligationList(), gig);
         if (paymentIndex.getZeroBased() >= payments.size()) {
-            throw new CommandException(MESSAGE_INVALID_PAYMENT_INDEX);
+            throw new CommandException(Messages.MESSAGE_INVALID_PAYMENT_INDEX);
         }
 
         PaymentObligation payment = payments.get(paymentIndex.getZeroBased());

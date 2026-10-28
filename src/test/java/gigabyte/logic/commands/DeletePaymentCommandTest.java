@@ -33,9 +33,9 @@ public class DeletePaymentCommandTest {
 
     @Test
     public void constructor_nullIndexes_throwsNullPointerException() {
-        assertThrows(NullPointerException.class, () -> new DeletePaymentCommand(null, FIRST, FIRST));
-        assertThrows(NullPointerException.class, () -> new DeletePaymentCommand(FIRST, null, FIRST));
-        assertThrows(NullPointerException.class, () -> new DeletePaymentCommand(FIRST, FIRST, null));
+        assertThrows(NullPointerException.class, () -> new DeletePaymentCommand(null, FIRST, FIRST)); // client
+        assertThrows(NullPointerException.class, () -> new DeletePaymentCommand(FIRST, null, FIRST)); // gig
+        assertThrows(NullPointerException.class, () -> new DeletePaymentCommand(FIRST, FIRST, null)); // payment
     }
 
     @Test
@@ -137,17 +137,24 @@ public class DeletePaymentCommandTest {
         PaymentObligation payment = addPayment(model, gig, "50", "2099-01-31", false);
         GigabyteData before = new GigabyteData(model.getGigabyteData());
 
+        // EP: client index beyond the displayed client list
         assertThrows(CommandException.class, Messages.MESSAGE_INVALID_CLIENT_DISPLAYED_INDEX, () ->
                 new DeletePaymentCommand(THIRD, FIRST, FIRST).execute(model));
-        assertThrows(CommandException.class, DeletePaymentCommand.MESSAGE_INVALID_GIG_INDEX, () ->
+
+        // EP: gig index beyond the client's gigs
+        assertThrows(CommandException.class, Messages.MESSAGE_INVALID_GIG_INDEX, () ->
                 new DeletePaymentCommand(FIRST, SECOND, FIRST).execute(model));
-        assertThrows(CommandException.class, DeletePaymentCommand.MESSAGE_INVALID_PAYMENT_INDEX, () ->
+        assertThrows(CommandException.class, Messages.MESSAGE_INVALID_GIG_INDEX, () ->
+                new DeletePaymentCommand(SECOND, FIRST, FIRST).execute(model)); // Client has no gigs
+
+        // EP: payment index beyond the gig's payments
+        assertThrows(CommandException.class, Messages.MESSAGE_INVALID_PAYMENT_INDEX, () ->
                 new DeletePaymentCommand(FIRST, FIRST, SECOND).execute(model));
-        assertThrows(CommandException.class, DeletePaymentCommand.MESSAGE_INVALID_GIG_INDEX, () ->
-                new DeletePaymentCommand(SECOND, FIRST, FIRST).execute(model));
+
         assertEquals(before, model.getGigabyteData());
         assertSame(payment, model.getPaymentObligationList().get(0));
 
+        // EP: client index valid in the full list but beyond the filtered list
         model.updateFilteredClientList(new ClientNameContainsKeywordsPredicate(List.of("Alice")));
         assertThrows(CommandException.class, Messages.MESSAGE_INVALID_CLIENT_DISPLAYED_INDEX, () ->
                 new DeletePaymentCommand(SECOND, FIRST, FIRST).execute(model));
@@ -161,7 +168,7 @@ public class DeletePaymentCommandTest {
         Gig gig = addGig(model, ALICE);
         GigabyteData before = new GigabyteData(model.getGigabyteData());
 
-        assertThrows(CommandException.class, DeletePaymentCommand.MESSAGE_INVALID_PAYMENT_INDEX, () ->
+        assertThrows(CommandException.class, Messages.MESSAGE_INVALID_PAYMENT_INDEX, () ->
                 new DeletePaymentCommand(FIRST, FIRST, FIRST).execute(model));
 
         assertEquals(before, model.getGigabyteData());
@@ -171,10 +178,15 @@ public class DeletePaymentCommandTest {
     @Test
     public void equals_comparesAllIndexes() {
         DeletePaymentCommand command = new DeletePaymentCommand(FIRST, SECOND, THIRD);
+        // same values or same object -> returns true
         assertEquals(command, new DeletePaymentCommand(FIRST, SECOND, THIRD));
         assertTrue(command.equals(command));
+
+        // null or a different type -> returns false
         assertFalse(command.equals(null));
         assertFalse(command.equals("deletepayment"));
+
+        // different client, gig, or payment index -> returns false
         assertFalse(command.equals(new DeletePaymentCommand(SECOND, SECOND, THIRD)));
         assertFalse(command.equals(new DeletePaymentCommand(FIRST, FIRST, THIRD)));
         assertFalse(command.equals(new DeletePaymentCommand(FIRST, SECOND, SECOND)));
@@ -219,8 +231,9 @@ public class DeletePaymentCommandTest {
         return model.getGigList().get(model.getGigList().size() - 1);
     }
 
-    private PaymentObligation addPayment(ModelManager model, Gig gig, String amount, String dueDate, boolean paid) {
-        model.addPaymentObligation(new PaymentObligation(gig, new Fee(amount), new Deadline(dueDate), paid));
+    private PaymentObligation addPayment(ModelManager model, Gig gig, String amount, String dueDate,
+            boolean isPaid) {
+        model.addPaymentObligation(new PaymentObligation(gig, new Fee(amount), new Deadline(dueDate), isPaid));
         return model.getPaymentObligationList().get(model.getPaymentObligationList().size() - 1);
     }
 }

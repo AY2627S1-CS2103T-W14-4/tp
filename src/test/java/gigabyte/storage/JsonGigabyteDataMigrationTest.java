@@ -29,7 +29,7 @@ import gigabyte.model.gig.PaymentObligation;
 /** Tests migration from the previous save-file name without changing its contents. */
 public class JsonGigabyteDataMigrationTest {
     @TempDir
-    public Path testFolder;
+    Path testFolder;
 
     private Path legacyFilePath;
     private Path currentFilePath;

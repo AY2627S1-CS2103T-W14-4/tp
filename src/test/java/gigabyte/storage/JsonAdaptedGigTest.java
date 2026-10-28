@@ -43,23 +43,26 @@ public class JsonAdaptedGigTest {
 
     @Test
     public void toModelType_invalidPresentTitle_throwsIllegalValueException() {
-        for (JsonNode title : List.of(NullNode.getInstance(), IntNode.valueOf(123),
-                TextNode.valueOf("   "), TextNode.valueOf("a".repeat(101)))) {
-            assertThrows(IllegalValueException.class, GigTitle.MESSAGE_CONSTRAINTS, () ->
-                    new JsonAdaptedGig(UID, CLIENT_UID, title, STATUS, DEADLINE, FEE_CENTS)
-                            .toModelType(List.of(ALICE)));
-        }
+        // EP: title present in the file but not text
+        assertTitleRejected(NullNode.getInstance()); // JSON null
+        assertTitleRejected(IntNode.valueOf(123));
+
+        // EP: blank title
+        assertTitleRejected(TextNode.valueOf("   "));
+
+        // EP: title longer than 100 characters
+        assertTitleRejected(TextNode.valueOf("a".repeat(101))); // Boundary value
     }
 
     @Test
     public void toModelType_missingFields_throwsIllegalValueException() {
         for (JsonAdaptedGig gig : List.of(
-                new JsonAdaptedGig(null, CLIENT_UID, TITLE, STATUS, DEADLINE, FEE_CENTS),
-                new JsonAdaptedGig(UID, null, TITLE, STATUS, DEADLINE, FEE_CENTS),
-                new JsonAdaptedGig(UID, CLIENT_UID, null, STATUS, DEADLINE, FEE_CENTS),
-                new JsonAdaptedGig(UID, CLIENT_UID, TITLE, null, DEADLINE, FEE_CENTS),
-                new JsonAdaptedGig(UID, CLIENT_UID, TITLE, STATUS, null, FEE_CENTS),
-                new JsonAdaptedGig(UID, CLIENT_UID, TITLE, STATUS, DEADLINE, null))) {
+                new JsonAdaptedGig(null, CLIENT_UID, TITLE, STATUS, DEADLINE, FEE_CENTS), // UID
+                new JsonAdaptedGig(UID, null, TITLE, STATUS, DEADLINE, FEE_CENTS), // client UID
+                new JsonAdaptedGig(UID, CLIENT_UID, null, STATUS, DEADLINE, FEE_CENTS), // title
+                new JsonAdaptedGig(UID, CLIENT_UID, TITLE, null, DEADLINE, FEE_CENTS), // status
+                new JsonAdaptedGig(UID, CLIENT_UID, TITLE, STATUS, null, FEE_CENTS), // deadline
+                new JsonAdaptedGig(UID, CLIENT_UID, TITLE, STATUS, DEADLINE, null))) { // fee
             assertThrows(IllegalValueException.class, JsonAdaptedGig.MISSING_FIELD_MESSAGE, () ->
                     gig.toModelType(List.of(ALICE)));
         }
@@ -74,25 +77,48 @@ public class JsonAdaptedGigTest {
 
     @Test
     public void toModelType_invalidOrUnknownClientUid_throwsIllegalValueException() {
-        for (String clientUid : List.of("invalid", "00000000-0000-0000-0000-000000000002")) {
-            assertThrows(IllegalValueException.class, GigClientNotFoundException.MESSAGE, () ->
-                    new JsonAdaptedGig(UID, clientUid, TITLE, STATUS, DEADLINE, FEE_CENTS)
-                            .toModelType(List.of(ALICE)));
-        }
+        // EP: client UID is not a valid UUID
+        assertClientUidRejected("invalid");
+
+        // EP: valid UUID that matches no stored client
+        assertClientUidRejected("00000000-0000-0000-0000-000000000002");
     }
 
     @Test
-    public void toModelType_invalidFields_throwsIllegalValueException() {
+    public void toModelType_unknownStatus_throwsIllegalValueException() {
         assertThrows(IllegalValueException.class, GigStatus.MESSAGE_CONSTRAINTS, () ->
                 new JsonAdaptedGig(UID, CLIENT_UID, TITLE, "UNKNOWN", DEADLINE, FEE_CENTS)
                         .toModelType(List.of(ALICE)));
+    }
+
+    @Test
+    public void toModelType_nonExistentDeadline_throwsIllegalValueException() {
         assertThrows(IllegalValueException.class, Deadline.MESSAGE_CONSTRAINTS, () ->
                 new JsonAdaptedGig(UID, CLIENT_UID, TITLE, STATUS, "2027-02-29", FEE_CENTS)
+                        .toModelType(List.of(ALICE))); // Not a leap year
+    }
+
+    @Test
+    public void toModelType_zeroOrNegativeFee_throwsIllegalValueException() {
+        assertFeeRejected(BigInteger.ZERO); // Boundary value
+        assertFeeRejected(BigInteger.valueOf(-1));
+    }
+
+    private void assertTitleRejected(JsonNode title) {
+        assertThrows(IllegalValueException.class, GigTitle.MESSAGE_CONSTRAINTS, () ->
+                new JsonAdaptedGig(UID, CLIENT_UID, title, STATUS, DEADLINE, FEE_CENTS)
                         .toModelType(List.of(ALICE)));
-        for (BigInteger feeCents : List.of(BigInteger.ZERO, BigInteger.valueOf(-1))) {
-            assertThrows(IllegalValueException.class, Fee.MESSAGE_CONSTRAINTS, () ->
-                    new JsonAdaptedGig(UID, CLIENT_UID, TITLE, STATUS, DEADLINE, feeCents)
-                            .toModelType(List.of(ALICE)));
-        }
+    }
+
+    private void assertClientUidRejected(String clientUid) {
+        assertThrows(IllegalValueException.class, GigClientNotFoundException.MESSAGE, () ->
+                new JsonAdaptedGig(UID, clientUid, TITLE, STATUS, DEADLINE, FEE_CENTS)
+                        .toModelType(List.of(ALICE)));
+    }
+
+    private void assertFeeRejected(BigInteger feeCents) {
+        assertThrows(IllegalValueException.class, Fee.MESSAGE_CONSTRAINTS, () ->
+                new JsonAdaptedGig(UID, CLIENT_UID, TITLE, STATUS, DEADLINE, feeCents)
+                        .toModelType(List.of(ALICE)));
     }
 }

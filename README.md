@@ -6,7 +6,7 @@
 
 ![Ui](docs/images/Ui.png)
 
-**Gigabyte** is a desktop app for **Freelancers** who manage multiple clients, projects, and payment deadlines independently. It is designed for users who prefer typing commands. 
+**Gigabyte** is a desktop app for **Freelancers** who manage multiple clients, projects, and payment deadlines independently. It is designed for users who prefer typing commands.
 
 
 ## Why Gigabyte?

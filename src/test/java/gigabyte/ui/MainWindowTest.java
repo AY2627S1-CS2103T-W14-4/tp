@@ -40,7 +40,10 @@ import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
 import javafx.geometry.Rectangle2D;
+import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyEvent;
 import javafx.stage.Screen;
 import javafx.stage.Stage;
 
@@ -55,7 +58,7 @@ public class MainWindowTest {
             BENSON_GIG, new Fee("600"), new Deadline("2027-04-15"), false);
 
     @TempDir
-    public Path temporaryFolder;
+    Path temporaryFolder;
 
     @BeforeAll
     public static void setUpJavaFx() {
@@ -88,7 +91,8 @@ public class MainWindowTest {
                 assertEquals(List.of(BENSON_GIG), window.getGigListPanel().getGigListView().getItems());
                 assertNull(window.getClientListPanel().getClientListView().getSelectionModel().getSelectedItem());
                 assertEquals(0, window.getPaymentObligationListPanel().getPaymentListView().getItems().size());
-                assertEquals(model.getFilteredClientList(), window.getClientListPanel().getClientListView().getItems());
+                assertEquals(model.getFilteredClientList(),
+                        window.getClientListPanel().getClientListView().getItems());
 
                 window.getGigListPanel().getGigListView().getSelectionModel().select(0);
                 assertEquals(List.of(BENSON_PAYMENT),
@@ -246,7 +250,8 @@ public class MainWindowTest {
                     new JsonGigabyteDataStorage(temporaryFolder.resolve("delete-gig.json")),
                     new JsonUserPrefsStorage(temporaryFolder.resolve("delete-gig-preferences.json"))));
             MainWindow window = callOnJavaFxThread(() -> {
-                MainWindow mainWindow = new MainWindow(new Stage(), logic, temporaryFolder.resolve("delete-gig.json"));
+                MainWindow mainWindow = new MainWindow(new Stage(), logic,
+                        temporaryFolder.resolve("delete-gig.json"));
                 mainWindow.fillInnerParts();
                 return mainWindow;
             });
@@ -259,7 +264,8 @@ public class MainWindowTest {
                     int targetIndex = window.getGigListPanel().getGigListView().getItems().get(0).hasSameUid(target)
                             ? 0 : 1;
                     window.getGigListPanel().getGigListView().getSelectionModel().select(targetIndex);
-                    assertSame(target, window.getGigListPanel().getGigListView().getSelectionModel().getSelectedItem());
+                    assertSame(target, window.getGigListPanel().getGigListView()
+                            .getSelectionModel().getSelectedItem());
 
                     enterCommand(window, "deletegig 1 2");
 
@@ -303,7 +309,8 @@ public class MainWindowTest {
                 new JsonGigabyteDataStorage(temporaryFolder.resolve("keep-selection.json")),
                 new JsonUserPrefsStorage(temporaryFolder.resolve("keep-selection-preferences.json"))));
         MainWindow window = callOnJavaFxThread(() -> {
-            MainWindow mainWindow = new MainWindow(new Stage(), logic, temporaryFolder.resolve("keep-selection.json"));
+            MainWindow mainWindow = new MainWindow(new Stage(), logic,
+                    temporaryFolder.resolve("keep-selection.json"));
             mainWindow.fillInnerParts();
             return mainWindow;
         });
@@ -314,10 +321,12 @@ public class MainWindowTest {
 
                 enterCommand(window, "deletegig 1 1");
 
-                assertSame(selected, window.getGigListPanel().getGigListView().getSelectionModel().getSelectedItem());
+                assertSame(selected, window.getGigListPanel().getGigListView()
+                        .getSelectionModel().getSelectedItem());
                 assertSame(payment, window.getPaymentObligationListPanel().getPaymentListView().getItems().get(0));
                 enterCommand(window, "deletegig 1 1");
-                assertSame(selected, window.getGigListPanel().getGigListView().getSelectionModel().getSelectedItem());
+                assertSame(selected, window.getGigListPanel().getGigListView()
+                        .getSelectionModel().getSelectedItem());
                 assertSame(payment, model.getPaymentObligationList().get(0));
                 return null;
             });
@@ -452,7 +461,43 @@ public class MainWindowTest {
     }
 
     @Test
-    public void selectingClientAndGig_matchingHierarchy_showsPaymentAndReturnsCommandFocus() throws Exception {
+    public void focusingEmptyList_keepsSelectionEmpty() throws Exception {
+        LogicStub logic = new LogicStub() {
+            @Override
+            public ObservableList<Client> getFilteredClientList() {
+                return FXCollections.observableArrayList();
+            }
+        };
+        MainWindow mainWindow = callOnJavaFxThread(() -> {
+            MainWindow window = new MainWindow(new Stage(), logic, Path.of("data.json"));
+            window.show();
+            window.fillInnerParts();
+            return window;
+        });
+
+        try {
+            callOnJavaFxThread(() -> {
+                TextField commandTextField = (TextField) mainWindow.getRoot().getScene()
+                        .lookup("#commandTextField");
+                commandTextField.requestFocus();
+                pressKey(mainWindow, KeyCode.TAB);
+
+                var clients = mainWindow.getClientListPanel().getClientListView();
+                assertTrue(clients.isFocused());
+                assertTrue(clients.getItems().isEmpty());
+                assertEquals(-1, clients.getSelectionModel().getSelectedIndex());
+                return null;
+            });
+        } finally {
+            callOnJavaFxThread(() -> {
+                mainWindow.getPrimaryStage().hide();
+                return null;
+            });
+        }
+    }
+
+    @Test
+    public void tabOutsideNavigation_doesNotTraverseFocus() throws Exception {
         MainWindow mainWindow = callOnJavaFxThread(() -> {
             MainWindow window = new MainWindow(new Stage(), new LogicStub(), Path.of("data.json"));
             window.show();
@@ -462,32 +507,15 @@ public class MainWindowTest {
 
         try {
             callOnJavaFxThread(() -> {
-                mainWindow.getClientListPanel().getClientListView().requestFocus();
-                assertTrue(mainWindow.getClientListPanel().getClientListView().isFocused());
+                TextArea resultDisplay = (TextArea) mainWindow.getRoot().getScene().lookup("#resultDisplay");
+                resultDisplay.requestFocus();
+                assertTrue(resultDisplay.isFocused());
 
-                mainWindow.getClientListPanel().getClientListView().getSelectionModel().select(0);
-                assertEquals(1, mainWindow.getGigListPanel().getGigListView().getItems().size());
-                return null;
-            });
-
-            callOnJavaFxThread(() -> {
-                TextField commandTextField = (TextField) mainWindow.getRoot().getScene()
-                        .lookup("#commandTextField");
-                assertTrue(commandTextField.isFocused());
-
-                mainWindow.getGigListPanel().getGigListView().requestFocus();
-                assertTrue(mainWindow.getGigListPanel().getGigListView().isFocused());
-
-                mainWindow.getGigListPanel().getGigListView().getSelectionModel().select(0);
-                assertEquals(1, mainWindow.getPaymentObligationListPanel()
-                        .getPaymentListView().getItems().size());
-                return null;
-            });
-
-            callOnJavaFxThread(() -> {
-                TextField commandTextField = (TextField) mainWindow.getRoot().getScene()
-                        .lookup("#commandTextField");
-                assertTrue(commandTextField.isFocused());
+                pressKey(mainWindow, KeyCode.TAB);
+                assertTrue(resultDisplay.isFocused());
+                resultDisplay.fireEvent(new KeyEvent(KeyEvent.KEY_PRESSED,
+                        "", "", KeyCode.TAB, true, false, false, false));
+                assertTrue(resultDisplay.isFocused());
                 return null;
             });
         } finally {
@@ -496,6 +524,11 @@ public class MainWindowTest {
                 return null;
             });
         }
+    }
+
+    private static void pressKey(MainWindow window, KeyCode keyCode) {
+        window.getRoot().getScene().getFocusOwner().fireEvent(new KeyEvent(KeyEvent.KEY_PRESSED,
+                "", "", keyCode, false, false, false, false));
     }
 
     @Test

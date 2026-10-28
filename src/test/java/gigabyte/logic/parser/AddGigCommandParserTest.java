@@ -19,6 +19,10 @@ import gigabyte.model.gig.GigStatus;
 import gigabyte.model.gig.GigTitle;
 
 public class AddGigCommandParserTest {
+    private static final String INVALID_FORMAT =
+            String.format(MESSAGE_INVALID_COMMAND_FORMAT, AddGigCommand.MESSAGE_USAGE);
+    private static final String VALID_FIELDS = " t/Title s/NOT_STARTED d/2027-01-31 f/100";
+
     private final AddGigCommandParser parser = new AddGigCommandParser();
 
     @Test
@@ -33,48 +37,89 @@ public class AddGigCommandParserTest {
     }
 
     @Test
-    public void parse_missingFieldsOrInvalidIndex_throwsParseException() {
-        String expected = String.format(MESSAGE_INVALID_COMMAND_FORMAT, AddGigCommand.MESSAGE_USAGE);
-        for (String args : new String[] {"", "1", "1 t/Title d/2027-01-31 f/100",
-            "1 t/Title s/NOT_STARTED f/100", "1 t/Title s/NOT_STARTED d/2027-01-31",
-            "1 s/NOT_STARTED d/2027-01-31 f/100", "t/Title s/NOT_STARTED d/2027-01-31 f/100",
-            "0 t/Title s/NOT_STARTED d/2027-01-31 f/100",
-            "-1 t/Title s/NOT_STARTED d/2027-01-31 f/100",
-            "abc t/Title s/NOT_STARTED d/2027-01-31 f/100",
-            "2147483648 t/Title s/NOT_STARTED d/2027-01-31 f/100"}) {
-            assertParseFailure(parser, args, expected);
-        }
+    public void parse_missingCompulsoryField_throwsParseException() {
+        // EP: no fields at all
+        assertParseFailure(parser, "", INVALID_FORMAT);
+        assertParseFailure(parser, "1", INVALID_FORMAT);
+
+        // EP: exactly one compulsory field missing
+        assertParseFailure(parser, "t/Title s/NOT_STARTED d/2027-01-31 f/100", INVALID_FORMAT); // client index
+        assertParseFailure(parser, "1 s/NOT_STARTED d/2027-01-31 f/100", INVALID_FORMAT); // title
+        assertParseFailure(parser, "1 t/Title d/2027-01-31 f/100", INVALID_FORMAT); // status
+        assertParseFailure(parser, "1 t/Title s/NOT_STARTED f/100", INVALID_FORMAT); // deadline
+        assertParseFailure(parser, "1 t/Title s/NOT_STARTED d/2027-01-31", INVALID_FORMAT); // fee
+    }
+
+    @Test
+    public void parse_zeroOrNegativeIndex_throwsParseException() {
+        assertParseFailure(parser, "0" + VALID_FIELDS, INVALID_FORMAT); // Boundary value
+        assertParseFailure(parser, "-1" + VALID_FIELDS, INVALID_FORMAT);
+    }
+
+    @Test
+    public void parse_nonNumericIndex_throwsParseException() {
+        assertParseFailure(parser, "abc" + VALID_FIELDS, INVALID_FORMAT);
+    }
+
+    @Test
+    public void parse_indexAboveIntegerMaxValue_throwsParseException() {
+        // Boundary value: Integer.MAX_VALUE + 1
+        assertParseFailure(parser, "2147483648" + VALID_FIELDS, INVALID_FORMAT);
     }
 
     @Test
     public void parse_invalidTitle_throwsParseException() {
+        // EP: empty title
         assertParseFailure(parser, "1 t/ s/NOT_STARTED d/2027-01-31 f/100", GigTitle.MESSAGE_CONSTRAINTS);
+
+        // EP: title longer than 100 characters
         assertParseFailure(parser, "1 t/" + "a".repeat(101) + " s/NOT_STARTED d/2027-01-31 f/100",
-                GigTitle.MESSAGE_CONSTRAINTS);
+                GigTitle.MESSAGE_CONSTRAINTS); // Boundary value
     }
 
     @Test
     public void parse_invalidStatus_throwsParseException() {
-        for (String status : new String[] {"", "unknown", "in progress"}) {
-            assertParseFailure(parser, "1 t/Title s/" + status + " d/2027-01-31 f/100",
-                    GigStatus.MESSAGE_CONSTRAINTS);
-        }
+        // EP: empty status
+        assertParseFailure(parser, "1 t/Title s/ d/2027-01-31 f/100", GigStatus.MESSAGE_CONSTRAINTS);
+
+        // EP: unknown status
+        assertParseFailure(parser, "1 t/Title s/unknown d/2027-01-31 f/100", GigStatus.MESSAGE_CONSTRAINTS);
+
+        // EP: known status written with a space instead of an underscore
+        assertParseFailure(parser, "1 t/Title s/in progress d/2027-01-31 f/100", GigStatus.MESSAGE_CONSTRAINTS);
     }
 
     @Test
     public void parse_invalidDeadline_throwsParseException() {
-        for (String deadline : new String[] {"", "2027-02-29", "2027-13-01", "31-01-2027", "2027-1-1"}) {
-            assertParseFailure(parser, "1 t/Title s/NOT_STARTED d/" + deadline + " f/100",
-                    Deadline.MESSAGE_CONSTRAINTS);
-        }
+        // EP: empty deadline
+        assertParseFailure(parser, "1 t/Title s/NOT_STARTED d/ f/100", Deadline.MESSAGE_CONSTRAINTS);
+
+        // EP: correct format but the date does not exist
+        assertParseFailure(parser, "1 t/Title s/NOT_STARTED d/2027-02-29 f/100",
+                Deadline.MESSAGE_CONSTRAINTS); // Not a leap year
+        assertParseFailure(parser, "1 t/Title s/NOT_STARTED d/2027-13-01 f/100", Deadline.MESSAGE_CONSTRAINTS);
+
+        // EP: wrong date format
+        assertParseFailure(parser, "1 t/Title s/NOT_STARTED d/31-01-2027 f/100", Deadline.MESSAGE_CONSTRAINTS);
+        assertParseFailure(parser, "1 t/Title s/NOT_STARTED d/2027-1-1 f/100", Deadline.MESSAGE_CONSTRAINTS);
     }
 
     @Test
     public void parse_invalidFee_throwsParseException() {
-        for (String fee : new String[] {"", "0", "-1", "1.234", "abc", "1e3"}) {
-            assertParseFailure(parser, "1 t/Title s/NOT_STARTED d/2027-01-31 f/" + fee,
-                    Fee.MESSAGE_CONSTRAINTS);
-        }
+        // EP: empty fee
+        assertParseFailure(parser, "1 t/Title s/NOT_STARTED d/2027-01-31 f/", Fee.MESSAGE_CONSTRAINTS);
+
+        // EP: zero or negative fee
+        assertParseFailure(parser, "1 t/Title s/NOT_STARTED d/2027-01-31 f/0",
+                Fee.MESSAGE_CONSTRAINTS); // Boundary value
+        assertParseFailure(parser, "1 t/Title s/NOT_STARTED d/2027-01-31 f/-1", Fee.MESSAGE_CONSTRAINTS);
+
+        // EP: more than two decimal places
+        assertParseFailure(parser, "1 t/Title s/NOT_STARTED d/2027-01-31 f/1.234", Fee.MESSAGE_CONSTRAINTS);
+
+        // EP: not a plain decimal number
+        assertParseFailure(parser, "1 t/Title s/NOT_STARTED d/2027-01-31 f/abc", Fee.MESSAGE_CONSTRAINTS);
+        assertParseFailure(parser, "1 t/Title s/NOT_STARTED d/2027-01-31 f/1e3", Fee.MESSAGE_CONSTRAINTS);
     }
 
     @Test

@@ -61,6 +61,9 @@
 
 **Notes about the command format:**<br>
 
+* Command words are not case-sensitive, but parameters keep the case you type.<br>
+  For example, `LIST`, `List` and `list` all list clients, and `ADDGIG 1 t/Website Redesign ...` saves the title as `Website Redesign`.
+
 * Words in `UPPER_CASE` are the parameters to be supplied by the user.<br>
   For example, in `add n/NAME`, replace `NAME` with a value such as `John Doe`.
 
@@ -73,8 +76,9 @@
 * Parameters can be in any order.<br>
   For example, if the command specifies `n/NAME p/PHONE_NUMBER`, `p/PHONE_NUMBER n/NAME` is also acceptable.
 
-* Extraneous parameters for commands that take no parameters, such as `help`, `list`, `exit`, and `clear`, are ignored.<br>
-  For example, `help 123` is interpreted as `help`.
+* Extraneous parameters for `summary`, `help`, `list`, `exit`, and `clear` are ignored.<br>
+  For example, `help 123` is interpreted as `help`.<br>
+  `deadlines` and `outstanding` also take no parameters, but reject any extra input with an invalid command format message.
 
 * If you are using a PDF version of this document, be careful when copying and pasting commands that span multiple lines as space characters surrounding line-breaks may be omitted when copied over to the application.
 </box>
@@ -94,6 +98,10 @@ Adds a client to the client list.
 
 Format: `add n/NAME p/PHONE_NUMBER e/EMAIL a/ADDRESS [t/TAG]... `
 
+* `PHONE_NUMBER` must have at least 3 digits and may start with a `+`. Digits may be grouped with single spaces
+  or hyphens, e.g. `+65 9123 4567`, `6123-4567` or `+1-202-555-0143`. Letters, brackets and other symbols are not
+  allowed, and the number cannot start or end with a space or hyphen, or contain two in a row.
+* The phone number is saved and shown exactly as you type it.
 * Each `TAG` must contain only letters and digits (no spaces or symbols) and be at most 25 characters long.
 
 <box type="tip" seamless>
@@ -104,6 +112,7 @@ Format: `add n/NAME p/PHONE_NUMBER e/EMAIL a/ADDRESS [t/TAG]... `
 Examples:
 * `add n/John Doe p/98765432 e/johnd@example.com a/John street, block 123, #01-01`
 * `add n/Betsy Crowe t/friend e/betsycrowe@example.com a/Newgate Prison p/1234567 t/criminal`
+* `add n/Carl Kurz p/+65 9123 4567 e/carlk@example.com a/12 Orchard Road`
 
 ### Listing all clients: `list`
 
@@ -138,6 +147,12 @@ from 1 and ordered by due date, earliest first. Obligations with the same due da
 recorded. These displayed payment indexes restart from 1 for each selected gig; `editpayment`, `markpaid`, `deletepayment` and
 `markunpaid` use them. `editpayment` resolves the selected payment before applying a due-date change that might move
 the payment to a new displayed position.
+
+When a list has keyboard focus, use **Up** and **Down** to select entries. **Right** moves focus from clients to gigs
+or from gigs to payment obligations; **Left** moves back one list. Press **Tab** from any list to focus the
+command box; press **Tab** from the command box to focus Clients. When a list gains focus with no selected row,
+its first row is selected automatically if it has one. Selecting an entry keeps focus in its list so you can continue
+browsing.
 
 Each payment row shows its amount, due date, and current display state:
 
@@ -201,6 +216,9 @@ the panel to that client's normal gig view, and running `deadlines` again restor
 overview updates automatically when gigs are added, changed, or removed.
 
 If there are no active gigs, the panel displays `There are no active gig deadlines.`
+
+`deadlines` takes no parameters. Extra input, such as `deadlines 1`, is rejected with an invalid command format
+message, and the current view stays unchanged.
 
 ### Creating a gig: `addgig`
 
@@ -504,6 +522,7 @@ Format: `edit INDEX [n/NAME] [p/PHONE] [e/EMAIL] [a/ADDRESS] [t/TAG]... `
 * Edits the client at the specified `INDEX`. The index refers to the index number shown in the displayed client list. The index **must be a positive integer** 1, 2, 3, ...
 * At least one of the optional fields must be provided.
 * Existing values will be updated to the input values.
+* A new phone number follows the same rules as in [`add`](#adding-a-client-add).
 * When editing tags, all of the client's existing tags are removed; adding tags is not cumulative.
   Each tag follows the same rules as in [`add`](#adding-a-client-add).
 * To remove all of a client's tags, enter `t/` without a tag after it.

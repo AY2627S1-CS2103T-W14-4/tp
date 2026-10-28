@@ -27,7 +27,8 @@ public class FilterGigsCommand extends Command {
     public CommandResult execute(Model model) {
         requireNonNull(model);
         long count = model.getGigList().stream().filter(gig -> gig.getStatus() == status).count();
-        return new CommandResult(String.format("%d gigs with status %s.", count, status), status);
+        return new CommandResult(String.format(
+                "%d gig%s with status %s.", count, count == 1 ? "" : "s", status), status);
     }
 
     @Override

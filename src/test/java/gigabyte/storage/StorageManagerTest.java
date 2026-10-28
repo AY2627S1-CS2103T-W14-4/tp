@@ -18,7 +18,7 @@ import gigabyte.model.UserPrefs;
 public class StorageManagerTest {
 
     @TempDir
-    public Path testFolder;
+    Path testFolder;
 
     private StorageManager storageManager;
 
