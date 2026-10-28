@@ -103,6 +103,14 @@ Format: `add n/NAME p/PHONE_NUMBER e/EMAIL a/ADDRESS [t/TAG]... `
   allowed, and the number cannot start or end with a space or hyphen, or contain two in a row.
 * The phone number is saved and shown exactly as you type it.
 * Each `TAG` must contain only letters and digits (no spaces or symbols) and be at most 25 characters long.
+* The client is rejected if its name matches an existing client's name after ignoring case, leading and trailing
+  spaces, and repeated spaces between words. For example, if `John Doe` exists, `john doe`, `JOHN DOE` and
+  `John  Doe` are all rejected.
+* Names that differ in any other way count as different clients, even if they look alike. For example, `Jon Doe`,
+  `JohnDoe` and `John A Doe` are all accepted alongside `John Doe`. Typos and nicknames are not detected.
+* If another client already has the same phone number, or the same email (ignoring case), the client is still added,
+  and the result names that client, e.g. `Note: Bernice Yu has the same phone number.` This lets you record people who
+  share a phone number or email, while still spotting accidental duplicates.
 
 <box type="tip" seamless>
 
@@ -526,6 +534,11 @@ Format: `edit INDEX [n/NAME] [p/PHONE] [e/EMAIL] [a/ADDRESS] [t/TAG]... `
 * When editing tags, all of the client's existing tags are removed; adding tags is not cumulative.
   Each tag follows the same rules as in [`add`](#adding-a-client-add).
 * To remove all of a client's tags, enter `t/` without a tag after it.
+* A new name is checked against every other client using the same rule as in [`add`](#adding-a-client-add).
+  Changing only the capitalisation or spacing of a client's own name (e.g. `John Doe` to `JOHN DOE`) is allowed,
+  unless another client already has exactly the new name.
+* If the edited client then has the same phone number or email as another client, the edit is still saved, and the
+  result shows the same note as `add`. A client is never compared with itself.
 
 Examples:
 * `edit 1 p/91234567 e/alexnew@example.com` changes Alex's phone and email in fresh sample data.
@@ -634,6 +647,10 @@ stored as positive integer cents. The `clients`, `gigs`, and `paymentObligations
 for an empty collection. Each client must include its `uid`, contact fields, and `tags` array. Each gig must include
 its `uid`, `clientUid`, `title`, `status`, `deadline`, and `feeCents`. Each payment obligation must include its
 `gigUid`, `amountCents`, `dueDate`, and `paid` state.
+
+Two clients in the data file must not have exactly the same name. Data files from earlier versions may contain clients
+whose names differ only in case or spacing, such as `John Doe` and `john doe`. These files still load, and both
+clients can be edited as usual. Gigabyte only stops you from creating new pairs like this with `add` or `edit`.
 
 Only the current JSON format is supported. In particular, v1.3 files using `persons`, missing UUIDs or titles,
 client-name links, decimal `fee`/`amount` strings, or `gigIndex` references cannot be loaded. Unknown fields and

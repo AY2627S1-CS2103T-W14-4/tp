@@ -3,6 +3,8 @@ package gigabyte.model.client;
 import static gigabyte.commons.util.AppUtil.checkArgument;
 import static java.util.Objects.requireNonNull;
 
+import java.util.Locale;
+
 /**
  * Represents a Client's name in the client list.
  * Guarantees: immutable; is valid as declared in {@link #isValidName(String)}
@@ -38,6 +40,14 @@ public class Name {
         return test.matches(VALIDATION_REGEX);
     }
 
+    /**
+     * Returns this name in lower case, with leading and trailing spaces removed
+     * and repeated internal spaces collapsed into one.
+     * Used to detect names that differ only in case or spacing.
+     */
+    public String getNormalizedName() {
+        return fullName.trim().replaceAll(" +", " ").toLowerCase(Locale.ROOT);
+    }
 
     @Override
     public String toString() {

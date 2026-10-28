@@ -44,6 +44,12 @@ public interface Model {
     boolean hasClient(Client client);
 
     /**
+     * Returns true if a client other than {@code client} (compared by UID) has the same name as {@code client}
+     * after ignoring case, leading and trailing spaces, and repeated internal spaces.
+     */
+    boolean hasOtherClientWithSameNormalizedName(Client client);
+
+    /**
      * Deletes the given client.
      * The client must exist in the client list.
      */
