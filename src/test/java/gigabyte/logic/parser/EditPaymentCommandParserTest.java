@@ -5,6 +5,7 @@ import static gigabyte.logic.parser.CliSyntax.PREFIX_AMOUNT;
 import static gigabyte.logic.parser.CliSyntax.PREFIX_DEADLINE;
 import static gigabyte.logic.parser.CommandParserTestUtil.assertParseFailure;
 import static gigabyte.logic.parser.CommandParserTestUtil.assertParseSuccess;
+import static gigabyte.logic.parser.ParserUtil.MESSAGE_INVALID_INDEX;
 import static gigabyte.testutil.TypicalIndexes.INDEX_FIRST_CLIENT;
 import static gigabyte.testutil.TypicalIndexes.INDEX_SECOND_CLIENT;
 
@@ -46,6 +47,9 @@ public class EditPaymentCommandParserTest {
 
         // EP: more than three indexes
         assertParseFailure(parser, "1 2 3 4 a/650", INVALID_FORMAT);
+
+        // EP: extra words before the first prefix
+        assertParseFailure(parser, "1 2 3 extra a/650", INVALID_FORMAT);
     }
 
     @Test
@@ -111,8 +115,8 @@ public class EditPaymentCommandParserTest {
 
     /** Asserts that {@code invalidIndex} is rejected as the client, gig, and payment index. */
     private void assertInvalidIndexRejected(String invalidIndex) {
-        assertParseFailure(parser, invalidIndex + " 1 1 a/650", INVALID_FORMAT);
-        assertParseFailure(parser, "1 " + invalidIndex + " 1 a/650", INVALID_FORMAT);
-        assertParseFailure(parser, "1 1 " + invalidIndex + " a/650", INVALID_FORMAT);
+        assertParseFailure(parser, invalidIndex + " 1 1 a/650", MESSAGE_INVALID_INDEX);
+        assertParseFailure(parser, "1 " + invalidIndex + " 1 a/650", MESSAGE_INVALID_INDEX);
+        assertParseFailure(parser, "1 1 " + invalidIndex + " a/650", MESSAGE_INVALID_INDEX);
     }
 }

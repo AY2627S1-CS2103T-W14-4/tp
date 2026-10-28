@@ -78,6 +78,13 @@ public class ModelManager implements Model {
     }
 
     @Override
+    public boolean hasOtherClientWithSameNormalizedName(Client client) {
+        requireNonNull(client);
+        return gigabyteData.getClientList().stream()
+                .anyMatch(other -> !other.hasSameUid(client) && other.hasSameNormalizedName(client));
+    }
+
+    @Override
     public void deleteClient(Client target) {
         gigabyteData.removeClient(target);
     }

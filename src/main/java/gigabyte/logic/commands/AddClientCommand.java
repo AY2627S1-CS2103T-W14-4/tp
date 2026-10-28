@@ -55,9 +55,14 @@ public class AddClientCommand extends Command {
         if (model.hasClient(toAdd)) {
             throw new CommandException(MESSAGE_DUPLICATE_CLIENT);
         }
+        if (model.hasOtherClientWithSameNormalizedName(toAdd)) {
+            throw new CommandException(Messages.MESSAGE_DUPLICATE_CLIENT_NAME);
+        }
 
+        String sharedContactNotes = Messages.formatSharedContactNotes(toAdd,
+                model.getGigabyteData().getClientList());
         model.addClient(toAdd);
-        return new CommandResult(String.format(MESSAGE_SUCCESS, Messages.format(toAdd)));
+        return new CommandResult(String.format(MESSAGE_SUCCESS, Messages.format(toAdd)) + sharedContactNotes);
     }
 
     @Override

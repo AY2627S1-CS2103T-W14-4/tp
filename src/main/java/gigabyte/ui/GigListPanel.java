@@ -87,8 +87,14 @@ public class GigListPanel extends UiPart<Region> {
             cell.prefWidthProperty().bind(view.widthProperty().subtract(20));
             return cell;
         });
-        gigListView.getSelectionModel().selectedItemProperty().addListener((observable, oldGig, newGig) ->
-                gigSelectionHandler.accept(newGig));
+        // Listen to the selected row rather than the selected item. Two separate gigs may have
+        // identical display fields, and Gig.equals intentionally ignores the stable UID. In that
+        // case JavaFX can suppress an item change even though the user selected a different row.
+        gigListView.getSelectionModel().selectedIndexProperty().addListener((observable, oldIndex, newIndex) ->
+                gigSelectionHandler.accept(newIndex.intValue() < 0
+                        ? null : gigListView.getItems().get(newIndex.intValue())));
+        // A blank hint gives its height to the list, which matters in short windows.
+        emptyState.managedProperty().bind(emptyState.textProperty().isNotEmpty());
         updateEmptyState();
         filteredGigs.addListener((javafx.collections.ListChangeListener<Gig>) change -> updateEmptyState());
         Platform.runLater(this::scheduleDeadlineRefresh);

@@ -1,6 +1,7 @@
 package gigabyte.model.client;
 
 import static gigabyte.testutil.Assert.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -39,6 +40,24 @@ public class NameTest {
     }
 
     @Test
+    public void getNormalizedName() {
+        // already normalised -> unchanged
+        assertEquals("john doe", new Name("john doe").getNormalizedName());
+
+        // upper or mixed case -> lower case
+        assertEquals("john doe", new Name("JOHN Doe").getNormalizedName());
+
+        // repeated internal spaces -> one space
+        assertEquals("john doe", new Name("John   Doe").getNormalizedName());
+
+        // trailing spaces -> removed
+        assertEquals("john doe", new Name("John Doe  ").getNormalizedName());
+
+        // different letters -> not normalised away
+        assertEquals("jon doe", new Name("Jon Doe").getNormalizedName());
+    }
+
+    @Test
     public void equals() {
         Name name = new Name("Valid Name");
 
@@ -56,5 +75,9 @@ public class NameTest {
 
         // different values -> returns false
         assertFalse(name.equals(new Name("Other Valid Name")));
+
+        // differs only in case or spacing -> returns false
+        assertFalse(name.equals(new Name("valid name")));
+        assertFalse(name.equals(new Name("Valid  Name")));
     }
 }

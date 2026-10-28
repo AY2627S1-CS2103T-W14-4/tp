@@ -76,8 +76,9 @@
 * Parameters can be in any order.<br>
   For example, if the command specifies `n/NAME p/PHONE_NUMBER`, `p/PHONE_NUMBER n/NAME` is also acceptable.
 
-* Extraneous parameters for commands that take no parameters, such as `help`, `list`, `exit`, and `clear`, are ignored.<br>
-  For example, `help 123` is interpreted as `help`.
+* Extraneous parameters for `summary`, `help`, `list`, `exit`, and `clear` are ignored.<br>
+  For example, `help 123` is interpreted as `help`.<br>
+  `deadlines` and `outstanding` also take no parameters, but reject any extra input with an invalid command format message.
 
 * If you are using a PDF version of this document, be careful when copying and pasting commands that span multiple lines as space characters surrounding line-breaks may be omitted when copied over to the application.
 </box>
@@ -97,7 +98,19 @@ Adds a client to the client list.
 
 Format: `add n/NAME p/PHONE_NUMBER e/EMAIL a/ADDRESS [t/TAG]... `
 
+* `PHONE_NUMBER` must have at least 3 digits and may start with a `+`. Digits may be grouped with single spaces
+  or hyphens, e.g. `+65 9123 4567`, `6123-4567` or `+1-202-555-0143`. Letters, brackets and other symbols are not
+  allowed, and the number cannot start or end with a space or hyphen, or contain two in a row.
+* The phone number is saved and shown exactly as you type it.
 * Each `TAG` must contain only letters and digits (no spaces or symbols) and be at most 25 characters long.
+* The client is rejected if its name matches an existing client's name after ignoring case, leading and trailing
+  spaces, and repeated spaces between words. For example, if `John Doe` exists, `john doe`, `JOHN DOE` and
+  `John  Doe` are all rejected.
+* Names that differ in any other way count as different clients, even if they look alike. For example, `Jon Doe`,
+  `JohnDoe` and `John A Doe` are all accepted alongside `John Doe`. Typos and nicknames are not detected.
+* If another client already has the same phone number, or the same email (ignoring case), the client is still added,
+  and the result names that client, e.g. `Note: Bernice Yu has the same phone number.` This lets you record people who
+  share a phone number or email, while still spotting accidental duplicates.
 
 <box type="tip" seamless>
 
@@ -132,6 +145,15 @@ numbers, decimals, text, and indexes larger than the displayed list are invalid.
 * Commands take indexes in the order client, gig, payment, stopping after the last index shown in their format.
 
 Example: after `find Bernice`, `addgig 1 ...` targets Bernice. After `list`, Bernice is client 2 in the sample data.
+
+When an index is wrong, the error message tells you what kind of mistake it is:
+
+* An index that is zero, negative, a decimal, or text, such as `delete 0` or `markpaid 1 -1 1`, shows
+  `Index must be a positive integer.`
+* A missing or extra index, or extra words before the first prefix, such as `markpaid 1 1`, `markpaid 1 1 1 2`, or
+  `editgig 1 2 extra t/Website`, shows `Invalid command format!` followed by the command's correct format.
+* An index larger than the displayed list, such as `delete 99`, shows that the index is invalid, for example
+  `The client index provided is invalid.`
 
 ### Viewing gigs and payment obligations
 
@@ -210,6 +232,9 @@ the panel to that client's normal gig view, and running `deadlines` again restor
 overview updates automatically when gigs are added, changed, or removed.
 
 If there are no active gigs, the panel displays `There are no active gig deadlines.`
+
+`deadlines` takes no parameters. Extra input, such as `deadlines 1`, is rejected with an invalid command format
+message, and the current view stays unchanged.
 
 ### Creating a gig: `addgig`
 
@@ -513,9 +538,15 @@ Format: `edit INDEX [n/NAME] [p/PHONE] [e/EMAIL] [a/ADDRESS] [t/TAG]... `
 * Edits the client at the specified `INDEX`. The index refers to the index number shown in the displayed client list. The index **must be a positive integer** 1, 2, 3, ...
 * At least one of the optional fields must be provided.
 * Existing values will be updated to the input values.
+* A new phone number follows the same rules as in [`add`](#adding-a-client-add).
 * When editing tags, all of the client's existing tags are removed; adding tags is not cumulative.
   Each tag follows the same rules as in [`add`](#adding-a-client-add).
 * To remove all of a client's tags, enter `t/` without a tag after it.
+* A new name is checked against every other client using the same rule as in [`add`](#adding-a-client-add).
+  Changing only the capitalisation or spacing of a client's own name (e.g. `John Doe` to `JOHN DOE`) is allowed,
+  unless another client already has exactly the new name.
+* If the edited client then has the same phone number or email as another client, the edit is still saved, and the
+  result shows the same note as `add`. A client is never compared with itself.
 
 Examples:
 * `edit 1 p/91234567 e/alexnew@example.com` changes Alex's phone and email in fresh sample data.
@@ -624,6 +655,10 @@ stored as positive integer cents. The `clients`, `gigs`, and `paymentObligations
 for an empty collection. Each client must include its `uid`, contact fields, and `tags` array. Each gig must include
 its `uid`, `clientUid`, `title`, `status`, `deadline`, and `feeCents`. Each payment obligation must include its
 `gigUid`, `amountCents`, `dueDate`, and `paid` state.
+
+Two clients in the data file must not have exactly the same name. Data files from earlier versions may contain clients
+whose names differ only in case or spacing, such as `John Doe` and `john doe`. These files still load, and both
+clients can be edited as usual. Gigabyte only stops you from creating new pairs like this with `add` or `edit`.
 
 Only the current JSON format is supported. In particular, v1.3 files using `persons`, missing UUIDs or titles,
 client-name links, decimal `fee`/`amount` strings, or `gigIndex` references cannot be loaded. Unknown fields and

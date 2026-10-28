@@ -33,7 +33,7 @@ public class SummaryCommandTest {
                 + "  NOT_STARTED: 0\n"
                 + "  IN_PROGRESS: 0\n"
                 + "  COMPLETED: 0\n"
-                + "Payments:\n"
+                + "Payments: 0 total\n"
                 + "  Outstanding: 0 ($0.00)\n"
                 + "  Of which overdue: 0 ($0.00)\n"
                 + "  Marked paid: 0 ($0.00)", result.getFeedbackToUser());
@@ -63,7 +63,7 @@ public class SummaryCommandTest {
                 + "  NOT_STARTED: 1\n"
                 + "  IN_PROGRESS: 2\n"
                 + "  COMPLETED: 1\n"
-                + "Payments:\n"
+                + "Payments: 5 total\n"
                 + "  Outstanding: 3 ($2,600.00)\n"
                 + "  Of which overdue: 1 ($499.99)\n"
                 + "  Marked paid: 2 ($350.75)", result.getFeedbackToUser());
@@ -85,7 +85,7 @@ public class SummaryCommandTest {
                 + "  NOT_STARTED: 0\n"
                 + "  IN_PROGRESS: 1\n"
                 + "  COMPLETED: 0\n"
-                + "Payments:\n"
+                + "Payments: 2 total\n"
                 + "  Outstanding: 1 ($99,999,999,999,999,999,999,999,999.99)\n"
                 + "  Of which overdue: 1 ($99,999,999,999,999,999,999,999,999.99)\n"
                 + "  Marked paid: 1 ($10,000,000,000,000,000,000,000,000.01)",

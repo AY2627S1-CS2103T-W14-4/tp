@@ -7,6 +7,7 @@ import static gigabyte.logic.commands.CommandTestUtil.ADDRESS_DESC_AMY;
 import static gigabyte.logic.commands.CommandTestUtil.EMAIL_DESC_AMY;
 import static gigabyte.logic.commands.CommandTestUtil.NAME_DESC_AMY;
 import static gigabyte.logic.commands.CommandTestUtil.PHONE_DESC_AMY;
+import static gigabyte.logic.parser.ParserUtil.MESSAGE_INVALID_INDEX;
 import static gigabyte.testutil.Assert.assertThrows;
 import static gigabyte.testutil.TypicalClients.ALICE;
 import static gigabyte.testutil.TypicalClients.AMY;
@@ -137,6 +138,17 @@ public class LogicManagerTest {
     }
 
     @Test
+    public void execute_addAndEditFormattedPhone_keepsPhoneAsTypedAcrossReload() throws Exception {
+        logic.execute("add n/Amy Bee p/+65 9123 4567 e/amy@example.com a/1 Test Street");
+        assertEquals("+65 9123 4567", model.getFilteredClientList().get(0).getPhone().value);
+        assertEquals("+65 9123 4567", readSavedData().getClientList().get(0).getPhone().value);
+
+        logic.execute("edit 1 p/+1-202-555-0143");
+        assertEquals("+1-202-555-0143", model.getFilteredClientList().get(0).getPhone().value);
+        assertEquals("+1-202-555-0143", readSavedData().getClientList().get(0).getPhone().value);
+    }
+
+    @Test
     public void execute_addGig_persistsAcrossReloadAndSubsequentCommands() throws Exception {
         model.addClient(ALICE);
         CommandResult result = logic.execute(
@@ -244,9 +256,13 @@ public class LogicManagerTest {
         Gig removed = model.getGigList().get(1);
         Path path = temporaryFolder.resolve("gigabyteData.json");
         String saved = Files.readString(path);
-        for (String invalid : new String[] {"", "1", "1 2 3", "0 1", "1 -1", "1 abc", "2147483648 1"}) {
+        for (String invalid : new String[] {"", "1", "1 2 3"}) {
             assertParseException("deletegig " + invalid,
                     String.format(MESSAGE_INVALID_COMMAND_FORMAT, DeleteGigCommand.MESSAGE_USAGE));
+            assertEquals(saved, Files.readString(path));
+        }
+        for (String invalid : new String[] {"0 1", "1 -1", "1 abc", "2147483648 1"}) {
+            assertParseException("deletegig " + invalid, MESSAGE_INVALID_INDEX);
             assertEquals(saved, Files.readString(path));
         }
         assertCommandException("deletegig 2 1", MESSAGE_INVALID_CLIENT_DISPLAYED_INDEX);
@@ -354,8 +370,12 @@ public class LogicManagerTest {
         String savedData = Files.readString(path);
         String usage = String.format(MESSAGE_INVALID_COMMAND_FORMAT, DeletePaymentCommand.MESSAGE_USAGE);
 
-        for (String args : new String[] {"", "1 1", "1 1 1 1", "0 1 1", "1 -1 1", "1 1 abc"}) {
+        for (String args : new String[] {"", "1 1", "1 1 1 1"}) {
             assertParseException("deletepayment " + args, usage);
+            assertEquals(savedData, Files.readString(path));
+        }
+        for (String args : new String[] {"0 1 1", "1 -1 1", "1 1 abc"}) {
+            assertParseException("deletepayment " + args, MESSAGE_INVALID_INDEX);
             assertEquals(savedData, Files.readString(path));
         }
         assertCommandException("deletepayment 2 1 1", MESSAGE_INVALID_CLIENT_DISPLAYED_INDEX);
@@ -492,6 +512,14 @@ public class LogicManagerTest {
     @Test
     public void getFilteredClientList_modifyList_throwsUnsupportedOperationException() {
         assertThrows(UnsupportedOperationException.class, () -> logic.getFilteredClientList().remove(0));
+    }
+
+    /**
+     * Reads the data file that {@code logic} saves to, as a fresh load from disk.
+     */
+    private ReadOnlyGigabyteData readSavedData() throws Exception {
+        JsonGigabyteDataStorage storage = new JsonGigabyteDataStorage(temporaryFolder.resolve("gigabyteData.json"));
+        return storage.readGigabyteData().orElseThrow();
     }
 
     /**

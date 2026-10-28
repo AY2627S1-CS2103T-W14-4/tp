@@ -63,6 +63,24 @@ public class Client {
         return otherClient != null && name.equals(otherClient.name);
     }
 
+    /**
+     * Returns whether both clients have the same name after ignoring case, leading and trailing spaces,
+     * and repeated internal spaces. Unlike {@link #isSameClient(Client)}, this is not used when loading data.
+     */
+    public boolean hasSameNormalizedName(Client otherClient) {
+        return otherClient != null && name.getNormalizedName().equals(otherClient.name.getNormalizedName());
+    }
+
+    /** Returns whether both clients have the same phone number. */
+    public boolean hasSamePhone(Client otherClient) {
+        return otherClient != null && phone.equals(otherClient.phone);
+    }
+
+    /** Returns whether both clients have the same email, ignoring case. */
+    public boolean hasSameEmail(Client otherClient) {
+        return otherClient != null && email.value.equalsIgnoreCase(otherClient.email.value);
+    }
+
     public Name getName() {
         return name;
     }

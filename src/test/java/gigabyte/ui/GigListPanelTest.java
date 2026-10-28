@@ -172,6 +172,21 @@ public class GigListPanelTest {
     }
 
     @Test
+    public void showGigsFor_hintBlankOrShown_hintTakesSpaceOnlyWhenShown() {
+        GigListPanel panel = createPanel();
+        assertTrue(panel.getEmptyState().isManaged());
+
+        // Client with gigs: the hint is blank, so the list gets its space.
+        panel.showGigsFor(ALICE);
+        assertEquals("", panel.getEmptyState().getText());
+        assertFalse(panel.getEmptyState().isManaged());
+
+        // Client without gigs: the hint is shown again.
+        panel.showGigsFor(CARL);
+        assertTrue(panel.getEmptyState().isManaged());
+    }
+
+    @Test
     public void showGigsFor_nullClient_showsNoClientState() {
         GigListPanel panel = createPanel();
 
@@ -190,6 +205,28 @@ public class GigListPanelTest {
         panel.getGigListView().getSelectionModel().select(0);
 
         assertEquals(ALICE_GIG, selectedGig.get());
+    }
+
+    @Test
+    public void selectingFieldIdenticalGigs_invokesSelectionHandlerForEachRow() {
+        Gig firstGig = new Gig(ALICE, new GigTitle("Twin"), GigStatus.NOT_STARTED,
+                new Deadline("2027-01-31"), new Fee("100"));
+        Gig secondGig = firstGig.withNewUid();
+        PaymentObligation firstPayment = new PaymentObligation(firstGig, new Fee("10"),
+                new Deadline("2027-01-31"), false);
+        PaymentObligation secondPayment = new PaymentObligation(secondGig, new Fee("20"),
+                new Deadline("2027-01-31"), false);
+        PaymentObligationListPanel payments = new PaymentObligationListPanel(
+                FXCollections.observableArrayList(firstPayment, secondPayment));
+        GigListPanel panel = new GigListPanel(
+                FXCollections.observableArrayList(firstGig, secondGig), payments::showPaymentsFor);
+        panel.showGigsFor(ALICE);
+
+        panel.getGigListView().getSelectionModel().select(0);
+        assertEquals(List.of(firstPayment), payments.getPaymentListView().getItems());
+
+        panel.getGigListView().getSelectionModel().select(1);
+        assertEquals(List.of(secondPayment), payments.getPaymentListView().getItems());
     }
 
     @Test

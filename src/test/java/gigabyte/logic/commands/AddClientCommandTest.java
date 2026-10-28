@@ -56,6 +56,65 @@ public class AddClientCommandTest {
     }
 
     @Test
+    public void execute_nameDiffersOnlyInCaseOrSpacing_throwsCommandException() throws Exception {
+        ModelStubAcceptingClientAdded modelStub = new ModelStubAcceptingClientAdded();
+        new AddClientCommand(new ClientBuilder().withName("John Doe").build()).execute(modelStub);
+
+        // EP: differs in case only
+        Client upperCaseJohn = new ClientBuilder().withName("JOHN DOE").withPhone("90000001").build();
+        assertThrows(CommandException.class, Messages.MESSAGE_DUPLICATE_CLIENT_NAME, () ->
+                new AddClientCommand(upperCaseJohn).execute(modelStub));
+
+        // EP: differs in internal and trailing spacing only
+        Client spacedJohn = new ClientBuilder().withName("John   Doe ").withPhone("90000002").build();
+        assertThrows(CommandException.class, Messages.MESSAGE_DUPLICATE_CLIENT_NAME, () ->
+                new AddClientCommand(spacedJohn).execute(modelStub));
+
+        assertEquals(1, modelStub.clientsAdded.size());
+    }
+
+    @Test
+    public void execute_samePhoneOrEmailAsExistingClient_addsWithNote() throws Exception {
+        ModelStubAcceptingClientAdded modelStub = new ModelStubAcceptingClientAdded();
+        Client bernice = new ClientBuilder().withName("Bernice Yu").withPhone("99272758")
+                .withEmail("berniceyu@example.com").build();
+        new AddClientCommand(bernice).execute(modelStub);
+
+        // EP: same phone only
+        Client samePhone = new ClientBuilder().withName("Alex Yeoh").withPhone("99272758")
+                .withEmail("alex@example.com").build();
+        assertEquals(String.format(AddClientCommand.MESSAGE_SUCCESS, Messages.format(samePhone))
+                + "\nNote: Bernice Yu has the same phone number.",
+                new AddClientCommand(samePhone).execute(modelStub).getFeedbackToUser());
+
+        // EP: same email only, differing in case
+        Client sameEmail = new ClientBuilder().withName("Charlotte Oliveiro").withPhone("93210283")
+                .withEmail("BerniceYu@example.com").build();
+        assertEquals(String.format(AddClientCommand.MESSAGE_SUCCESS, Messages.format(sameEmail))
+                + "\nNote: Bernice Yu has the same email.",
+                new AddClientCommand(sameEmail).execute(modelStub).getFeedbackToUser());
+
+        // EP: same phone as one client and same email as another -> one note per client
+        Client sameBoth = new ClientBuilder().withName("David Li").withPhone("93210283")
+                .withEmail("alex@example.com").build();
+        assertEquals(String.format(AddClientCommand.MESSAGE_SUCCESS, Messages.format(sameBoth))
+                + "\nNote: Alex Yeoh has the same email."
+                + "\nNote: Charlotte Oliveiro has the same phone number.",
+                new AddClientCommand(sameBoth).execute(modelStub).getFeedbackToUser());
+
+        // EP: same phone and email as one client, plus one shared field each with two others
+        Client sameAsBernice = new ClientBuilder().withName("Irfan Ibrahim").withPhone("99272758")
+                .withEmail("berniceyu@example.com").build();
+        assertEquals(String.format(AddClientCommand.MESSAGE_SUCCESS, Messages.format(sameAsBernice))
+                + "\nNote: Bernice Yu has the same phone number and email."
+                + "\nNote: Alex Yeoh has the same phone number."
+                + "\nNote: Charlotte Oliveiro has the same email.",
+                new AddClientCommand(sameAsBernice).execute(modelStub).getFeedbackToUser());
+
+        assertEquals(5, modelStub.clientsAdded.size());
+    }
+
+    @Test
     public void equals() {
         Client alice = new ClientBuilder().withName("Alice").build();
         Client bob = new ClientBuilder().withName("Bob").build();
@@ -122,6 +181,11 @@ public class AddClientCommandTest {
 
         @Override
         public boolean hasClient(Client client) {
+            throw new AssertionError("This method should not be called.");
+        }
+
+        @Override
+        public boolean hasOtherClientWithSameNormalizedName(Client client) {
             throw new AssertionError("This method should not be called.");
         }
 
@@ -222,6 +286,12 @@ public class AddClientCommandTest {
         }
 
         @Override
+        public boolean hasOtherClientWithSameNormalizedName(Client client) {
+            requireNonNull(client);
+            return clientsAdded.stream().anyMatch(client::hasSameNormalizedName);
+        }
+
+        @Override
         public void addClient(Client client) {
             requireNonNull(client);
             clientsAdded.add(client);
@@ -229,7 +299,9 @@ public class AddClientCommandTest {
 
         @Override
         public ReadOnlyGigabyteData getGigabyteData() {
-            return new GigabyteData();
+            GigabyteData gigabyteData = new GigabyteData();
+            clientsAdded.forEach(gigabyteData::addClient);
+            return gigabyteData;
         }
     }
 

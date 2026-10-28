@@ -6,6 +6,7 @@ import java.util.UUID;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 
 import gigabyte.commons.exceptions.IllegalValueException;
 import gigabyte.model.gig.Deadline;
@@ -27,8 +28,11 @@ class JsonAdaptedPaymentObligation {
     /** Reads the current format with a stable gig ID and an amount in cents. */
     @JsonCreator
     public JsonAdaptedPaymentObligation(@JsonProperty("gigUid") String gigUid,
-            @JsonProperty("amountCents") BigInteger amountCents, @JsonProperty("dueDate") String dueDate,
-            @JsonProperty("paid") Boolean paid) {
+            @JsonProperty("amountCents") @JsonDeserialize(using = StrictJsonDeserializers.IntegerDeserializer.class)
+            BigInteger amountCents,
+            @JsonProperty("dueDate") String dueDate,
+            @JsonProperty("paid") @JsonDeserialize(using = StrictJsonDeserializers.BooleanDeserializer.class)
+            Boolean paid) {
         this.gigUid = gigUid;
         this.amountCents = amountCents;
         this.dueDate = dueDate;

@@ -1,0 +1,60 @@
+{
+  "clients": [
+    {
+      "uid": "00000000-0000-0000-0000-000000000001",
+      "name": "John Doe",
+      "phone": "91111111",
+      "email": "john.upper@example.com",
+      "address": "1 Upper Road",
+      "tags": ["regular"]
+    },
+    {
+      "uid": "00000000-0000-0000-0000-000000000002",
+      "name": "john doe",
+      "phone": "92222222",
+      "email": "john.lower@example.com",
+      "address": "2 Lower Road",
+      "tags": []
+    },
+    {
+      "uid": "00000000-0000-0000-0000-000000000003",
+      "name": "Alex Yeoh",
+      "phone": "93333333",
+      "email": "alex@example.com",
+      "address": "3 Other Road",
+      "tags": []
+    }
+  ],
+  "gigs": [
+    {
+      "uid": "00000000-0000-0000-0000-000000000011",
+      "clientUid": "00000000-0000-0000-0000-000000000001",
+      "title": "Wedding photos",
+      "status": "IN_PROGRESS",
+      "deadline": "2027-03-31",
+      "feeCents": 150000
+    },
+    {
+      "uid": "00000000-0000-0000-0000-000000000012",
+      "clientUid": "00000000-0000-0000-0000-000000000002",
+      "title": "Logo design",
+      "status": "NOT_STARTED",
+      "deadline": "2027-04-30",
+      "feeCents": 80050
+    }
+  ],
+  "paymentObligations": [
+    {
+      "gigUid": "00000000-0000-0000-0000-000000000011",
+      "amountCents": 50000,
+      "dueDate": "2027-02-28",
+      "paid": true
+    },
+    {
+      "gigUid": "00000000-0000-0000-0000-000000000012",
+      "amountCents": 20025,
+      "dueDate": "2027-03-15",
+      "paid": false
+    }
+  ]
+}

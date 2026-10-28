@@ -58,6 +58,22 @@ public class PaymentObligationListPanelTest {
     }
 
     @Test
+    public void showPaymentsFor_hintBlankOrShown_hintTakesSpaceOnlyWhenShown() {
+        PaymentObligationListPanel panel = createPanel(FXCollections.observableArrayList(
+                createPayment(FIRST_GIG, "100", "2026-10-12", false)));
+        assertTrue(panel.getEmptyState().isManaged());
+
+        // Gig with payments: the hint is blank, so the list gets its space.
+        panel.showPaymentsFor(FIRST_GIG);
+        assertEquals("", panel.getEmptyState().getText());
+        assertFalse(panel.getEmptyState().isManaged());
+
+        // No gig selected: the hint is shown again.
+        panel.showPaymentsFor(null);
+        assertTrue(panel.getEmptyState().isManaged());
+    }
+
+    @Test
     public void showOutstandingPayments_multipleClients_sortsExcludesPaidAndKeepsStableTies() {
         Gig otherGig = new Gig(BENSON, new GigTitle("Logo"), GigStatus.COMPLETED,
                 new Deadline("2027-01-31"), new Fee("500"));

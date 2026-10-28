@@ -55,13 +55,13 @@ public class SummaryCommand extends Command {
         return section.toString();
     }
 
-    /** Returns the count and total amount of outstanding, overdue, and paid payments. */
+    /** Returns the number of payments, followed by the count and amount of outstanding, overdue, and paid ones. */
     private static String formatPaymentSection(List<PaymentObligation> payments, LocalDate today) {
         PaymentTotal outstanding = sumPayments(payments, payment -> !payment.isPaid());
         PaymentTotal overdue = sumPayments(payments,
                 payment -> !payment.isPaid() && payment.getDueDate().getValue().isBefore(today));
         PaymentTotal paid = sumPayments(payments, PaymentObligation::isPaid);
-        return "Payments:\n"
+        return "Payments: " + payments.size() + " total\n"
                 + "  Outstanding: " + outstanding.format() + "\n"
                 + "  Of which overdue: " + overdue.format() + "\n"
                 + "  Marked paid: " + paid.format();
