@@ -98,6 +98,10 @@ Adds a client to the client list.
 
 Format: `add n/NAME p/PHONE_NUMBER e/EMAIL a/ADDRESS [t/TAG]... `
 
+* `PHONE_NUMBER` must have at least 3 digits and may start with a `+`. Digits may be grouped with single spaces
+  or hyphens, e.g. `+65 9123 4567`, `6123-4567` or `+1-202-555-0143`. Letters, brackets and other symbols are not
+  allowed, and the number cannot start or end with a space or hyphen, or contain two in a row.
+* The phone number is saved and shown exactly as you type it.
 * Each `TAG` must contain only letters and digits (no spaces or symbols) and be at most 25 characters long.
 
 <box type="tip" seamless>
@@ -108,6 +112,7 @@ Format: `add n/NAME p/PHONE_NUMBER e/EMAIL a/ADDRESS [t/TAG]... `
 Examples:
 * `add n/John Doe p/98765432 e/johnd@example.com a/John street, block 123, #01-01`
 * `add n/Betsy Crowe t/friend e/betsycrowe@example.com a/Newgate Prison p/1234567 t/criminal`
+* `add n/Carl Kurz p/+65 9123 4567 e/carlk@example.com a/12 Orchard Road`
 
 ### Listing all clients: `list`
 
@@ -517,6 +522,7 @@ Format: `edit INDEX [n/NAME] [p/PHONE] [e/EMAIL] [a/ADDRESS] [t/TAG]... `
 * Edits the client at the specified `INDEX`. The index refers to the index number shown in the displayed client list. The index **must be a positive integer** 1, 2, 3, ...
 * At least one of the optional fields must be provided.
 * Existing values will be updated to the input values.
+* A new phone number follows the same rules as in [`add`](#adding-a-client-add).
 * When editing tags, all of the client's existing tags are removed; adding tags is not cumulative.
   Each tag follows the same rules as in [`add`](#adding-a-client-add).
 * To remove all of a client's tags, enter `t/` without a tag after it.

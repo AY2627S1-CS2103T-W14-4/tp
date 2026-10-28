@@ -9,10 +9,16 @@ import static java.util.Objects.requireNonNull;
  */
 public class Phone {
 
-
     public static final String MESSAGE_CONSTRAINTS =
-            "Phone numbers should only contain digits, and should be at least 3 digits long";
-    public static final String VALIDATION_REGEX = "\\d{3,}";
+            "Phone numbers should have at least 3 digits and may start with a '+'. "
+            + "Digits may be grouped with single spaces or hyphens, e.g. +65 9123 4567 or 6123-4567. "
+            + "No other characters are allowed.";
+
+    /*
+     * The lookahead requires at least 3 digits in total. The rest allows an optional leading '+',
+     * then groups of digits joined by a single space or hyphen.
+     */
+    public static final String VALIDATION_REGEX = "(?=(?:\\D*\\d){3})\\+?\\d+(?:[ -]\\d+)*";
     public final String value;
 
     /**

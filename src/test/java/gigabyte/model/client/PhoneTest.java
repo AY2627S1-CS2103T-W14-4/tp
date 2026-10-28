@@ -1,6 +1,7 @@
 package gigabyte.model.client;
 
 import static gigabyte.testutil.Assert.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -20,22 +21,65 @@ public class PhoneTest {
     }
 
     @Test
+    public void constructor_validPhone_storesValueAsTyped() {
+        assertEquals("+65 9123 4567", new Phone("+65 9123 4567").value);
+        assertEquals("6123-4567", new Phone("6123-4567").value);
+    }
+
+    @Test
     public void isValidPhone() {
         // null phone number
         assertThrows(NullPointerException.class, () -> Phone.isValidPhone(null));
 
-        // invalid phone numbers
+        // EP: empty or blank -> invalid
         assertFalse(Phone.isValidPhone("")); // empty string
         assertFalse(Phone.isValidPhone(" ")); // spaces only
-        assertFalse(Phone.isValidPhone("91")); // less than 3 numbers
-        assertFalse(Phone.isValidPhone("phone")); // non-numeric
-        assertFalse(Phone.isValidPhone("9011p041")); // alphabets within digits
-        assertFalse(Phone.isValidPhone("9312 1534")); // spaces within digits
 
-        // valid phone numbers
-        assertTrue(Phone.isValidPhone("911")); // exactly 3 numbers
-        assertTrue(Phone.isValidPhone("93121534"));
-        assertTrue(Phone.isValidPhone("124293842033123")); // long phone numbers
+        // EP: fewer than 3 digits -> invalid
+        assertFalse(Phone.isValidPhone("12")); // boundary: 2 digits
+        assertFalse(Phone.isValidPhone("1-2")); // boundary: 2 digits with a separator
+        assertFalse(Phone.isValidPhone("+12")); // boundary: 2 digits with a '+'
+        assertFalse(Phone.isValidPhone("+")); // '+' only, no digits
+
+        // EP: letters or other symbols -> invalid
+        assertFalse(Phone.isValidPhone("phone")); // letters only
+        assertFalse(Phone.isValidPhone("91a34567")); // letter within digits
+        assertFalse(Phone.isValidPhone("(65) 9123 4567")); // brackets
+        assertFalse(Phone.isValidPhone("9123.4567")); // full stop
+        assertFalse(Phone.isValidPhone("9123_4567")); // underscore
+
+        // EP: '+' not at the start, or more than one '+' -> invalid
+        assertFalse(Phone.isValidPhone("65+91234567")); // '+' in the middle
+        assertFalse(Phone.isValidPhone("++6591234567")); // two leading '+'
+
+        // EP: leading or trailing separator -> invalid
+        assertFalse(Phone.isValidPhone("--123")); // leading hyphens
+        assertFalse(Phone.isValidPhone("-123")); // leading hyphen
+        assertFalse(Phone.isValidPhone("123-")); // trailing hyphen
+        assertFalse(Phone.isValidPhone("+ 65 9123 4567")); // separator right after '+'
+        assertFalse(Phone.isValidPhone("+-65")); // separator right after '+'
+
+        // EP: two separators in a row -> invalid
+        assertFalse(Phone.isValidPhone("9123  4567")); // two spaces
+        assertFalse(Phone.isValidPhone("9123--4567")); // two hyphens
+        assertFalse(Phone.isValidPhone("9123 -4567")); // space then hyphen
+
+        // EP: digits only -> valid
+        assertTrue(Phone.isValidPhone("911")); // boundary: exactly 3 digits
+        assertTrue(Phone.isValidPhone("91234567"));
+        assertTrue(Phone.isValidPhone("124293842033123")); // long phone number
+
+        // EP: leading '+' then digits -> valid
+        assertTrue(Phone.isValidPhone("+123")); // boundary: '+' with exactly 3 digits
+        assertTrue(Phone.isValidPhone("+6591234567"));
+
+        // EP: digits grouped by single spaces or hyphens -> valid
+        assertTrue(Phone.isValidPhone("1-23")); // boundary: 3 digits split by a separator
+        assertTrue(Phone.isValidPhone("6123-4567")); // hyphen
+        assertTrue(Phone.isValidPhone("9123 4567")); // space
+        assertTrue(Phone.isValidPhone("+65 9123 4567")); // '+' with spaces
+        assertTrue(Phone.isValidPhone("+1-202-555-0143")); // '+' with hyphens
+        assertTrue(Phone.isValidPhone("+65 9123-4567")); // mixed separators
     }
 
     @Test
@@ -56,5 +100,8 @@ public class PhoneTest {
 
         // different values -> returns false
         assertFalse(phone.equals(new Phone("995")));
+
+        // same digits, different formatting -> returns false, as numbers are stored as typed
+        assertFalse(new Phone("+65 9123 4567").equals(new Phone("+6591234567")));
     }
 }

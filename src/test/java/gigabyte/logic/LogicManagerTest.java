@@ -137,6 +137,17 @@ public class LogicManagerTest {
     }
 
     @Test
+    public void execute_addAndEditFormattedPhone_keepsPhoneAsTypedAcrossReload() throws Exception {
+        logic.execute("add n/Amy Bee p/+65 9123 4567 e/amy@example.com a/1 Test Street");
+        assertEquals("+65 9123 4567", model.getFilteredClientList().get(0).getPhone().value);
+        assertEquals("+65 9123 4567", readSavedData().getClientList().get(0).getPhone().value);
+
+        logic.execute("edit 1 p/+1-202-555-0143");
+        assertEquals("+1-202-555-0143", model.getFilteredClientList().get(0).getPhone().value);
+        assertEquals("+1-202-555-0143", readSavedData().getClientList().get(0).getPhone().value);
+    }
+
+    @Test
     public void execute_addGig_persistsAcrossReloadAndSubsequentCommands() throws Exception {
         model.addClient(ALICE);
         CommandResult result = logic.execute(
@@ -492,6 +503,14 @@ public class LogicManagerTest {
     @Test
     public void getFilteredClientList_modifyList_throwsUnsupportedOperationException() {
         assertThrows(UnsupportedOperationException.class, () -> logic.getFilteredClientList().remove(0));
+    }
+
+    /**
+     * Reads the data file that {@code logic} saves to, as a fresh load from disk.
+     */
+    private ReadOnlyGigabyteData readSavedData() throws Exception {
+        JsonGigabyteDataStorage storage = new JsonGigabyteDataStorage(temporaryFolder.resolve("gigabyteData.json"));
+        return storage.readGigabyteData().orElseThrow();
     }
 
     /**
