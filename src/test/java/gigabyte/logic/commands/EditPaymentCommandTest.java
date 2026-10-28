@@ -51,7 +51,7 @@ public class EditPaymentCommandTest {
         assertEquals(DUE_DATE, edited.getDueDate());
         assertTrue(edited.isPaid());
         assertSame(selected.getGig(), edited.getGig());
-        assertEquals("Edited payment obligation for Alice Pauline, gig 1, payment 1: Amount: 650.00; "
+        assertEquals("Edited payment obligation for Alice Pauline, gig 1, payment 1: Amount: $650.00; "
                 + "Due date: 2027-01-31", result.getFeedbackToUser());
     }
 

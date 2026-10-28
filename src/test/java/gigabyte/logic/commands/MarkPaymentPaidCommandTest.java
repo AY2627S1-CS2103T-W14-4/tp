@@ -56,7 +56,7 @@ public class MarkPaymentPaidCommandTest {
         assertEquals(firstPayment, model.getPaymentObligationList().get(0));
         assertEquals(before.getClientList(), model.getGigabyteData().getClientList());
         assertEquals(before.getGigList(), model.getGigabyteData().getGigList());
-        assertEquals("Marked payment obligation for Alice Pauline, gig 1, payment 2 as paid: Amount: 50.25; "
+        assertEquals("Marked payment obligation for Alice Pauline, gig 1, payment 2 as paid: Amount: $50.25; "
                 + "Due date: 2027-01-31", result.getFeedbackToUser());
     }
 
