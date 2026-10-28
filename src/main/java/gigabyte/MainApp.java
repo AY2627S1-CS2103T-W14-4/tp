@@ -18,6 +18,7 @@ import gigabyte.model.ReadOnlyGigabyteData;
 import gigabyte.model.ReadOnlyUserPrefs;
 import gigabyte.model.UserPrefs;
 import gigabyte.model.util.SampleDataUtil;
+import gigabyte.storage.DataFileLock;
 import gigabyte.storage.JsonGigabyteDataStorage;
 import gigabyte.storage.JsonUserPrefsStorage;
 import gigabyte.storage.Storage;
@@ -44,23 +45,39 @@ public class MainApp extends Application {
     protected Storage storage;
     protected Model model;
 
+    private DataFileLock dataFileLock;
+
     @Override
     public void init() throws Exception {
         logger.info("==============================[ Initializing Gigabyte ]===============================");
         super.init();
+        init(GIGABYTE_DATA_FILE_PATH, USER_PREFS_FILE_PATH, LEGACY_DATA_FILE_PATH);
+    }
 
-        JsonUserPrefsStorage userPrefsStorage = new JsonUserPrefsStorage(USER_PREFS_FILE_PATH);
-        UserPrefs userPrefs = initPrefs(userPrefsStorage);
-        JsonGigabyteDataStorage gigabyteDataStorage = new JsonGigabyteDataStorage(GIGABYTE_DATA_FILE_PATH);
-        // Let migration failures stop startup so existing data is not replaced with sample data.
-        gigabyteDataStorage.migrateLegacyDataFile(LEGACY_DATA_FILE_PATH);
-        storage = new StorageManager(gigabyteDataStorage, userPrefsStorage);
+    /**
+     * Initializes the application while holding exclusive access to its data file.
+     */
+    void init(Path dataFilePath, Path prefsFilePath, Path legacyDataFilePath) throws IOException {
+        DataFileLock acquiredLock = DataFileLock.acquire(dataFilePath);
+        try {
+            JsonUserPrefsStorage userPrefsStorage = new JsonUserPrefsStorage(prefsFilePath);
+            UserPrefs userPrefs = initPrefs(userPrefsStorage);
+            JsonGigabyteDataStorage gigabyteDataStorage = new JsonGigabyteDataStorage(dataFilePath);
+            // Let migration failures stop startup so existing data is not replaced with sample data.
+            gigabyteDataStorage.migrateLegacyDataFile(legacyDataFilePath);
+            storage = new StorageManager(gigabyteDataStorage, userPrefsStorage);
 
-        model = initModelManager(storage, userPrefs);
+            model = initModelManager(storage, userPrefs);
 
-        logic = new LogicManager(model, storage);
+            logic = new LogicManager(model, storage);
 
-        ui = new UiManager(logic, storage.getGigabyteDataFilePath());
+            ui = new UiManager(logic, storage.getGigabyteDataFilePath());
+            dataFileLock = acquiredLock;
+        } finally {
+            if (dataFileLock == null) {
+                acquiredLock.close();
+            }
+        }
     }
 
     /**
@@ -133,6 +150,14 @@ public class MainApp extends Application {
             storage.saveUserPrefs(model.getUserPrefs());
         } catch (IOException e) {
             logger.severe("Failed to save preferences " + StringUtil.getDetails(e));
+        } finally {
+            if (dataFileLock != null) {
+                try {
+                    dataFileLock.close();
+                } catch (IOException e) {
+                    logger.severe("Failed to release data file lock " + StringUtil.getDetails(e));
+                }
+            }
         }
     }
 }

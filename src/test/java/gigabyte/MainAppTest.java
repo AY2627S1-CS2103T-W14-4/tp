@@ -1,6 +1,9 @@
 package gigabyte;
 
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -51,6 +54,72 @@ public class MainAppTest {
 
         assertEquals(expected, loadModelGuiSettings(json));
         assertEquals(expected, readSavedPrefs().getGuiSettings());
+    }
+
+    @Test
+    public void init_secondInstance_rejectsBeforeWritingAndPreservesFirstInstanceRecords() throws Exception {
+        MainApp first = initApp(new MainApp());
+        try {
+            first.logic.execute("add n/LostRecordTest p/91234567 e/lost@example.com a/Test address");
+            Path dataPath = testFolder.resolve("gigabyte.json");
+            byte[] savedData = Files.readAllBytes(dataPath);
+            // Preserve distinctive formatting to detect even an unnecessary rewrite of preferences.
+            Files.writeString(getPrefsPath(), Files.readString(getPrefsPath()) + "\n\n");
+            byte[] savedPrefs = Files.readAllBytes(getPrefsPath());
+
+            IOException exception = assertThrows(IOException.class, () -> initApp(new MainApp()));
+            assertTrue(exception.getMessage().contains("already running"));
+            assertArrayEquals(savedData, Files.readAllBytes(dataPath));
+            assertArrayEquals(savedPrefs, Files.readAllBytes(getPrefsPath()));
+            first.logic.execute("list");
+        } finally {
+            first.stop();
+        }
+
+        MainApp reopened = initApp(new MainApp());
+        try {
+            reopened.logic.execute("find LostRecordTest");
+            assertEquals(1, reopened.logic.getFilteredClientList().size());
+            assertEquals("LostRecordTest", reopened.logic.getFilteredClientList().get(0).getName().fullName);
+        } finally {
+            reopened.stop();
+        }
+    }
+
+    @Test
+    public void init_preferencesInitializationFails_releasesLock() throws IOException {
+        MainApp failing = new MainApp() {
+            @Override
+            protected UserPrefs initPrefs(JsonUserPrefsStorage storage) {
+                throw new IllegalStateException("Preferences initialization failed");
+            }
+        };
+        assertThrows(IllegalStateException.class, () -> initApp(failing));
+
+        MainApp reopened = initApp(new MainApp());
+        reopened.stop();
+    }
+
+    @Test
+    public void stop_preferencesCannotBeSaved_releasesLock() throws IOException {
+        MainApp first = initApp(new MainApp());
+        Path backup = testFolder.resolve("preferences-backup.json");
+        Files.move(getPrefsPath(), backup);
+        Files.createDirectory(getPrefsPath());
+        try {
+            first.stop();
+        } finally {
+            Files.delete(getPrefsPath());
+            Files.move(backup, getPrefsPath());
+        }
+
+        MainApp reopened = initApp(new MainApp());
+        reopened.stop();
+    }
+
+    private MainApp initApp(MainApp app) throws IOException {
+        app.init(testFolder.resolve("gigabyte.json"), getPrefsPath(), testFolder.resolve("addressbook.json"));
+        return app;
     }
 
     private void assertDefaultsAfterLoading(String json) throws IOException, DataLoadingException {
