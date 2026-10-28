@@ -49,6 +49,36 @@ public class Name {
         return fullName.trim().replaceAll(" +", " ").toLowerCase(Locale.ROOT);
     }
 
+    /**
+     * Returns whether both normalized names have at least five characters and differ by exactly one
+     * insertion, deletion, replacement, or adjacent swap. Exact normalized matches are handled separately.
+     * Runs in linear time without changing client identity or rejecting either name.
+     */
+    public boolean isSimilarTo(Name other) {
+        requireNonNull(other);
+        String first = getNormalizedName();
+        String second = other.getNormalizedName();
+        int shorterLength = Math.min(first.length(), second.length());
+        if (shorterLength < 5 || Math.abs(first.length() - second.length()) > 1 || first.equals(second)) {
+            return false;
+        }
+
+        int mismatch = 0;
+        while (mismatch < shorterLength && first.charAt(mismatch) == second.charAt(mismatch)) {
+            mismatch++;
+        }
+        if (first.length() != second.length()) {
+            String shorter = first.length() < second.length() ? first : second;
+            String longer = first.length() < second.length() ? second : first;
+            return shorter.regionMatches(mismatch, longer, mismatch + 1, shorterLength - mismatch);
+        }
+        return first.regionMatches(mismatch + 1, second, mismatch + 1, first.length() - mismatch - 1)
+                || mismatch + 1 < first.length()
+                && first.charAt(mismatch) == second.charAt(mismatch + 1)
+                && first.charAt(mismatch + 1) == second.charAt(mismatch)
+                && first.regionMatches(mismatch + 2, second, mismatch + 2, first.length() - mismatch - 2);
+    }
+
     @Override
     public String toString() {
         return fullName;

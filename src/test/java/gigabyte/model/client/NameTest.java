@@ -58,6 +58,67 @@ public class NameTest {
     }
 
     @Test
+    public void isSimilarTo_null_throwsNullPointerException() {
+        assertThrows(NullPointerException.class, () -> new Name("John Doe").isSimilarTo(null));
+    }
+
+    @Test
+    public void isSimilarTo_singleInsertionOrDeletion_returnsTrueSymmetrically() {
+        assertSimilarity(true, "John Doe", "Jon Doe");
+        assertSimilarity(true, "John Doe", "XJohn Doe");
+        assertSimilarity(true, "John Doe", "John Do");
+        assertSimilarity(true, "John Doe", "John Doex");
+    }
+
+    @Test
+    public void isSimilarTo_singleSubstitution_returnsTrueSymmetrically() {
+        assertSimilarity(true, "John Doe", "Xohn Doe");
+        assertSimilarity(true, "John Doe", "Jahn Doe");
+        assertSimilarity(true, "John Doe", "John Dox");
+    }
+
+    @Test
+    public void isSimilarTo_adjacentTransposition_returnsTrueSymmetrically() {
+        assertSimilarity(true, "JohnDoe", "oJhnDoe");
+        assertSimilarity(true, "JohnDoe", "JhonDoe");
+        assertSimilarity(true, "JohnDoe", "JohnDeo");
+    }
+
+    @Test
+    public void isSimilarTo_normalizedNames_comparesNormalizedText() {
+        assertSimilarity(true, "JOHN   DOE  ", "Jon Doe");
+        assertSimilarity(false, "JOHN   DOE  ", "John Doe");
+        Name name = new Name("John Doe");
+        assertFalse(name.isSimilarTo(name));
+    }
+
+    @Test
+    public void isSimilarTo_shortNames_requiresBothNormalizedLengthsAtLeastFive() {
+        assertSimilarity(false, "Abcd", "Abce");
+        assertSimilarity(false, "Abcd", "Abcde");
+        assertSimilarity(false, "Abcd ", "Abcdf");
+        assertSimilarity(false, "Abcd", "Acbd");
+        assertSimilarity(true, "Abcde", "Abcdf");
+        assertSimilarity(true, "Abcde", "Abcdfe");
+    }
+
+    @Test
+    public void isSimilarTo_multipleEditsOrDifferentNames_returnsFalse() {
+        assertSimilarity(false, "John Doe", "Jahn Dae");
+        assertSimilarity(false, "JohnDoe", "JonDox");
+        assertSimilarity(false, "Abcdef", "Abedcf");
+        assertSimilarity(false, "John Doe", "Peter Tan");
+        assertSimilarity(false, "John Doe", "John");
+    }
+
+    private void assertSimilarity(boolean expected, String first, String second) {
+        Name firstName = new Name(first);
+        Name secondName = new Name(second);
+        assertEquals(expected, firstName.isSimilarTo(secondName));
+        assertEquals(expected, secondName.isSimilarTo(firstName));
+    }
+
+    @Test
     public void equals() {
         Name name = new Name("Valid Name");
 

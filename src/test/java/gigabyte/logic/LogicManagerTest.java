@@ -138,6 +138,18 @@ public class LogicManagerTest {
     }
 
     @Test
+    public void execute_similarClientName_warnsAndPersistsBothClients() throws Exception {
+        logic.execute("add n/John Doe p/91234567 e/john@example.com a/Test address");
+        CommandResult result = logic.execute("add n/Jon Doe p/92345678 e/jon@example.com a/Other address");
+
+        assertTrue(result.getFeedbackToUser().contains(
+                "\nWarning: John Doe has a similar name. Check for an accidental duplicate."));
+        assertEquals(List.of("John Doe", "Jon Doe"), readSavedData().getClientList().stream()
+                .map(client -> client.getName().fullName).toList());
+        assertEquals(model.getGigabyteData(), new GigabyteData(readSavedData()));
+    }
+
+    @Test
     public void execute_addAndEditFormattedPhone_keepsPhoneAsTypedAcrossReload() throws Exception {
         logic.execute("add n/Amy Bee p/+65 9123 4567 e/amy@example.com a/1 Test Street");
         assertEquals("+65 9123 4567", model.getFilteredClientList().get(0).getPhone().value);

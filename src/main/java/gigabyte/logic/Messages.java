@@ -24,6 +24,8 @@ public class Messages {
     public static final String MESSAGE_DUPLICATE_CLIENT_NAME = "Another client already has this name. "
             + "Names are compared ignoring case, leading and trailing spaces, and repeated spaces.";
     public static final String MESSAGE_SHARED_CONTACT_NOTE = "Note: %1$s has the same %2$s.";
+    public static final String MESSAGE_SIMILAR_CLIENT_NAME =
+            "Warning: %1$s has a similar name. Check for an accidental duplicate.";
     public static final String MESSAGE_DUPLICATE_FIELDS =
                 "Multiple values specified for the following single-valued field(s): ";
 
@@ -68,6 +70,19 @@ public class Messages {
             if (!sharedFields.isEmpty()) {
                 builder.append("\n")
                         .append(String.format(MESSAGE_SHARED_CONTACT_NOTE, other.getName(), sharedFields));
+            }
+        }
+        return builder.toString();
+    }
+
+    /**
+     * Returns a warning on a new line for each other client with a similar name, in list order.
+     */
+    public static String formatSimilarNameNotes(Client client, List<Client> clients) {
+        StringBuilder builder = new StringBuilder();
+        for (Client other : clients) {
+            if (!other.hasSameUid(client) && client.getName().isSimilarTo(other.getName())) {
+                builder.append("\n").append(String.format(MESSAGE_SIMILAR_CLIENT_NAME, other.getName()));
             }
         }
         return builder.toString();

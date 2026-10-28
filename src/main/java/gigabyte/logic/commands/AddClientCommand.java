@@ -7,6 +7,8 @@ import static gigabyte.logic.parser.CliSyntax.PREFIX_PHONE;
 import static gigabyte.logic.parser.CliSyntax.PREFIX_TAG;
 import static java.util.Objects.requireNonNull;
 
+import java.util.List;
+
 import gigabyte.commons.util.ToStringBuilder;
 import gigabyte.logic.Messages;
 import gigabyte.logic.commands.exceptions.CommandException;
@@ -59,10 +61,11 @@ public class AddClientCommand extends Command {
             throw new CommandException(Messages.MESSAGE_DUPLICATE_CLIENT_NAME);
         }
 
-        String sharedContactNotes = Messages.formatSharedContactNotes(toAdd,
-                model.getGigabyteData().getClientList());
+        List<Client> clients = model.getGigabyteData().getClientList();
+        String notes = Messages.formatSharedContactNotes(toAdd, clients)
+                + Messages.formatSimilarNameNotes(toAdd, clients);
         model.addClient(toAdd);
-        return new CommandResult(String.format(MESSAGE_SUCCESS, Messages.format(toAdd)) + sharedContactNotes);
+        return new CommandResult(String.format(MESSAGE_SUCCESS, Messages.format(toAdd)) + notes);
     }
 
     @Override

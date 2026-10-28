@@ -18,6 +18,7 @@ import gigabyte.logic.Messages;
 import gigabyte.logic.commands.exceptions.CommandException;
 import gigabyte.model.GigabyteData;
 import gigabyte.model.Model;
+import gigabyte.model.ModelManager;
 import gigabyte.model.ReadOnlyGigabyteData;
 import gigabyte.model.ReadOnlyUserPrefs;
 import gigabyte.model.client.Client;
@@ -112,6 +113,66 @@ public class AddClientCommandTest {
                 new AddClientCommand(sameAsBernice).execute(modelStub).getFeedbackToUser());
 
         assertEquals(5, modelStub.clientsAdded.size());
+    }
+
+    @Test
+    public void execute_similarNameWithDifferentContacts_addsWithWarning() throws Exception {
+        Model model = new ModelManager();
+        model.addClient(new ClientBuilder().withName("John Doe").build());
+        Client jon = new ClientBuilder().withName("Jon Doe").withPhone("90000001")
+                .withEmail("jon@example.com").build();
+
+        assertEquals(String.format(AddClientCommand.MESSAGE_SUCCESS, Messages.format(jon))
+                + "\nWarning: John Doe has a similar name. Check for an accidental duplicate.",
+                new AddClientCommand(jon).execute(model).getFeedbackToUser());
+        assertEquals(List.of("John Doe", "Jon Doe"), model.getGigabyteData().getClientList().stream()
+                .map(client -> client.getName().fullName).toList());
+    }
+
+    @Test
+    public void execute_multipleSimilarNamesHiddenByFilter_warnsInOriginalClientOrder() throws Exception {
+        Model model = new ModelManager();
+        model.addClient(new ClientBuilder().withName("John Doe").build());
+        model.addClient(new ClientBuilder().withName("Zelda Wong").build());
+        model.addClient(new ClientBuilder().withName("Joan Doe").build());
+        model.updateFilteredClientList(client -> false);
+        assertTrue(model.getFilteredClientList().isEmpty());
+        Client jon = new ClientBuilder().withName("Jon Doe").withPhone("90000001")
+                .withEmail("jon@example.com").build();
+
+        assertEquals(String.format(AddClientCommand.MESSAGE_SUCCESS, Messages.format(jon))
+                + "\nWarning: John Doe has a similar name. Check for an accidental duplicate."
+                + "\nWarning: Joan Doe has a similar name. Check for an accidental duplicate.",
+                new AddClientCommand(jon).execute(model).getFeedbackToUser());
+        assertTrue(model.getGigabyteData().getClientList().contains(jon));
+    }
+
+    @Test
+    public void execute_unrelatedOrShortName_addsWithoutSimilarNameWarning() throws Exception {
+        for (String name : List.of("Lu", "Zelda Wong")) {
+            Model model = new ModelManager();
+            model.addClient(new ClientBuilder().withName("Li").build());
+            model.addClient(new ClientBuilder().withName("John Doe").build());
+            Client client = new ClientBuilder().withName(name).withPhone("90000001")
+                    .withEmail("different@example.com").build();
+
+            assertEquals(String.format(AddClientCommand.MESSAGE_SUCCESS, Messages.format(client)),
+                    new AddClientCommand(client).execute(model).getFeedbackToUser());
+            assertTrue(model.getGigabyteData().getClientList().contains(client));
+        }
+    }
+
+    @Test
+    public void execute_similarNameAndSharedContacts_preservesBothWarnings() throws Exception {
+        Model model = new ModelManager();
+        model.addClient(new ClientBuilder().withName("John Doe").build());
+        Client jon = new ClientBuilder().withName("Jon Doe").build();
+
+        assertEquals(String.format(AddClientCommand.MESSAGE_SUCCESS, Messages.format(jon))
+                + "\nNote: John Doe has the same phone number and email."
+                + "\nWarning: John Doe has a similar name. Check for an accidental duplicate.",
+                new AddClientCommand(jon).execute(model).getFeedbackToUser());
+        assertTrue(model.getGigabyteData().getClientList().contains(jon));
     }
 
     @Test
