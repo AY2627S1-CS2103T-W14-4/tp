@@ -89,6 +89,8 @@ public class GigListPanel extends UiPart<Region> {
         });
         gigListView.getSelectionModel().selectedItemProperty().addListener((observable, oldGig, newGig) ->
                 gigSelectionHandler.accept(newGig));
+        // A blank hint gives its height to the list, which matters in short windows.
+        emptyState.managedProperty().bind(emptyState.textProperty().isNotEmpty());
         updateEmptyState();
         filteredGigs.addListener((javafx.collections.ListChangeListener<Gig>) change -> updateEmptyState());
         Platform.runLater(this::scheduleDeadlineRefresh);

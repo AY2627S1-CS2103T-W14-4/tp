@@ -172,6 +172,21 @@ public class GigListPanelTest {
     }
 
     @Test
+    public void showGigsFor_hintBlankOrShown_hintTakesSpaceOnlyWhenShown() {
+        GigListPanel panel = createPanel();
+        assertTrue(panel.getEmptyState().isManaged());
+
+        // Client with gigs: the hint is blank, so the list gets its space.
+        panel.showGigsFor(ALICE);
+        assertEquals("", panel.getEmptyState().getText());
+        assertFalse(panel.getEmptyState().isManaged());
+
+        // Client without gigs: the hint is shown again.
+        panel.showGigsFor(CARL);
+        assertTrue(panel.getEmptyState().isManaged());
+    }
+
+    @Test
     public void showGigsFor_nullClient_showsNoClientState() {
         GigListPanel panel = createPanel();
 

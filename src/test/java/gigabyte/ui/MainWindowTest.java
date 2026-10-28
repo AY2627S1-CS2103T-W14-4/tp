@@ -40,14 +40,23 @@ import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
 import javafx.geometry.Rectangle2D;
+import javafx.scene.control.ListCell;
+import javafx.scene.control.ListView;
+import javafx.scene.control.SplitPane;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
+import javafx.scene.layout.Region;
 import javafx.stage.Screen;
 import javafx.stage.Stage;
 
 public class MainWindowTest {
+    private static final double SCALED_1280_BY_720_CONTENT_WIDTH = 841;
+    private static final double SCALED_1280_BY_720_CONTENT_HEIGHT = 401;
+    /** Window content of a maximised window on a 1920x1080 screen at 100% scale. */
+    private static final double FULL_HD_CONTENT_WIDTH = 1902;
+    private static final double FULL_HD_CONTENT_HEIGHT = 985;
     private static final Gig ALICE_GIG = new Gig(ALICE, new GigTitle("Website redesign"), GigStatus.IN_PROGRESS,
             new Deadline("2027-01-31"), new Fee("1000"));
     private static final PaymentObligation ALICE_PAYMENT = new PaymentObligation(
@@ -540,6 +549,88 @@ public class MainWindowTest {
         assertTrue(mainWindow.getPrimaryStage().getMinHeight() <= 720 / 1.5);
         assertEquals(480, MainWindow.clampWindowDimension(600, 450, 720 / 1.5));
         assertEquals(440, MainWindow.clampWindowDimension(600, 450, 440));
+    }
+
+    @Test
+    public void listHeights_scaled1280By720_eachListFitsOneFullRow() throws Exception {
+        MainWindow mainWindow = callOnJavaFxThread(() -> {
+            MainWindow window = new MainWindow(new Stage(), new LogicStub(), Path.of("data.json"));
+            window.show();
+            window.fillInnerParts();
+            return window;
+        });
+
+        try {
+            callOnJavaFxThread(() -> {
+                mainWindow.getClientListPanel().getClientListView().getSelectionModel().select(0);
+                mainWindow.getGigListPanel().getGigListView().getSelectionModel().select(0);
+                SplitPane splitPane = (SplitPane) mainWindow.getRoot().getScene().lookup(".split-pane");
+
+                // Default split, then the divider dragged fully up and fully down.
+                for (double dividerPosition : new double[] {0.5, 0.0, 1.0}) {
+                    splitPane.setDividerPositions(dividerPosition);
+                    layOutAtScaled1280By720(mainWindow);
+                    assertFirstRowFits(mainWindow.getGigListPanel().getGigListView());
+                    assertFirstRowFits(mainWindow.getPaymentObligationListPanel().getPaymentListView());
+                }
+                return null;
+            });
+        } finally {
+            callOnJavaFxThread(() -> {
+                mainWindow.getPrimaryStage().hide();
+                return null;
+            });
+        }
+    }
+
+    @Test
+    public void resultDisplayHeight_fullHdWindow_keepsFullHeight() throws Exception {
+        MainWindow mainWindow = callOnJavaFxThread(() -> {
+            MainWindow window = new MainWindow(new Stage(), new LogicStub(), Path.of("data.json"));
+            window.show();
+            window.fillInnerParts();
+            return window;
+        });
+
+        try {
+            callOnJavaFxThread(() -> {
+                layOut(mainWindow, FULL_HD_CONTENT_WIDTH, FULL_HD_CONTENT_HEIGHT);
+                Region resultDisplay = (Region) mainWindow.getRoot().getScene().lookup("#resultDisplayPlaceholder");
+                assertEquals(100, resultDisplay.getHeight());
+                return null;
+            });
+        } finally {
+            callOnJavaFxThread(() -> {
+                mainWindow.getPrimaryStage().hide();
+                return null;
+            });
+        }
+    }
+
+    /**
+     * Lays out the window content at the size it gets on a 1280x720 screen at 150% scale: 853x480 logical,
+     * minus the 48px Windows taskbar and the window's title bar and borders.
+     */
+    private static void layOutAtScaled1280By720(MainWindow window) {
+        layOut(window, SCALED_1280_BY_720_CONTENT_WIDTH, SCALED_1280_BY_720_CONTENT_HEIGHT);
+    }
+
+    private static void layOut(MainWindow window, double contentWidth, double contentHeight) {
+        Region root = (Region) window.getRoot().getScene().getRoot();
+        root.resize(contentWidth, contentHeight);
+        root.applyCss();
+        root.layout();
+    }
+
+    private static void assertFirstRowFits(ListView<?> listView) {
+        ListCell<?> firstRow = listView.lookupAll(".list-cell").stream()
+                .filter(node -> node instanceof ListCell<?> cell && cell.isVisible() && cell.getIndex() == 0)
+                .map(node -> (ListCell<?>) node)
+                .findFirst()
+                .orElseThrow();
+        double visibleHeight = listView.getHeight() - listView.snappedTopInset() - listView.snappedBottomInset();
+        assertTrue(visibleHeight >= firstRow.getHeight(), listView.getId() + " is " + visibleHeight
+                + "px tall but its first row needs " + firstRow.getHeight() + "px");
     }
 
     @Test
