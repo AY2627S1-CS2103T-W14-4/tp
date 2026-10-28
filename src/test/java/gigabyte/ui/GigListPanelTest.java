@@ -208,6 +208,28 @@ public class GigListPanelTest {
     }
 
     @Test
+    public void selectingFieldIdenticalGigs_invokesSelectionHandlerForEachRow() {
+        Gig firstGig = new Gig(ALICE, new GigTitle("Twin"), GigStatus.NOT_STARTED,
+                new Deadline("2027-01-31"), new Fee("100"));
+        Gig secondGig = firstGig.withNewUid();
+        PaymentObligation firstPayment = new PaymentObligation(firstGig, new Fee("10"),
+                new Deadline("2027-01-31"), false);
+        PaymentObligation secondPayment = new PaymentObligation(secondGig, new Fee("20"),
+                new Deadline("2027-01-31"), false);
+        PaymentObligationListPanel payments = new PaymentObligationListPanel(
+                FXCollections.observableArrayList(firstPayment, secondPayment));
+        GigListPanel panel = new GigListPanel(
+                FXCollections.observableArrayList(firstGig, secondGig), payments::showPaymentsFor);
+        panel.showGigsFor(ALICE);
+
+        panel.getGigListView().getSelectionModel().select(0);
+        assertEquals(List.of(firstPayment), payments.getPaymentListView().getItems());
+
+        panel.getGigListView().getSelectionModel().select(1);
+        assertEquals(List.of(secondPayment), payments.getPaymentListView().getItems());
+    }
+
+    @Test
     public void showGigsFor_anotherClient_clearsPreviousGigSelection() {
         AtomicReference<Gig> selectedGig = new AtomicReference<>();
         GigListPanel panel = new GigListPanel(
