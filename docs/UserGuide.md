@@ -641,6 +641,11 @@ Gigabyte saves the complete data set after every successfully executed command, 
 `list`. Invalid commands do not trigger a save. You do not need to save manually.
 Client, gig, and payment-obligation data is restored when you next launch the app from the same home folder.
 
+Only one running instance can use a data folder at a time. A second launch using the same data file is rejected
+with an already-running message; close the existing instance before trying again. Instances using separate data
+folders can run independently. The `data/gigabyte.json.lock` file may remain after exit or a crash; this is normal
+and does not require manual cleanup before relaunching.
+
 When upgrading from a version that saved to `data/addressbook.json`, Gigabyte automatically renames that file to
 `data/gigabyte.json` on startup if `data/gigabyte.json` does not already exist. Its contents are preserved, and future
 changes are saved to `data/gigabyte.json`. If both files exist, Gigabyte uses `data/gigabyte.json` and leaves

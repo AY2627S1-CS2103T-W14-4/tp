@@ -302,6 +302,12 @@ representative v1.3 file.
 
 #### Save lifecycle and failure behavior
 
+Before reading preferences or application data, `MainApp` acquires an exclusive operating-system file lock on
+`data/gigabyte.json.lock` and holds it for the process lifetime. A second instance targeting the same data file
+stops startup with an already-running message, preventing a stale in-memory snapshot from overwriting newer records.
+Separate data folders have separate locks. The operating system releases the lock when the process exits, including
+after a crash. The sidecar file remains on disk; its existence alone does not indicate that a lock is held.
+
 `LogicManager#execute` performs these steps in order:
 
 1. Parse the input into a command.
@@ -1606,6 +1612,15 @@ Use a disposable fresh sample-data folder for each test. Deletion is permanent a
    Expected: Charlotte, who has no gigs in the sample data, is deleted and the result shows her details.
 
 ### Persistence and data-file recovery
+
+1. **Reject a second instance using the same data folder**
+   1. Launch instance A in a disposable folder and input
+      `add n/Concurrent Test p/91234567 e/concurrent@example.com a/Test address`.
+   1. From a second terminal in the same folder, launch the same JAR as instance B.<br>
+      Expected: B refuses startup with an already-running message. A remains usable; `list` still shows Concurrent Test.
+   1. Close A, relaunch from the same folder, and input `find Concurrent Test`.<br>
+      Expected: Startup succeeds and the new client remains. Relaunch also succeeds after an interrupted process;
+      the persistent lock file requires no cleanup. An instance launched from a separate data folder can run independently.
 
 1. **Restart after each mutation type**
    1. Use a separate copy of the fresh sample folder for each command below. Run the command, close with `exit`,
