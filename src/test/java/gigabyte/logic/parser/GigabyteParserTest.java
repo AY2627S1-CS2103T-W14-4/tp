@@ -210,6 +210,34 @@ public class GigabyteParserTest {
     }
 
     @Test
+    public void parseCommand_upperAndMixedCaseCommandWords_parsedAsLowerCase() throws Exception {
+        // EP: upper-case command word
+        assertTrue(parser.parseCommand("LIST") instanceof ListClientsCommand);
+        assertTrue(parser.parseCommand("OUTSTANDING") instanceof OutstandingCommand);
+
+        // EP: mixed-case command word
+        assertTrue(parser.parseCommand("List") instanceof ListClientsCommand);
+        assertTrue(parser.parseCommand("hElP") instanceof HelpCommand);
+        assertEquals(new AddGigCommand(INDEX_FIRST_CLIENT, new GigTitle("Website redesign"),
+                GigStatus.NOT_STARTED, new Deadline("2027-01-31"), new Fee("1250.00")),
+                parser.parseCommand("AddGig 1 t/Website redesign s/NOT_STARTED d/2027-01-31 f/1250.00"));
+
+        // Argument validation still applies after the command word is lower-cased
+        assertThrows(ParseException.class,
+                String.format(MESSAGE_INVALID_COMMAND_FORMAT, OutstandingCommand.MESSAGE_USAGE), () ->
+                        parser.parseCommand("OUTSTANDING 1"));
+    }
+
+    @Test
+    public void parseCommand_upperCaseCommandWord_preservesArgumentCase() throws Exception {
+        assertEquals(new AddGigCommand(INDEX_FIRST_CLIENT, new GigTitle("Website Redesign"),
+                GigStatus.NOT_STARTED, new Deadline("2027-01-31"), new Fee("1250.00")),
+                parser.parseCommand("ADDGIG 1 t/Website Redesign s/NOT_STARTED d/2027-01-31 f/1250.00"));
+        assertEquals(new FindGigCommand(new GigTitleContainsKeywordsPredicate(List.of("Website", "REDESIGN"))),
+                parser.parseCommand("FINDGIG Website REDESIGN"));
+    }
+
+    @Test
     public void parseCommand_unrecognisedInput_throwsParseException() {
         assertThrows(ParseException.class, String.format(MESSAGE_INVALID_COMMAND_FORMAT, HelpCommand.MESSAGE_USAGE), ()
             -> parser.parseCommand(""));
@@ -218,5 +246,6 @@ public class GigabyteParserTest {
     @Test
     public void parseCommand_unknownCommand_throwsParseException() {
         assertThrows(ParseException.class, MESSAGE_UNKNOWN_COMMAND, () -> parser.parseCommand("unknownCommand"));
+        assertThrows(ParseException.class, MESSAGE_UNKNOWN_COMMAND, () -> parser.parseCommand("LISTS"));
     }
 }

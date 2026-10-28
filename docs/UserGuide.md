@@ -61,6 +61,9 @@
 
 **Notes about the command format:**<br>
 
+* Command words are not case-sensitive, but parameters keep the case you type.<br>
+  For example, `LIST`, `List` and `list` all list clients, and `ADDGIG 1 t/Website Redesign ...` saves the title as `Website Redesign`.
+
 * Words in `UPPER_CASE` are the parameters to be supplied by the user.<br>
   For example, in `add n/NAME`, replace `NAME` with a value such as `John Doe`.
 
