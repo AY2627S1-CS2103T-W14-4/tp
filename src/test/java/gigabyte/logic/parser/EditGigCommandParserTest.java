@@ -88,6 +88,7 @@ public class EditGigCommandParserTest {
         // EP: blank title
         assertParseFailure(parser, "1 1 f/100 t/", GigTitle.MESSAGE_CONSTRAINTS);
         assertParseFailure(parser, "1 1 f/100 t/  ", GigTitle.MESSAGE_CONSTRAINTS);
+        assertParseFailure(parser, "1 1 f/100 t/\u00A0", GigTitle.MESSAGE_CONSTRAINTS);
 
         // EP: title longer than 100 characters
         assertParseFailure(parser, "1 1 f/100 t/" + "x".repeat(101), GigTitle.MESSAGE_CONSTRAINTS); // Boundary value

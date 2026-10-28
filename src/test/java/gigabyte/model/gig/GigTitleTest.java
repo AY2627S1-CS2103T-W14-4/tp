@@ -18,6 +18,9 @@ public class GigTitleTest {
     public void constructor_blank_throwsIllegalArgumentException() {
         assertThrows(IllegalArgumentException.class, () -> new GigTitle("")); // Boundary value
         assertThrows(IllegalArgumentException.class, () -> new GigTitle("   \t  ")); // Whitespace only
+        assertThrows(IllegalArgumentException.class, () -> new GigTitle("\u00A0")); // Non-breaking space only
+        assertThrows(IllegalArgumentException.class, () -> new GigTitle("\u0085")); // Next line only
+        assertThrows(IllegalArgumentException.class, () -> new GigTitle("\u001F")); // Unit separator only
     }
 
     @Test
@@ -40,6 +43,13 @@ public class GigTitleTest {
     }
 
     @Test
+    public void constructor_surroundingUnicodeSpaces_removesThemAndKeepsInternalOnes() {
+        GigTitle title = new GigTitle("\u00A0\u2007\u0085\u001C Logo\u00A0design \u202F\u001F");
+
+        assertEquals("Logo\u00A0design", title.toString());
+    }
+
+    @Test
     public void isValidTitle() {
         // EP: null title
         assertFalse(GigTitle.isValidTitle(null));
@@ -48,6 +58,14 @@ public class GigTitleTest {
         assertFalse(GigTitle.isValidTitle("")); // Boundary value
         assertFalse(GigTitle.isValidTitle("   "));
 
+        // EP: only Unicode spaces that String#strip keeps, such as the non-breaking space
+        assertFalse(GigTitle.isValidTitle("\u00A0"));
+        assertFalse(GigTitle.isValidTitle(" \u00A0\u2007\u202F\t"));
+        assertFalse(GigTitle.isValidTitle("\u0085")); // Next line
+
+        // EP: only control separators that String#strip removes (regression)
+        assertFalse(GigTitle.isValidTitle("\u001C\u001D\u001E\u001F"));
+
         // EP: title longer than 100 characters
         assertFalse(GigTitle.isValidTitle("a".repeat(101))); // Boundary value
 
@@ -55,6 +73,7 @@ public class GigTitleTest {
         assertTrue(GigTitle.isValidTitle("a")); // Boundary value
         assertTrue(GigTitle.isValidTitle("a".repeat(100))); // Boundary value
         assertTrue(GigTitle.isValidTitle("  Client website: phase 2 (mobile)  ")); // Symbols and surrounding spaces
+        assertTrue(GigTitle.isValidTitle("\u00A0" + "a".repeat(100) + "\u00A0")); // Boundary value
     }
 
     @Test

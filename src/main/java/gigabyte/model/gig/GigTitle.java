@@ -4,6 +4,7 @@ import static gigabyte.commons.util.AppUtil.checkArgument;
 import static java.util.Objects.requireNonNull;
 
 import java.util.Objects;
+import java.util.regex.Pattern;
 
 /**
  * Represents a short descriptive title for a gig.
@@ -15,6 +16,15 @@ public class GigTitle {
 
     private static final int MAX_LENGTH = 100;
 
+    /**
+     * Matches one whitespace character: anything {@link String#strip()} removes ({@code javaWhitespace}), plus the
+     * Unicode whitespace it keeps ({@code IsWhite_Space}), such as the non-breaking space and U+0085 (next line).
+     */
+    private static final String WHITESPACE = "[\\p{javaWhitespace}\\p{IsWhite_Space}]";
+
+    private static final Pattern SURROUNDING_WHITESPACE =
+            Pattern.compile("^" + WHITESPACE + "+|" + WHITESPACE + "+$");
+
     private final String value;
 
     /**
@@ -24,7 +34,7 @@ public class GigTitle {
      */
     public GigTitle(String title) {
         requireNonNull(title);
-        String normalizedTitle = title.strip();
+        String normalizedTitle = normalize(title);
         checkArgument(isValidTitle(normalizedTitle), MESSAGE_CONSTRAINTS);
         value = normalizedTitle;
     }
@@ -34,8 +44,13 @@ public class GigTitle {
         if (test == null) {
             return false;
         }
-        String normalizedTitle = test.strip();
+        String normalizedTitle = normalize(test);
         return !normalizedTitle.isEmpty() && normalizedTitle.length() <= MAX_LENGTH;
+    }
+
+    /** Returns {@code title} with surrounding whitespace, including non-breaking spaces, removed. */
+    private static String normalize(String title) {
+        return SURROUNDING_WHITESPACE.matcher(title).replaceAll("");
     }
 
     @Override
