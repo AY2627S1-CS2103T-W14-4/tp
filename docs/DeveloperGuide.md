@@ -1140,7 +1140,7 @@ and is not repeated for each command.
       gig's status, deadline, and fee. The Payment obligations panel still says
       `Select a gig to view its payment obligations.`
    1. Select `Portfolio website redesign`.<br>
-      Expected: The panel shows the sample `$1250.00` obligation due `2027-01-15` as `PAID`.
+      Expected: The panel shows the sample `$1,250.00` obligation due `2027-01-15` as `PAID`.
    1. Select `Bernice Yu`, then select `Quarterly newsletter template`.<br>
       Expected: The Payment obligations panel says `This gig has no payment obligations.`
    1. Select `Charlotte Oliveiro`.<br>
@@ -1167,7 +1167,7 @@ Start this section from a fresh test folder so the sample clients and gigs are p
       Expected: The result names `Alex Yeoh` and repeats the normalized title, status, deadline, and fee.
    1. Select `Alex Yeoh`.<br>
       Expected: `Conference landing page` appears after Alex's two sample gigs with status `IN_PROGRESS`, deadline
-      `2027-06-30`, and fee `$1800.50`.
+      `2027-06-30`, and fee `$1,800.50`.
 
 1. **Title validation**
    1. Test case: `addgig 1 t/    s/NOT_STARTED d/2027-06-30 f/100`<br>
@@ -1197,7 +1197,7 @@ and the selected client's normal recorded gig order, even while an overview is o
 
 1. **Edit details and reorder the deadline view**
    1. Test case: `deadlines`, then `editgig 1 2 t/Revised photography d/2026-10-01 f/1350`.<br>
-      Expected: Alex's second gig retains its UID, `NOT_STARTED` status, and `$1200.00` payment. The deadline
+      Expected: Alex's second gig retains its UID, `NOT_STARTED` status, and `$1,200.00` payment. The deadline
       overview refreshes without another `deadlines` command; the revised gig moves to the first row.
    1. Test case: `find Alex`, then `editgig 1 2 d/2027-12-01`.<br>
       Expected: The same gig's deadline changes again while the filtered client list remains Alex only.
@@ -1290,9 +1290,9 @@ Start this section from a fresh test folder. Alex's sample gigs make `CLIENT_IND
 
 1. **Valid payment obligation**
    1. Select `Alex Yeoh`, then select `Portfolio website redesign`.<br>
-      Expected: The panel shows the sample `$1250.00` obligation due `2027-01-15` as `PAID`.
+      Expected: The panel shows the sample `$1,250.00` obligation due `2027-01-15` as `PAID`.
    1. Test case: `addpayment 1 1 a/500.00 d/2099-07-15`<br>
-      Expected: The result says an unpaid obligation was recorded for `Alex Yeoh`, gig 1, with amount `500.00` and
+      Expected: The result says an unpaid obligation was recorded for `Alex Yeoh`, gig 1, with amount `$500.00` and
       due date `2099-07-15`. Without reselecting the gig, the panel immediately shows
       `2. Amount: $500.00`, `Due: 2099-07-15`, and `OUTSTANDING` after the earlier sample payment.
 
@@ -1363,10 +1363,10 @@ Use a fresh test folder for each numbered test below. Deletion is permanent and 
 1. **Paid, future unpaid, overdue, final payment, and restart**
    1. Test case: `addpayment 1 1 a/500 d/2099-01-31`, then `addpayment 1 1 a/100 d/2000-01-31`.<br>
       Select Alex Yeoh and Portfolio website redesign. Expected order: overdue `$100.00` (1), sample paid
-      `$1250.00` (2), future unpaid `$500.00` (3).
+      `$1,250.00` (2), future unpaid `$500.00` (3).
    1. Test case: `deletepayment 1 1 2`.<br>
       Expected: Only the paid row disappears immediately. Feedback names Alex Yeoh, gig 1 (Portfolio website
-      redesign), payment 2, amount `1250.00`, due date `2027-01-15`, and previous state `PAID`.
+      redesign), payment 2, amount `$1,250.00`, due date `2027-01-15`, and previous state `PAID`.
       The remaining rows become 1 and 2 in the same order. The client and gig remain selected and unchanged.
    1. Test case: `outstanding`, then `deletepayment 1 1 1`.<br>
       Expected: The overdue `$100.00` row disappears without rerunning `outstanding`. Feedback includes its amount,
@@ -1416,15 +1416,15 @@ Use a fresh test folder for each numbered test below. Deletion is permanent and 
 ### Editing payment obligations
 
 Start this section from a fresh test folder. Select `Alex Yeoh`, then select `Portfolio website redesign` so the
-sample `$1250.00` paid obligation is payment 1.
+sample `$1,250.00` paid obligation is payment 1.
 
 1. **Edit amount, due date, and both fields**
    1. Test case: `editpayment 1 1 1 a/1300`<br>
-      Expected: Payment 1 immediately shows `$1300.00`, keeps due date `2027-01-15`, and remains `PAID`.
+      Expected: Payment 1 immediately shows `$1,300.00`, keeps due date `2027-01-15`, and remains `PAID`.
    1. Test case: `addpayment 1 1 a/500 d/2099-07-15`<br>
       Expected: An unpaid `$500.00` obligation is added as payment 2.
    1. Test case: `editpayment 1 1 1 d/2099-08-01`<br>
-      Expected: The same paid payment keeps amount `$1300.00`, moves from payment 1 to payment 2 after the earlier
+      Expected: The same paid payment keeps amount `$1,300.00`, moves from payment 1 to payment 2 after the earlier
       `$500.00` obligation, and remains `PAID`.
    1. Test case: `editpayment 1 1 2 a/1350 d/2020-08-01`<br>
       Expected: The paid payment changes both fields atomically, moves back to payment 1, and keeps its paid state and
@@ -1470,11 +1470,11 @@ Start each test in this section from a fresh test folder unless the test says ot
       Expected: All five commands succeed.
    1. Select `Alex Yeoh`, then select `Portfolio website redesign`.<br>
       Expected: Exactly five payments appear. Their displayed indexes restart from 1 and their amounts are ordered
-      `$100.00`, `$1250.00`, `$200.00`, `$250.00`, `$300.00`. The `$1250.00` sample row is `PAID`; the two
+      `$100.00`, `$1,250.00`, `$200.00`, `$250.00`, `$300.00`. The `$1,250.00` sample row is `PAID`; the two
       obligations due on `2099-02-01` retain the order in which they were recorded. The `$100.00` row is `OVERDUE`
       and visually distinct from the three new `OUTSTANDING` rows.
    1. Select `Product launch photography`.<br>
-      Expected: The sample `$1200.00` obligation due `2027-03-01` and the new `$900.00` obligation due `2099-01-01`
+      Expected: The sample `$1,200.00` obligation due `2027-03-01` and the new `$900.00` obligation due `2099-01-01`
       appear in that order; none of the first gig's payments remain visible.
 
 1. **Mark a payment paid and reject a repeated attempt**
@@ -1484,7 +1484,7 @@ Start each test in this section from a fresh test folder unless the test says ot
       `addpayment 1 1 a/720 d/2020-05-01`<br>
       Expected: All three obligations are recorded as unpaid.
    1. Select `Alex Yeoh`, then select `Portfolio website redesign`.<br>
-      Expected: The `$720.00` row is payment 1, the sample `$1250.00` paid row is payment 2, and the `$700.00` and
+      Expected: The `$720.00` row is payment 1, the sample `$1,250.00` paid row is payment 2, and the `$700.00` and
       `$710.00` rows are payments 3 and 4 respectively.
    1. Test case: `markpaid 1 1 3`<br>
       Expected: The `$700.00` row shows `PAID`. Its muted paid styling is visibly different from the blue outstanding
@@ -1501,8 +1501,8 @@ Start each test in this section from a fresh test folder unless the test says ot
       earlier sample paid row.
    1. Test case: `find Charlotte`, followed by `outstanding`.<br>
       Expected: Outstanding obligations across all clients appear despite the filtered client list. The overdue
-      `$100.00` row is first and labelled `OVERDUE`; the sample `$1800.00` and `$1200.00` unpaid rows follow in
-      due-date order. The sample `$1250.00` and new `$500.00` paid rows are absent.
+      `$100.00` row is first and labelled `OVERDUE`; the sample `$1,800.00` and `$1,200.00` unpaid rows follow in
+      due-date order. The sample `$1,250.00` and new `$500.00` paid rows are absent.
    1. Test case: `outstanding extra`.<br>
       Expected: The command is rejected, the existing overview remains visible, and no data changes.
 
@@ -1537,7 +1537,7 @@ Start each test in this section from a fresh test folder unless the test says ot
 ### Viewing the summary
 
 Start this section from a fresh test folder. The overdue figures below assume the test runs before `2026-12-15`.
-From that date onwards, the sample `$1800.00` obligation is also overdue, so add `1 ($1,800.00)` to each overdue
+From that date onwards, the sample `$1,800.00` obligation is also overdue, so add `1 ($1,800.00)` to each overdue
 figure.
 
 1. **Summary of the sample data**
@@ -1618,11 +1618,11 @@ Use a disposable fresh sample-data folder for each test. Deletion is permanent a
       | `edit 1 p/91234567` | Alex's phone is `91234567`. |
       | `delete 3` | Charlotte is absent; other clients and gigs remain. |
       | `addgig 1 t/Retest s/NOT_STARTED d/2099-01-01 f/100` | Alex has a third gig named Retest. |
-      | `editgig 1 2 f/1300` | Alex's second gig has a `$1300.00` fee and its payment remains. |
+      | `editgig 1 2 f/1300` | Alex's second gig has a `$1,300.00` fee and its payment remains. |
       | `setstatus 1 2 s/COMPLETED` | Alex's second gig is completed. |
       | `deletegig 2 2` | Bernice's second gig is absent; her first gig remains. |
       | `addpayment 1 2 a/80 d/2099-02-01` | Alex's second gig has its sample payment and the new `$80.00` payment. |
-      | `editpayment 1 2 1 a/1300` | Alex's second gig's sample payment is `$1300.00`, still unpaid. |
+      | `editpayment 1 2 1 a/1300` | Alex's second gig's sample payment is `$1,300.00`, still unpaid. |
       | `markpaid 1 2 1` | Alex's second gig's sample payment is paid. |
       | `markunpaid 1 1 1` | Alex's first gig's sample payment is unpaid. |
       | `deletepayment 1 2 1` | Alex's second gig has no payments. |
@@ -1690,9 +1690,9 @@ Use a disposable fresh sample-data folder for each test. Deletion is permanent a
 1. Test case: `editpayment 1 3 1 a/1050 d/2027-10-20`.<br>
    Expected: The payment amount and due date change while it remains unpaid and linked to the edited gig.
 1. Test case: `markpaid 1 3 1`<br>
-   Expected: The `$1050.00` obligation immediately changes to `PAID`.
+   Expected: The `$1,050.00` obligation immediately changes to `PAID`.
 1. Test case: `markunpaid 1 3 1`, then `outstanding`.<br>
-   Expected: The corrected `$1050.00` payment appears in the unpaid overview.
+   Expected: The corrected `$1,050.00` payment appears in the unpaid overview.
 1. Test case: `markpaid 1 3 1` again.<br>
    Expected: The payment leaves the open outstanding overview immediately.
 1. Test case: `gigs s/COMPLETED`<br>
@@ -1700,12 +1700,12 @@ Use a disposable fresh sample-data folder for each test. Deletion is permanent a
 1. Test case: `deadlines`<br>
    Expected: Active gigs are shown in deadline order; `Delivered website` is absent because it is completed.
 1. Test case: `outstanding`<br>
-   Expected: Unpaid obligations across all clients are shown in due-date order; the paid `$1050.00` obligation is
+   Expected: Unpaid obligations across all clients are shown in due-date order; the paid `$1,050.00` obligation is
    absent.
 1. Test case: `exit`, relaunch from the same folder, input `find Alex`, and select Alex.<br>
-   Expected: `Delivered website` is still present with status `COMPLETED`, deadline `2027-09-30`, and fee `$2100.00`.
+   Expected: `Delivered website` is still present with status `COMPLETED`, deadline `2027-09-30`, and fee `$2,100.00`.
 1. Select `Delivered website`.<br>
-   Expected: Its Payment obligations panel shows `1. Amount: $1050.00`, due `2027-10-20`, as `PAID`. No payment from
+   Expected: Its Payment obligations panel shows `1. Amount: $1,050.00`, due `2027-10-20`, as `PAID`. No payment from
    another gig is shown.
 1. Test case: `deletegig 1 3`.<br>
    Expected: Deletion is blocked by the paid payment. Input `deletepayment 1 3 1`, then `deletegig 1 3`.<br>

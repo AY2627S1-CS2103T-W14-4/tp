@@ -44,7 +44,7 @@ public class AddGigCommandTest {
         assertEquals(2, model.getGigList().size());
         assertEquals(List.of(ALICE, BENSON), model.getFilteredClientList());
         assertEquals(String.format(AddGigCommand.MESSAGE_SUCCESS, ALICE.getName(), TITLE, GigStatus.NOT_STARTED,
-                DEADLINE, FEE), result.getFeedbackToUser());
+                DEADLINE, "$1,250.50"), result.getFeedbackToUser());
     }
 
     @Test

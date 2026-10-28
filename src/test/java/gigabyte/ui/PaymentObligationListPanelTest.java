@@ -369,6 +369,18 @@ public class PaymentObligationListPanelTest {
     }
 
     @Test
+    public void paymentCell_largeAmount_usesSameFormatInGigAndOutstandingViews() {
+        PaymentObligation payment = createPayment(FIRST_GIG, "999999999999.99", "2099-02-28", false);
+        PaymentObligationListPanel panel = createPanel(FXCollections.observableArrayList(payment));
+        panel.showPaymentsFor(FIRST_GIG);
+        assertTrue(renderCells(panel).get(0).getText().contains("Amount: $999,999,999,999.99"));
+
+        panel.showOutstandingPayments();
+
+        assertTrue(renderCells(panel).get(0).getText().contains("Amount: $999,999,999,999.99"));
+    }
+
+    @Test
     public void paymentCell_narrowPanel_wrapsWithoutHorizontalScrolling() {
         PaymentObligation payment = createPayment(FIRST_GIG, "500", "2099-02-28", false);
         ObservableList<PaymentObligation> payments = FXCollections.observableArrayList(payment);

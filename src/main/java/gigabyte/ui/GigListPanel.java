@@ -77,9 +77,9 @@ public class GigListPanel extends UiPart<Region> {
                             && gig.getDeadline().getValue().isBefore(LocalDate.now(clock))
                             ? "    OVERDUE" : "";
                     setText(empty || gig == null ? null : String.format(
-                            "%s%nClient: %s%nStatus: %s    Deadline: %s%s    Fee: $%s",
+                            "%s%nClient: %s%nStatus: %s    Deadline: %s%s    Fee: %s",
                             gig.getTitle(), gig.getClient().getName(), gig.getStatus(),
-                            gig.getDeadline(), overdue, gig.getAgreedFee()));
+                            gig.getDeadline(), overdue, gig.getAgreedFee().toDisplayString()));
                     setWrapText(true);
                 }
             };

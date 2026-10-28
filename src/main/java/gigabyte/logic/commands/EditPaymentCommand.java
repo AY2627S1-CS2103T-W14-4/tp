@@ -86,7 +86,7 @@ public class EditPaymentCommand extends Command {
 
         model.setPaymentObligation(payment, replacement);
         return new CommandResult(String.format(MESSAGE_SUCCESS, client.getName(), gigIndex.getOneBased(),
-                paymentIndex.getOneBased(), replacement.getAmount(), replacement.getDueDate()));
+                paymentIndex.getOneBased(), replacement.getAmount().toDisplayString(), replacement.getDueDate()));
     }
 
     @Override

@@ -76,6 +76,9 @@
 * Parameters can be in any order.<br>
   For example, if the command specifies `n/NAME p/PHONE_NUMBER`, `p/PHONE_NUMBER n/NAME` is also acceptable.
 
+* Money amounts are displayed with a dollar sign, comma thousands separators, and two decimal places,
+  for example, `$1,234.50`. Enter amounts without dollar signs or commas, such as `a/1234.50` or `f/1234.50`.
+
 * Extraneous parameters for `summary`, `help`, `list`, `exit`, and `clear` are ignored.<br>
   For example, `help 123` is interpreted as `help`.<br>
   `deadlines` and `outstanding` also take no parameters, but reject any extra input with an invalid command format message.
@@ -514,7 +517,7 @@ Examples:
 Example success message:
 
 ```text
-Deleted payment obligation for Alex Yeoh, gig 1 (Portfolio website redesign), payment 1: Amount: 1250.00; Due date: 2027-01-15; Previous state: PAID
+Deleted payment obligation for Alex Yeoh, gig 1 (Portfolio website redesign), payment 1: Amount: $1,250.00; Due date: 2027-01-15; Previous state: PAID
 ```
 
 Unsuccessful examples:
