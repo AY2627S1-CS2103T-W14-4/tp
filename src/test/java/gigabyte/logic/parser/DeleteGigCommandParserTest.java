@@ -3,6 +3,7 @@ package gigabyte.logic.parser;
 import static gigabyte.logic.Messages.MESSAGE_INVALID_COMMAND_FORMAT;
 import static gigabyte.logic.parser.CommandParserTestUtil.assertParseFailure;
 import static gigabyte.logic.parser.CommandParserTestUtil.assertParseSuccess;
+import static gigabyte.logic.parser.ParserUtil.MESSAGE_INVALID_INDEX;
 
 import org.junit.jupiter.api.Test;
 
@@ -53,7 +54,7 @@ public class DeleteGigCommandParserTest {
 
     /** Asserts that {@code invalidIndex} is rejected as both the client index and the gig index. */
     private void assertInvalidIndexRejected(String invalidIndex) {
-        assertParseFailure(parser, invalidIndex + " 1", INVALID_FORMAT);
-        assertParseFailure(parser, "1 " + invalidIndex, INVALID_FORMAT);
+        assertParseFailure(parser, invalidIndex + " 1", MESSAGE_INVALID_INDEX);
+        assertParseFailure(parser, "1 " + invalidIndex, MESSAGE_INVALID_INDEX);
     }
 }

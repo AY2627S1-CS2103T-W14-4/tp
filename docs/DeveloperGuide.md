@@ -1123,10 +1123,11 @@ with `java -jar gigabyte.jar`. Back up `data/gigabyte.json` before any test that
 </box>
 
 Every command that takes indexes (`edit`, `delete`, `addgig`, `editgig`, `setstatus`, `deletegig`, `addpayment`,
-`editpayment`, `markpaid`, `markunpaid`, and `deletepayment`) checks them in the same way: zero, negative, and
-non-numeric indexes produce the command-format error, and an index that is too large produces an "invalid index"
-error. This is tested once, in [Adding payment obligations](#adding-payment-obligations), and is not repeated for
-each command.
+`editpayment`, `markpaid`, `markunpaid`, and `deletepayment`) checks them in the same way: a missing or extra index,
+or extra words before the first prefix, produces the command-format error with the command's usage; zero, negative,
+and non-numeric indexes produce `Index must be a positive integer.`; and an index larger than the displayed list
+produces an "invalid index" error. This is tested once, in [Adding payment obligations](#adding-payment-obligations),
+and is not repeated for each command.
 
 ### Launch, sample data, and empty states
 
@@ -1308,11 +1309,14 @@ Start this section from a fresh test folder. Alex's sample gigs make `CLIENT_IND
 
 1. **Invalid client and gig indexes** (representative of all commands that take indexes)
    1. Repeat `addpayment CLIENT_INDEX 1 a/500 d/2099-07-15` with `CLIENT_INDEX` set to `0`, `-1`, `abc`, and `999`.<br>
-      Expected: No obligation is recorded. The first three produce the command-format error; `999` reports an invalid
-      client index.
+      Expected: No obligation is recorded. The first three report `Index must be a positive integer.`; `999` reports
+      an invalid client index.
    1. Repeat `addpayment 1 GIG_INDEX a/500 d/2099-07-15` with `GIG_INDEX` set to `0`, `-1`, `abc`, and `999`.<br>
-      Expected: No obligation is recorded. The first three produce the command-format error; `999` reports that the
-      gig index is invalid for this client.
+      Expected: No obligation is recorded. The first three report `Index must be a positive integer.`; `999` reports
+      that the gig index is invalid for this client.
+   1. Test case: `addpayment 1 a/500 d/2099-07-15`, `addpayment 1 1 2 a/500 d/2099-07-15`, and
+      `addpayment 1 1 extra a/500 d/2099-07-15`.<br>
+      Expected: No obligation is recorded. Each reports `Invalid command format!` followed by the `addpayment` usage.
 
 ### Correcting payment status
 
@@ -1394,10 +1398,11 @@ Use a fresh test folder for each numbered test below. Deletion is permanent and 
 1. **Invalid indexes and syntax leave data unchanged**
    1. Select Alex and his first gig. Copy `data/gigabyte.json` for comparison.
    1. Try `deletepayment 1 1 1.5` and `deletepayment 1 1 2147483648`.<br>
-      Expected: Both are rejected with the command-format error. The payment list, parents, and saved file remain
-      unchanged.
+      Expected: Both are rejected with `Index must be a positive integer.` The payment list, parents, and saved file
+      remain unchanged.
    1. Try `deletepayment`, `deletepayment 1 1`, and `deletepayment 1 1 1 2`.<br>
-      Expected: Each reports the required syntax. The saved file still matches the copy.
+      Expected: Each reports `Invalid command format!` with the required syntax. The saved file still matches the
+      copy.
 
 1. **Outstanding overview becomes empty**
    1. In the disposable test folder, input `clear`, then

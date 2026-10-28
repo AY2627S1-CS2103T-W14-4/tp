@@ -1,6 +1,5 @@
 package gigabyte.logic.parser;
 
-import static gigabyte.logic.Messages.MESSAGE_INVALID_COMMAND_FORMAT;
 import static gigabyte.logic.parser.CliSyntax.PREFIX_ADDRESS;
 import static gigabyte.logic.parser.CliSyntax.PREFIX_EMAIL;
 import static gigabyte.logic.parser.CliSyntax.PREFIX_NAME;
@@ -34,14 +33,7 @@ public class EditClientCommandParser implements Parser<EditClientCommand> {
         ArgumentMultimap argMultimap =
                 ArgumentTokenizer.tokenize(args, PREFIX_NAME, PREFIX_PHONE, PREFIX_EMAIL, PREFIX_ADDRESS, PREFIX_TAG);
 
-        Index index;
-
-        try {
-            index = ParserUtil.parseIndex(argMultimap.getPreamble());
-        } catch (ParseException pe) {
-            throw new ParseException(
-                    String.format(MESSAGE_INVALID_COMMAND_FORMAT, EditClientCommand.MESSAGE_USAGE), pe);
-        }
+        Index index = ParserUtil.parseIndexes(argMultimap.getPreamble(), 1, EditClientCommand.MESSAGE_USAGE).get(0);
 
         argMultimap.verifyNoDuplicatePrefixesFor(PREFIX_NAME, PREFIX_PHONE, PREFIX_EMAIL, PREFIX_ADDRESS);
 
