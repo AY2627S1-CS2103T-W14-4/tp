@@ -7,8 +7,9 @@ import javafx.scene.control.ListView;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 
-/** Handles keyboard navigation across the client, gig, and payment lists. */
+/** Handles keyboard navigation within lists and between the client and gig lists. */
 final class ListNavigationController {
+    private static final int PAYMENT_VIEW_INDEX = 2;
     private final List<ListView<?>> views;
     private final CommandBox commandBox;
 
@@ -65,7 +66,9 @@ final class ListNavigationController {
                 case UP -> moveSelection(view, -1);
                 case DOWN -> moveSelection(view, 1);
                 case RIGHT -> {
-                    if (i + 1 < views.size()) {
+                    // Payments are selectable with the mouse, but are intentionally excluded
+                    // from the left/right keyboard navigation path.
+                    if (i + 1 < PAYMENT_VIEW_INDEX) {
                         views.get(i + 1).requestFocus();
                     }
                 }

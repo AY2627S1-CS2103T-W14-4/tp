@@ -646,6 +646,37 @@ public class MainWindowTest {
     }
 
     @Test
+    public void rightArrowFromGigList_doesNotFocusPayments() throws Exception {
+        MainWindow mainWindow = callOnJavaFxThread(() -> {
+            MainWindow window = new MainWindow(new Stage(), new LogicStub(), Path.of("data.json"));
+            window.show();
+            window.fillInnerParts();
+            return window;
+        });
+
+        try {
+            callOnJavaFxThread(() -> {
+                var gigs = mainWindow.getGigListPanel().getGigListView();
+                var payments = mainWindow.getPaymentObligationListPanel().getPaymentListView();
+                mainWindow.getRoot().getScene().lookup("#commandTextField").requestFocus();
+                pressKey(mainWindow, KeyCode.TAB);
+                pressKey(mainWindow, KeyCode.RIGHT);
+                assertTrue(gigs.isFocused());
+
+                pressKey(mainWindow, KeyCode.RIGHT);
+                assertTrue(gigs.isFocused());
+                assertTrue(!payments.isFocused());
+                return null;
+            });
+        } finally {
+            callOnJavaFxThread(() -> {
+                mainWindow.getPrimaryStage().hide();
+                return null;
+            });
+        }
+    }
+
+    @Test
     public void tabOutsideNavigation_doesNotTraverseFocus() throws Exception {
         MainWindow mainWindow = callOnJavaFxThread(() -> {
             MainWindow window = new MainWindow(new Stage(), new LogicStub(), Path.of("data.json"));
