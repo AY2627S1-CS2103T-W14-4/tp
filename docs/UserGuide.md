@@ -158,6 +158,10 @@ When an index is wrong, the error message tells you what kind of mistake it is:
 * An index larger than the displayed list, such as `delete 99`, shows that the index is invalid, for example
   `The client index provided is invalid.`
 
+Validation errors for gig titles, statuses, deadlines, and fees also show the rejected value to help identify a typo.
+The displayed value is limited to 80 characters, and control characters are replaced so they do not disrupt the
+message.
+
 ### Viewing gigs and payment obligations
 
 Select a client in the client list to show only that client's gigs in the **Gigs** panel. Select a gig to show only
