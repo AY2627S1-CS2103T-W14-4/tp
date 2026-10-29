@@ -109,9 +109,9 @@ public class GigListPanel extends UiPart<Region> {
                 }
 
                 String overdue = isOverdue(gig) ? "    OVERDUE" : "";
-                setText(String.format("%s%nClient: %s%nStatus: %s    Deadline: %s%s    Fee: $%s",
+                setText(String.format("%s%nClient: %s%nStatus: %s    Deadline: %s%s    Fee: %s",
                         gig.getTitle(), gig.getClient().getName(), gig.getStatus(),
-                        gig.getDeadline(), overdue, gig.getAgreedFee()));
+                        gig.getDeadline(), overdue, gig.getAgreedFee().toDisplayString()));
             }
         };
         cell.setWrapText(true);
