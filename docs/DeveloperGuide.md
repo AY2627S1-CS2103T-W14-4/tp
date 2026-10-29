@@ -1271,7 +1271,7 @@ Start each test in this section from a fresh test folder.
 
 1. **Edit a client**
    1. Test case: `find Jamie`, followed by `edit 1 p/87654321 t/priority`.<br>
-      Expected: The complete client list is displayed again. Jamie's phone changes to `87654321`, and `priority`
+      Expected: The client list remains filtered to Jamie. Jamie's phone changes to `87654321`, and `priority`
       replaces the existing tags.
 
 1. **Find and list clients**

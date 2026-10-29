@@ -539,6 +539,8 @@ Format: `edit INDEX [n/NAME] [p/PHONE] [e/EMAIL] [a/ADDRESS] [t/TAG]... `
 * Edits the client at the specified `INDEX`. The index refers to the index number shown in the displayed client list. The index **must be a positive integer** 1, 2, 3, ...
 * At least one of the optional fields must be provided.
 * Existing values will be updated to the input values.
+* The active client filter stays in place. A rename that no longer matches the filter removes the client from
+  the results; if that client was selected, its gig and payment views clear.
 * A new phone number follows the same rules as in [`add`](#adding-a-client-add).
 * When editing tags, all of the client's existing tags are removed; adding tags is not cumulative.
   Each tag follows the same rules as in [`add`](#adding-a-client-add).

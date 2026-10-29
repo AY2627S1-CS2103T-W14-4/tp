@@ -75,6 +75,44 @@ public class MainWindowTest {
     }
 
     @Test
+    public void editClientCommand_renameOutOfFilter_clearsSelectionAndGigs() throws Exception {
+        Model model = new ModelManager();
+        model.addClient(ALICE);
+        model.addClient(BENSON);
+        model.addGig(ALICE_GIG);
+        Logic logic = new LogicManager(model, new StorageManager(
+                new JsonGigabyteDataStorage(temporaryFolder.resolve("edit-filter-data.json")),
+                new JsonUserPrefsStorage(temporaryFolder.resolve("edit-filter-preferences.json"))));
+        MainWindow window = callOnJavaFxThread(() -> {
+            MainWindow mainWindow = new MainWindow(new Stage(), logic,
+                    temporaryFolder.resolve("edit-filter-data.json"));
+            mainWindow.fillInnerParts();
+            return mainWindow;
+        });
+
+        try {
+            callOnJavaFxThread(() -> {
+                enterCommand(window, "find Alice");
+                ListView<Client> clientListView = window.getClientListPanel().getClientListView();
+                clientListView.getSelectionModel().select(0);
+                assertEquals(List.of(ALICE_GIG), window.getGigListPanel().getGigListView().getItems());
+
+                enterCommand(window, "edit 1 n/Amelia Pauline");
+
+                assertTrue(clientListView.getItems().isEmpty());
+                assertNull(clientListView.getSelectionModel().getSelectedItem());
+                assertTrue(window.getGigListPanel().getGigListView().getItems().isEmpty());
+                return null;
+            });
+        } finally {
+            callOnJavaFxThread(() -> {
+                window.getPrimaryStage().hide();
+                return null;
+            });
+        }
+    }
+
+    @Test
     public void gigAndPaymentCommands_switchViewsAndPreserveClientWorkflow() throws Exception {
         Model model = new ModelManager();
         model.addClient(ALICE);
