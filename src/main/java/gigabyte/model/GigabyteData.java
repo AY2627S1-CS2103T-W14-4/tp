@@ -135,8 +135,18 @@ public class GigabyteData implements ReadOnlyGigabyteData {
                 paymentObligations);
 
         clients.setClient(target, editedClient);
-        gigs.setAll(replacementGigs);
-        paymentObligations.setAll(replacementObligations);
+        // Replace only this client's linked rows so unrelated selections keep their stored objects.
+        for (int index = 0; index < gigs.size(); index++) {
+            if (gigs.get(index) != replacementGigs.get(index)) {
+                gigs.set(index, replacementGigs.get(index));
+            }
+        }
+        for (int index = 0; index < paymentObligations.size(); index++) {
+            PaymentObligation replacement = replacementObligations.get(index);
+            if (paymentObligations.get(index).getGig() != replacement.getGig()) {
+                paymentObligations.set(index, replacement);
+            }
+        }
     }
 
     /**

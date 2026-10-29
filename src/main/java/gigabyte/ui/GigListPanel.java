@@ -38,7 +38,11 @@ public class GigListPanel extends UiPart<Region> {
     private static final String NO_DEADLINES = "There are no active gig deadlines.";
     private final FilteredList<Gig> filteredGigs;
     private final Clock clock;
+    private final Consumer<Gig> gigSelectionHandler;
     private final PauseTransition deadlineRefreshTimer = new PauseTransition();
+    private Gig selectionBeforeUpdate;
+    private Gig reportedSelection;
+    private boolean isUpdatingGigs;
     private Client selectedClient;
     private GigStatus selectedStatus;
     private boolean isShowingDeadlineOverview;
@@ -59,12 +63,11 @@ public class GigListPanel extends UiPart<Region> {
     GigListPanel(ObservableList<Gig> gigs, Consumer<Gig> gigSelectionHandler, Clock clock) {
         super("GigListPanel.fxml", new BorderPane());
         this.clock = clock;
-        // Clear deleted selections before the filtered/sorted lists can select a neighboring gig.
+        this.gigSelectionHandler = gigSelectionHandler;
+        // Capture the selected identity before the filtered/sorted lists process the source change.
         gigs.addListener((ListChangeListener<Gig>) change -> {
-            Gig selected = gigListView.getSelectionModel().getSelectedItem();
-            if (selected != null && gigs.stream().noneMatch(gig -> gig.hasSameUid(selected))) {
-                gigListView.getSelectionModel().clearSelection();
-            }
+            selectionBeforeUpdate = gigListView.getSelectionModel().getSelectedItem();
+            isUpdatingGigs = true;
         });
         filteredGigs = new FilteredList<>(gigs, gig -> false);
         SortedList<Gig> sortedGigs = new SortedList<>(filteredGigs);
@@ -87,17 +90,48 @@ public class GigListPanel extends UiPart<Region> {
             cell.prefWidthProperty().bind(view.widthProperty().subtract(20));
             return cell;
         });
-        // Listen to the selected row rather than the selected item. Two separate gigs may have
-        // identical display fields, and Gig.equals intentionally ignores the stable UID. In that
-        // case JavaFX can suppress an item change even though the user selected a different row.
+        // Row changes detect field-identical gigs; item changes detect a replacement at the same row.
         gigListView.getSelectionModel().selectedIndexProperty().addListener((observable, oldIndex, newIndex) ->
-                gigSelectionHandler.accept(newIndex.intValue() < 0
-                        ? null : gigListView.getItems().get(newIndex.intValue())));
+                notifyGigSelection());
+        gigListView.getSelectionModel().selectedItemProperty().addListener((observable, oldGig, newGig) ->
+                notifyGigSelection());
+        // Register after the transformations so restoration sees the final visible order. Intermediate
+        // selections made by JavaFX must not switch the payment panel to a neighboring gig.
+        gigs.addListener((ListChangeListener<Gig>) change -> {
+            restoreGigSelection();
+            isUpdatingGigs = false;
+            notifyGigSelection();
+        });
         // A blank hint gives its height to the list, which matters in short windows.
         emptyState.managedProperty().bind(emptyState.textProperty().isNotEmpty());
         updateEmptyState();
         filteredGigs.addListener((javafx.collections.ListChangeListener<Gig>) change -> updateEmptyState());
         Platform.runLater(this::scheduleDeadlineRefresh);
+    }
+
+    private void restoreGigSelection() {
+        if (selectionBeforeUpdate != null) {
+            for (int index = 0; index < gigListView.getItems().size(); index++) {
+                if (gigListView.getItems().get(index).hasSameUid(selectionBeforeUpdate)) {
+                    gigListView.getSelectionModel().clearAndSelect(index);
+                    return;
+                }
+            }
+        }
+        gigListView.getSelectionModel().clearSelection();
+    }
+
+    private void notifyGigSelection() {
+        if (isUpdatingGigs) {
+            return;
+        }
+        int index = gigListView.getSelectionModel().getSelectedIndex();
+        Gig selected = index < 0 ? null : gigListView.getItems().get(index);
+        if (selected == null ? reportedSelection != null
+                : reportedSelection == null || !selected.hasSameUid(reportedSelection)) {
+            reportedSelection = selected;
+            gigSelectionHandler.accept(selected);
+        }
     }
 
     /** Displays only the gigs belonging to {@code client}. */
