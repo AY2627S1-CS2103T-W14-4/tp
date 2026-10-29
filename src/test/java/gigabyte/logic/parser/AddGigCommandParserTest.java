@@ -82,6 +82,9 @@ public class AddGigCommandParserTest {
         // EP: empty title
         assertParseFailure(parser, "1 t/ s/NOT_STARTED d/2027-01-31 f/100", GigTitle.MESSAGE_CONSTRAINTS);
 
+        // EP: title of only non-breaking spaces
+        assertParseFailure(parser, "1 t/\u00A0 s/NOT_STARTED d/2027-01-31 f/100", GigTitle.MESSAGE_CONSTRAINTS);
+
         // EP: title longer than 100 characters
         assertParseFailure(parser, "1 t/" + "a".repeat(101) + " s/NOT_STARTED d/2027-01-31 f/100",
                 GigTitle.MESSAGE_CONSTRAINTS); // Boundary value
