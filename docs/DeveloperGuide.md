@@ -341,13 +341,23 @@ command's successful result is not returned to the UI, but any changes already m
 there is no rollback. After the write problem is resolved, the next successful command and save persist the current
 model, including those earlier unsaved changes.
 
-`FileUtil#writeToFile` writes directly to the destination file. There is no temporary-file replacement or automatic
-backup, so a failed write does not guarantee that the previous file contents remain intact.
+`FileUtil#writeToFile` writes directly to the destination file without temporary-file replacement or a backup before
+each save, so a failed write does not guarantee that the previous file contents remain intact.
 
 At startup, a missing data file causes `MainApp` to use sample data. A malformed JSON file or a validation failure
-reported as `DataLoadingException` is logged and causes the app to start with empty data. Loading itself does not
-overwrite that file, but the next successful save, even after `list`, replaces it with the current model. Preserve
-the original file before running commands when investigating a load failure.
+reported as `DataLoadingException` causes `MainApp` to request a backup through `Storage#backupGigabyteData` before
+starting with empty data. `JsonGigabyteDataStorage` copies the original bytes to the first available sibling path
+`<filename>_backup-N`, starting at 1 (for example, `gigabyte.json_backup-1`). The copy never replaces an existing
+file or directory; a filename collision advances to the next number. The original file is not changed at startup.
+`MainApp` passes a warning and the backup path through `UiManager` to the main window's command result area.
+After a successful backup, the next successful save, even after `list`, replaces the original with the current
+model while preserving the backup.
+
+If the backup fails, storage blocks data saves and the startup warning explains how to recover. `LogicManager`
+rejects commands before they change the model; only `help` and `exit` are allowed, and these skip saving in this
+state. Users must close the app, back up or repair the original file and resolve the backup failure, then restart.
+The storage write guard also prevents direct saves from overwriting the unprotected original. Backups are retained
+for manual recovery; they are not automatically repaired or restored.
 
 GUI preferences are saved separately during initialization and shutdown. If `preferences.json` is missing, malformed,
 has `"guiSettings": null`, or contains a GUI-setting value of the wrong type, `MainApp` starts with default window
@@ -1689,8 +1699,9 @@ Use a disposable fresh sample-data folder for each test. Deletion is permanent a
       collection at `data/addressbook.json`; ensure `data/gigabyte.json` is absent. Keep an untouched backup.
       Relaunch the JAR.<br>
       Expected for the current release candidate: the file is moved to `data/gigabyte.json` without conversion,
-      loading fails, and the app starts with an empty client list. The moved file is unchanged until a successful
-      command saves data. This is a release compatibility gap if v1.3 data loading is required.
+      loading fails, and the app starts with empty data and a warning naming the numbered backup. Both the moved
+      file and the backup retain the original contents until a successful command replaces the moved file.
+      This is a release compatibility gap if v1.3 data loading is required.
    1. Close the window without entering a command and compare the moved file with the backup.<br>
       Expected: They are byte-for-byte identical. A separate test with current-format JSON in
       `data/addressbook.json` loads successfully after the filename move.
@@ -1702,9 +1713,18 @@ Use a disposable fresh sample-data folder for each test. Deletion is permanent a
 
 1. **Corrupted data file**
    1. Close the app, back up `data/gigabyte.json`, replace its contents with `{not valid json`, and relaunch.<br>
-      Expected: Gigabyte starts with an empty client list because the existing file could not be read.
+      Expected: Gigabyte starts with no clients, gigs, or payments. The command result area warns that loading
+      failed and names `data/gigabyte.json_backup-1` (or the first available numbered name). Both the original
+      file and the new backup contain exactly `{not valid json`.
    1. Test case: `list`.<br>
-      Expected: The command succeeds with the empty list and overwrites the corrupted file with valid empty data.
+      Expected: The command succeeds with the empty list and overwrites `data/gigabyte.json` with valid empty
+      data. The numbered backup still contains the corrupted contents.
+   1. Close the app, corrupt `data/gigabyte.json` again, leave the existing backup in place, and relaunch.<br>
+      Expected: A new backup uses the next available number. Existing backups remain unchanged.
+   1. In a disposable test folder, close the app and replace `data/gigabyte.json` with a directory of the same
+      name, then relaunch.<br>
+      Expected: The warning says that backup failed and saving is disabled. `list` and `add` are rejected
+      without changing the model or the original path. `help` and `exit` still work without saving.
 
 ### Complete end-to-end workflow
 

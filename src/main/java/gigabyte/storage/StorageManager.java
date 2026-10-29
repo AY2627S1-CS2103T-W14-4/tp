@@ -59,6 +59,16 @@ public class StorageManager implements Storage {
     }
 
     @Override
+    public Path backupGigabyteData() throws IOException {
+        return gigabyteDataStorage.backupGigabyteData();
+    }
+
+    @Override
+    public boolean isDataSavingBlocked() {
+        return gigabyteDataStorage.isDataSavingBlocked();
+    }
+
+    @Override
     public void saveGigabyteData(ReadOnlyGigabyteData gigabyteData) throws IOException {
         logger.fine("Attempting to write to data file: " + gigabyteDataStorage.getGigabyteDataFilePath());
         gigabyteDataStorage.saveGigabyteData(gigabyteData);

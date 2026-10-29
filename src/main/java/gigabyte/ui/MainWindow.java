@@ -152,6 +152,13 @@ public class MainWindow extends UiPart<Stage> {
     }
 
     /**
+     * Shows a startup warning in the command result area after the inner parts have been initialized.
+     */
+    void showStartupMessage(String message) {
+        resultDisplay.setFeedbackToUser(message);
+    }
+
+    /**
      * Sets the default size based on {@code guiSettings}.
      */
     private void setWindowDefaultSize(GuiSettings guiSettings) {

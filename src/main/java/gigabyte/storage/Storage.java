@@ -48,6 +48,19 @@ public interface Storage {
     Optional<ReadOnlyGigabyteData> readGigabyteData() throws DataLoadingException;
 
     /**
+     * Backs up the data file without overwriting existing backups. If this fails, data saves are blocked.
+     *
+     * @return the path of the completed backup.
+     * @throws IOException if the backup cannot be created.
+     */
+    Path backupGigabyteData() throws IOException;
+
+    /**
+     * Returns whether saving is blocked because the unreadable data file has not been backed up.
+     */
+    boolean isDataSavingBlocked();
+
+    /**
      * Saves the given {@link ReadOnlyGigabyteData} to the storage.
      * @param gigabyteData cannot be null.
      * @throws IOException if there was any problem writing to the file.
