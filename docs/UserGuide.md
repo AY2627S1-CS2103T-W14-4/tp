@@ -291,6 +291,8 @@ Format: `editgig CLIENT_INDEX GIG_INDEX [t/TITLE] [d/DEADLINE] [f/FEE]`
   edits that would leave the gig unchanged are rejected without changing records.
 * Client and status views refresh immediately. Changing a deadline reorders the deadline overview; changing a title
   can also change the order when deadlines are equal. Both indexes are resolved before the edit is applied.
+* A selected gig stays selected when its row moves, and its payments remain visible. If an edited title no longer
+  matches the current title search, the gig leaves the results and its selection and payment view clear.
 
 Examples: `editgig 1 2 t/Updated landing page`, `editgig 1 2 d/2027-04-30 f/1800.00`.
 After `find Bernice`, `editgig 1 1 t/Revised branding` edits the first matching client's first gig.
@@ -541,6 +543,9 @@ Format: `edit INDEX [n/NAME] [p/PHONE] [e/EMAIL] [a/ADDRESS] [t/TAG]... `
 * Edits the client at the specified `INDEX`. The index refers to the index number shown in the displayed client list. The index **must be a positive integer** 1, 2, 3, ...
 * At least one of the optional fields must be provided.
 * Existing values will be updated to the input values.
+* The active client filter stays in place. Contact edits preserve the selected gig and its payment view, including
+  when editing another client. A rename that no longer matches the filter removes the client from the results;
+  if that client was selected, its gig and payment views clear.
 * A new phone number follows the same rules as in [`add`](#adding-a-client-add).
 * When editing tags, all of the client's existing tags are removed; adding tags is not cumulative.
   Each tag follows the same rules as in [`add`](#adding-a-client-add).

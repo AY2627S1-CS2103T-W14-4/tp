@@ -5,7 +5,6 @@ import static gigabyte.logic.parser.CliSyntax.PREFIX_EMAIL;
 import static gigabyte.logic.parser.CliSyntax.PREFIX_NAME;
 import static gigabyte.logic.parser.CliSyntax.PREFIX_PHONE;
 import static gigabyte.logic.parser.CliSyntax.PREFIX_TAG;
-import static gigabyte.model.Model.PREDICATE_SHOW_ALL_CLIENTS;
 import static java.util.Objects.requireNonNull;
 
 import java.util.Collections;
@@ -91,7 +90,6 @@ public class EditClientCommand extends Command {
         String sharedContactNotes = Messages.formatSharedContactNotes(editedClient,
                 model.getGigabyteData().getClientList());
         model.setClient(clientToEdit, editedClient);
-        model.updateFilteredClientList(PREDICATE_SHOW_ALL_CLIENTS);
         return new CommandResult(String.format(MESSAGE_EDIT_CLIENT_SUCCESS, Messages.format(editedClient))
                 + sharedContactNotes);
     }

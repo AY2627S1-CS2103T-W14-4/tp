@@ -350,7 +350,8 @@ Each `Client` and `Gig` has an immutable UUID. A `Gig` holds the canonical `Clie
 `gigUid`, avoiding ambiguous links when clients or gigs have equal display fields.
 
 When a client is edited, `GigabyteData#setClient` rebuilds that client's immutable gigs with `Gig#withClient` and then
-relinks payment obligations to the replacement gig objects. `Gig#withClient` preserves the gig UUID and title, so
+relinks payment obligations to the replacement gig objects. Only affected rows are replaced in the observable lists,
+preserving unrelated stored objects and selections. `Gig#withClient` preserves the gig UUID and title, so
 editing contact details does not break payment links or discard gig information. During loading, storage resolves
 `clientUid` and `gigUid` against the saved UUIDs and rejects missing or invalid references.
 
@@ -453,6 +454,11 @@ Payment amounts are stored separately from the gig's agreed fee, so changing the
 payment. The gig views observe the gig list, so the selected client's gigs, status results, title search results, and
 the deadline overview update immediately. `setstatus` uses the same `Model#setGig` path, with `Gig#withStatus` creating
 the replacement.
+
+`GigListPanel` captures the selected gig before its source list changes and restores its selection by UUID after
+filtering and sorting finish. Intermediate row changes do not switch the payment view. A deleted gig or one that
+leaves the active filter clears its selection and payments. `ClientListPanel` treats replacement details with the
+same client UUID as the same selection, preserving the current gig view during contact edits.
 
 #### Design considerations:
 
@@ -1196,9 +1202,11 @@ Start each numbered test from a fresh test folder. Client and gig indexes use th
 and the selected client's normal recorded gig order, even while an overview is open.
 
 1. **Edit details and reorder the deadline view**
-   1. Test case: `deadlines`, then `editgig 1 2 t/Revised photography d/2026-10-01 f/1350`.<br>
-      Expected: Alex's second gig retains its UID, `NOT_STARTED` status, and `$1,200.00` payment. The deadline
-      overview refreshes without another `deadlines` command; the revised gig moves to the first row.
+   1. Test case: `deadlines`, select Alex's second gig, then
+      `editgig 1 2 t/Revised photography d/2026-10-01 f/1350`.<br>
+      Expected: Alex's second gig retains its UID, `NOT_STARTED` status, and `$1200.00` payment. The deadline
+      overview refreshes without another `deadlines` command; the revised gig moves to the first row and stays
+      selected, with its payment still visible.
    1. Test case: `find Alex`, then `editgig 1 2 d/2027-12-01`.<br>
       Expected: The same gig's deadline changes again while the filtered client list remains Alex only.
       Select Alex and his second gig: its payment remains linked and unchanged.
@@ -1275,7 +1283,7 @@ Start each test in this section from a fresh test folder.
 
 1. **Edit a client**
    1. Test case: `find Jamie`, followed by `edit 1 p/87654321 t/priority`.<br>
-      Expected: The complete client list is displayed again. Jamie's phone changes to `87654321`, and `priority`
+      Expected: The client list remains filtered to Jamie. Jamie's phone changes to `87654321`, and `priority`
       replaces the existing tags.
 
 1. **Find and list clients**
