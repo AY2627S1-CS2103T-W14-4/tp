@@ -40,13 +40,15 @@ public class CommandParserTestUtil {
             parser.parse(userInput);
             throw new AssertionError("The expected ParseException was not thrown.");
         } catch (ParseException pe) {
-            if (expectedMessage.equals(Deadline.MESSAGE_CONSTRAINTS)
-                    || expectedMessage.equals(GigStatus.MESSAGE_CONSTRAINTS)) {
-                // Most parser cases assert the validation category; dedicated regression cases assert the exact value.
-                assertTrue(pe.getMessage().startsWith(expectedMessage + " (rejected value: '"));
-            } else {
-                assertEquals(expectedMessage, pe.getMessage());
-            }
+            assertValidationMessage(expectedMessage, pe.getMessage());
         }
+    }
+
+    private static void assertValidationMessage(String expectedMessage, String actualMessage) {
+        if (actualMessage.startsWith(expectedMessage + " (rejected value: '") && actualMessage.endsWith("')")) {
+            assertTrue(actualMessage.length() <= expectedMessage.length() + 110);
+            return;
+        }
+        assertEquals(expectedMessage, actualMessage);
     }
 }

@@ -3,18 +3,13 @@ package gigabyte.logic.commands;
 import static gigabyte.commons.util.CollectionUtil.requireAllNonNull;
 import static java.util.Objects.requireNonNull;
 
-import java.util.List;
-
 import gigabyte.commons.core.index.Index;
 import gigabyte.commons.util.ToStringBuilder;
-import gigabyte.logic.Messages;
 import gigabyte.logic.commands.exceptions.CommandException;
 import gigabyte.model.Model;
 import gigabyte.model.client.Client;
 import gigabyte.model.gig.Gig;
-import gigabyte.model.gig.GigOrdering;
 import gigabyte.model.gig.PaymentObligation;
-import gigabyte.model.gig.PaymentObligationOrdering;
 
 /** Marks a payment obligation as unpaid using the displayed client, gig, and payment indexes. */
 public class MarkPaymentUnpaidCommand extends Command {
@@ -44,24 +39,9 @@ public class MarkPaymentUnpaidCommand extends Command {
     @Override
     public CommandResult execute(Model model) throws CommandException {
         requireNonNull(model);
-        List<Client> clients = model.getFilteredClientList();
-        if (clientIndex.getZeroBased() >= clients.size()) {
-            throw new CommandException(Messages.MESSAGE_INVALID_CLIENT_DISPLAYED_INDEX);
-        }
-
-        Client client = clients.get(clientIndex.getZeroBased());
-        List<Gig> gigs = GigOrdering.forClient(model.getGigList(), client);
-        if (gigIndex.getZeroBased() >= gigs.size()) {
-            throw new CommandException(Messages.MESSAGE_INVALID_GIG_INDEX);
-        }
-
-        Gig gig = gigs.get(gigIndex.getZeroBased());
-        List<PaymentObligation> payments = PaymentObligationOrdering.forGig(model.getPaymentObligationList(), gig);
-        if (paymentIndex.getZeroBased() >= payments.size()) {
-            throw new CommandException(Messages.MESSAGE_INVALID_PAYMENT_INDEX);
-        }
-
-        PaymentObligation payment = payments.get(paymentIndex.getZeroBased());
+        Client client = CommandUtil.getClient(model, clientIndex);
+        Gig gig = CommandUtil.getGig(model, client, gigIndex);
+        PaymentObligation payment = CommandUtil.getPaymentObligation(model, gig, paymentIndex);
         if (!payment.isPaid()) {
             throw new CommandException(MESSAGE_ALREADY_UNPAID);
         }

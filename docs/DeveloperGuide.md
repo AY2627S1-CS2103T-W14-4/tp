@@ -175,6 +175,8 @@ How the parsing works:
 * Some prefixes are shared by different commands (e.g., `t/` is a tag for `add` but a title for `addgig`, and `a/` is
   an address for `add` but an amount for `addpayment`). Each `XYZCommandParser` passes only the prefixes it accepts
   to `ArgumentTokenizer`, so the meaning of a prefix depends on the command being parsed.
+* `ParserUtil` reports the rejected value with title, status, deadline, and fee constraint errors. It caps the
+  displayed value at 80 characters and replaces control characters before including it in the message.
 * `summary`, `list`, `clear`, `help`, and `exit` have no parser class: `GigabyteParser` creates these commands
   directly and ignores any arguments. `deadlines` and `outstanding` are also created directly, but `GigabyteParser`
   rejects any arguments supplied to them. Overview commands return `CommandResult` view instructions that `MainWindow` applies
@@ -210,6 +212,8 @@ The `Model` component,
 * defines the order in which a client's gigs and a gig's payment obligations are numbered, through the
   `GigOrdering` and `PaymentObligationOrdering` utility classes. Commands and the UI both use these classes, so a
   displayed index always refers to the same object in both places.
+* uses `CommandUtil` in indexed commands to resolve the displayed client, its gig, and that gig's payment obligation.
+  The helper centralizes out-of-range checks and delegates gig and payment list ordering to the ordering utilities.
 * stores a `UserPrefs` object that represents the user’s preferences (currently, just the GUI settings). This is exposed to the outside as a `ReadOnlyUserPrefs` object.
 * does not depend on any of the other three components (as the `Model` represents data entities of the domain, they should make sense on their own without depending on other components)
 
@@ -1566,10 +1570,12 @@ Start each test in this section from a fresh test folder unless the test says ot
    1. With the command box focused, press Tab, then Down and Up.<br>
       Expected: The first client is selected on Tab; the selected client then changes and the gig list follows the
       selection without moving keyboard focus.
-   1. Press Right, Down, Right, Down, then Left twice.<br>
-      Expected: Focus moves through gigs and payment obligations, selects a row in each, then returns to clients.
-   1. Press Right twice to reach payment obligations, then Tab, type `list`, and press Tab again.<br>
-      Expected: Focus moves to the command box, retains the text, then moves to the client list.
+   1. Press Right, then Right again from Gigs.<br>
+      Expected: The first Right moves focus to Gigs; the second leaves focus on Gigs and does not focus Payment
+      obligations.
+   1. Click a payment row, press Left, then Tab, type `list`, and press Tab again.<br>
+      Expected: Left moves focus from Payment obligations to Gigs; Tab moves to the command box, retains the text,
+      then moves to the client list.
 
 1. **Usability at the supported scaled viewport**
    1. Set the display resolution to 1280×720 and display scaling to 150%, then launch the JAR.<br>

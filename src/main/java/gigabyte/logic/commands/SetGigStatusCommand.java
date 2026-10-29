@@ -3,11 +3,8 @@ package gigabyte.logic.commands;
 import static gigabyte.commons.util.CollectionUtil.requireAllNonNull;
 import static java.util.Objects.requireNonNull;
 
-import java.util.List;
-
 import gigabyte.commons.core.index.Index;
 import gigabyte.commons.util.ToStringBuilder;
-import gigabyte.logic.Messages;
 import gigabyte.logic.commands.exceptions.CommandException;
 import gigabyte.model.Model;
 import gigabyte.model.client.Client;
@@ -41,19 +38,8 @@ public class SetGigStatusCommand extends Command {
     @Override
     public CommandResult execute(Model model) throws CommandException {
         requireNonNull(model);
-        List<Client> clients = model.getFilteredClientList();
-        if (clientIndex.getZeroBased() >= clients.size()) {
-            throw new CommandException(Messages.MESSAGE_INVALID_CLIENT_DISPLAYED_INDEX);
-        }
-
-        Client client = clients.get(clientIndex.getZeroBased());
-        List<Gig> gigs = model.getGigList().stream()
-                .filter(gig -> gig.getClient().hasSameUid(client)).toList();
-        if (gigIndex.getZeroBased() >= gigs.size()) {
-            throw new CommandException(Messages.MESSAGE_INVALID_GIG_INDEX);
-        }
-
-        Gig targetGig = gigs.get(gigIndex.getZeroBased());
+        Client client = CommandUtil.getClient(model, clientIndex);
+        Gig targetGig = CommandUtil.getGig(model, client, gigIndex);
         if (targetGig.getStatus() == status) {
             throw new CommandException(String.format(MESSAGE_STATUS_UNCHANGED, status));
         }

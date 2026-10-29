@@ -158,6 +158,10 @@ When an index is wrong, the error message tells you what kind of mistake it is:
 * An index larger than the displayed list, such as `delete 99`, shows that the index is invalid, for example
   `The client index provided is invalid.`
 
+Validation errors for gig titles, statuses, deadlines, and fees also show the rejected value to help identify a typo.
+The displayed value is limited to 80 characters, and control characters are replaced so they do not disrupt the
+message.
+
 ### Viewing gigs and payment obligations
 
 Select a client in the client list to show only that client's gigs in the **Gigs** panel. Select a gig to show only
@@ -167,9 +171,10 @@ recorded. These displayed payment indexes restart from 1 for each selected gig; 
 `markunpaid` use them. `editpayment` resolves the selected payment before applying a due-date change that might move
 the payment to a new displayed position.
 
-When a list has keyboard focus, use **Up** and **Down** to select entries. **Right** moves focus from clients to gigs
-or from gigs to payment obligations; **Left** moves back one list. Press **Tab** from any list to focus the
-command box; press **Tab** from the command box to focus Clients. When a list gains focus with no selected row,
+When a list has keyboard focus, use **Up** and **Down** to select entries. **Right** moves focus from Clients to Gigs;
+it does not move focus to Payment obligations. **Left** moves back one list, including from Payment obligations to
+Gigs if Payments was focused by clicking it. Press **Tab** from any list to focus the command box; press **Tab** from
+the command box to focus Clients. When a list gains focus with no selected row,
 its first row is selected automatically if it has one. Selecting an entry keeps focus in its list so you can continue
 browsing.
 

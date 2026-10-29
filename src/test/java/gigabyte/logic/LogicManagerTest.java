@@ -569,7 +569,16 @@ public class LogicManagerTest {
      * @see #assertCommandFailure(String, Class, String, Model)
      */
     private void assertParseException(String inputCommand, String expectedMessage) {
-        assertCommandFailure(inputCommand, ParseException.class, expectedMessage);
+        Model expectedModel = new ModelManager(model.getGigabyteData(), new UserPrefs());
+        ParseException exception = org.junit.jupiter.api.Assertions.assertThrows(
+                ParseException.class, () -> logic.execute(inputCommand));
+        String actualMessage = exception.getMessage();
+        if (actualMessage.startsWith(expectedMessage + " (rejected value: '") && actualMessage.endsWith("')")) {
+            assertTrue(actualMessage.length() <= expectedMessage.length() + 110);
+        } else {
+            assertEquals(expectedMessage, actualMessage);
+        }
+        assertEquals(expectedModel, model);
     }
 
     /**

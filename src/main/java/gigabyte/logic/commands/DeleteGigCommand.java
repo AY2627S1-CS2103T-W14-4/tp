@@ -3,16 +3,12 @@ package gigabyte.logic.commands;
 import static gigabyte.commons.util.CollectionUtil.requireAllNonNull;
 import static java.util.Objects.requireNonNull;
 
-import java.util.List;
-
 import gigabyte.commons.core.index.Index;
 import gigabyte.commons.util.ToStringBuilder;
-import gigabyte.logic.Messages;
 import gigabyte.logic.commands.exceptions.CommandException;
 import gigabyte.model.Model;
 import gigabyte.model.client.Client;
 import gigabyte.model.gig.Gig;
-import gigabyte.model.gig.GigOrdering;
 import gigabyte.model.gig.exceptions.GigHasPaymentsException;
 
 /**
@@ -42,16 +38,8 @@ public class DeleteGigCommand extends Command {
     @Override
     public CommandResult execute(Model model) throws CommandException {
         requireNonNull(model);
-        List<Client> clients = model.getFilteredClientList();
-        if (clientIndex.getZeroBased() >= clients.size()) {
-            throw new CommandException(Messages.MESSAGE_INVALID_CLIENT_DISPLAYED_INDEX);
-        }
-        Client client = clients.get(clientIndex.getZeroBased());
-        List<Gig> gigs = GigOrdering.forClient(model.getGigList(), client);
-        if (gigIndex.getZeroBased() >= gigs.size()) {
-            throw new CommandException(Messages.MESSAGE_INVALID_GIG_INDEX);
-        }
-        Gig target = gigs.get(gigIndex.getZeroBased());
+        Client client = CommandUtil.getClient(model, clientIndex);
+        Gig target = CommandUtil.getGig(model, client, gigIndex);
         try {
             model.deleteGig(target);
         } catch (GigHasPaymentsException exception) {
