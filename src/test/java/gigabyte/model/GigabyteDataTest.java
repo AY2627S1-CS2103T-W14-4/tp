@@ -72,6 +72,31 @@ public class GigabyteDataTest {
     }
 
     @Test
+    public void resetData_withUnknownPaymentGig_rejectsWithoutChangingStoredRecords() {
+        gigabyteData.addClient(ALICE);
+        Gig gig = new Gig(ALICE, TITLE, GigStatus.NOT_STARTED, new Deadline("2027-01-31"), new Fee("100"));
+        gigabyteData.addGig(gig);
+        gigabyteData.addPaymentObligation(new PaymentObligation(gig, new Fee("50"),
+                new Deadline("2027-02-28"), false));
+        GigabyteData before = new GigabyteData(gigabyteData);
+        Gig storedGig = gigabyteData.getGigList().get(0);
+        PaymentObligation storedPayment = gigabyteData.getPaymentObligationList().get(0);
+        GigabyteDataStub invalid = new GigabyteDataStub(List.of(BENSON)) {
+            @Override
+            public ObservableList<PaymentObligation> getPaymentObligationList() {
+                return FXCollections.observableArrayList(storedPayment);
+            }
+        };
+
+        assertThrows(GigNotFoundException.class, () -> gigabyteData.resetData(invalid));
+
+        assertEquals(before, gigabyteData);
+        assertSame(ALICE, gigabyteData.getClientList().get(0));
+        assertSame(storedGig, gigabyteData.getGigList().get(0));
+        assertSame(storedPayment, gigabyteData.getPaymentObligationList().get(0));
+    }
+
+    @Test
     public void hasClient_nullClient_throwsNullPointerException() {
         assertThrows(NullPointerException.class, () -> gigabyteData.hasClient(null));
     }

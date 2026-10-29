@@ -85,7 +85,7 @@ public class GigabyteData implements ReadOnlyGigabyteData {
     }
 
     /**
-     * Resets this data using {@code newData}.
+     * Resets this data using {@code newData}, validating linked records before replacing stored lists.
      */
     public void resetData(ReadOnlyGigabyteData newData) {
         requireNonNull(newData);
@@ -94,11 +94,12 @@ public class GigabyteData implements ReadOnlyGigabyteData {
         requireUniqueGigUids(newData.getGigList());
         List<Gig> replacementGigs =
                 linkGigsToClients(replacementClients, newData.getGigList());
+        List<PaymentObligation> replacementObligations = linkPaymentObligations(newData.getGigList(), replacementGigs,
+                newData.getPaymentObligationList());
 
         clients.setClients(replacementClients);
         gigs.setAll(replacementGigs);
-        paymentObligations.setAll(linkPaymentObligations(newData.getGigList(), replacementGigs,
-                newData.getPaymentObligationList()));
+        paymentObligations.setAll(replacementObligations);
     }
 
     //// client-level operations
