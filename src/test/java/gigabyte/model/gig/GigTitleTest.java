@@ -24,8 +24,29 @@ public class GigTitleTest {
     }
 
     @Test
-    public void constructor_titleLongerThan100Characters_throwsIllegalArgumentException() {
+    public void constructor_titleLongerThan100CodePoints_throwsIllegalArgumentException() {
         assertThrows(IllegalArgumentException.class, () -> new GigTitle("a".repeat(101))); // Boundary value
+    }
+
+    @Test
+    public void constructor_emojiCountedAsSingleCharacters_accepts100CodePoints() {
+        String titleValue = "😀".repeat(100);
+
+        assertEquals(titleValue, new GigTitle(titleValue).toString());
+    }
+
+    @Test
+    public void constructor_titleExceeding100CodePoints_rejectsEmojiTitle() {
+        assertThrows(IllegalArgumentException.class, () -> new GigTitle("😀".repeat(101)));
+    }
+
+    @Test
+    public void isValidTitle_skinToneEmojiCountedAsTwoCodePoints() {
+        String titleAtLimit = "👍🏽".repeat(50);
+        String titleOverLimit = "👍🏽".repeat(51);
+
+        assertTrue(GigTitle.isValidTitle(titleAtLimit));
+        assertFalse(GigTitle.isValidTitle(titleOverLimit));
     }
 
     @Test
@@ -66,12 +87,13 @@ public class GigTitleTest {
         // EP: only control separators that String#strip removes (regression)
         assertFalse(GigTitle.isValidTitle("\u001C\u001D\u001E\u001F"));
 
-        // EP: title longer than 100 characters
+        // EP: title longer than 100 Unicode code points
         assertFalse(GigTitle.isValidTitle("a".repeat(101))); // Boundary value
 
-        // EP: 1 to 100 characters, should return true
+        // EP: 1 to 100 Unicode code points, should return true
         assertTrue(GigTitle.isValidTitle("a")); // Boundary value
         assertTrue(GigTitle.isValidTitle("a".repeat(100))); // Boundary value
+        assertTrue(GigTitle.isValidTitle("😀".repeat(100))); // Supplementary Unicode characters
         assertTrue(GigTitle.isValidTitle("  Client website: phase 2 (mobile)  ")); // Symbols and surrounding spaces
         assertTrue(GigTitle.isValidTitle("\u00A0" + "a".repeat(100) + "\u00A0")); // Boundary value
     }

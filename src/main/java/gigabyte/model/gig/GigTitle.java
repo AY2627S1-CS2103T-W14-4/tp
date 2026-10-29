@@ -8,11 +8,11 @@ import java.util.regex.Pattern;
 
 /**
  * Represents a short descriptive title for a gig.
- * Guarantees: immutable; normalized with surrounding whitespace removed; contains 1–100 characters.
+ * Guarantees: immutable; normalized with surrounding whitespace removed; contains 1–100 Unicode code points.
  */
 public class GigTitle {
     public static final String MESSAGE_CONSTRAINTS =
-            "Gig titles must contain at least one non-whitespace character and must not exceed 100 characters";
+            "Gig titles must contain at least one non-whitespace character and must not exceed 100 Unicode code points";
 
     private static final int MAX_LENGTH = 100;
 
@@ -45,7 +45,8 @@ public class GigTitle {
             return false;
         }
         String normalizedTitle = normalize(test);
-        return !normalizedTitle.isEmpty() && normalizedTitle.length() <= MAX_LENGTH;
+        return !normalizedTitle.isEmpty()
+                && normalizedTitle.codePointCount(0, normalizedTitle.length()) <= MAX_LENGTH;
     }
 
     /** Returns {@code title} with surrounding whitespace, including non-breaking spaces, removed. */

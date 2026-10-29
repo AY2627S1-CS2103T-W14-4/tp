@@ -247,7 +247,8 @@ Format: `addgig INDEX t/TITLE s/STATUS d/DEADLINE f/FEE`
 
 * `INDEX` is the positive index shown in the current client list, including filtered `find` results.
 * All four fields are required and may appear in any order. Each prefix must appear exactly once.
-* `TITLE` is a short description containing 1–100 characters after leading and trailing whitespace is removed.
+* `TITLE` is a short description containing 1–100 Unicode code points after leading and trailing whitespace is removed.
+  For example, `😀` counts as one code point, while `👍🏽` counts as two because it consists of a base emoji and a skin-tone modifier.
   Non-breaking spaces count as whitespace, so a title made only of them is rejected. Internal spaces and common punctuation are allowed. Titles do not need to be unique.
 * `STATUS` is `NOT_STARTED`, `IN_PROGRESS`, or `COMPLETED` (case-insensitive).
 * `DEADLINE` is a valid calendar date in `yyyy-MM-dd` format.
