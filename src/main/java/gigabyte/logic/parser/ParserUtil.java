@@ -167,7 +167,8 @@ public class ParserUtil {
         try {
             return GigStatus.parse(status);
         } catch (IllegalArgumentException exception) {
-            throw new ParseException(GigStatus.MESSAGE_CONSTRAINTS, exception);
+            throw new ParseException(String.format("%s (rejected value: '%s')",
+                    GigStatus.MESSAGE_CONSTRAINTS, status.trim()), exception);
         }
     }
 
@@ -189,7 +190,8 @@ public class ParserUtil {
         requireNonNull(deadline);
         String trimmedDeadline = deadline.trim();
         if (!Deadline.isValidDeadline(trimmedDeadline)) {
-            throw new ParseException(Deadline.MESSAGE_CONSTRAINTS);
+            throw new ParseException(String.format("%s (rejected value: '%s')",
+                    Deadline.MESSAGE_CONSTRAINTS, trimmedDeadline));
         }
         return new Deadline(trimmedDeadline);
     }
