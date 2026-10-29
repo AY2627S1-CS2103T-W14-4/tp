@@ -35,6 +35,10 @@
   to generate and refine source code for storage and data-file loading,
   and navigation commands. They were also used to generate and extend
   automated tests, and draft documentation.
+* **Axel Heng (`axelheng`)** used **OpenAI Codex and ChatGPT** to assist
+  with source-code development, debugging, test generation, and documentation
+  refinement. The generated suggestions were reviewed, adapted, and validated
+  before being included.
 
 --------------------------------------------------------------------------------------------------------------------
 
