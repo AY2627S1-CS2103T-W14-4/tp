@@ -23,6 +23,15 @@
   packaging), [PlantUML](https://plantuml.com/) (UML diagrams), and [MarkBind](https://markbind.org/) (documentation
   website).
 
+### Notable uses of AI
+
+* **Lim Kerjun (`patientotter`)** used **OpenAI Codex and ChatGPT**
+  extensively to generate and refine source code for gig and payment
+  commands, generate and extend automated tests, and draft documentation
+  and UML diagrams. These tools also assisted with preliminary pull
+  request reviews, debugging implementation and build issues, and
+  developing manual and automated test scenarios.
+
 --------------------------------------------------------------------------------------------------------------------
 
 ## **Setting up, getting started**
