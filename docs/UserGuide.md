@@ -251,6 +251,7 @@ Format: `addgig INDEX t/TITLE s/STATUS d/DEADLINE f/FEE`
   Non-breaking spaces count as whitespace, so a title made only of them is rejected. Internal spaces and common punctuation are allowed. Titles do not need to be unique.
 * `STATUS` is `NOT_STARTED`, `IN_PROGRESS`, or `COMPLETED` (case-insensitive).
 * `DEADLINE` is a valid calendar date in `yyyy-MM-dd` format.
+  Invalid-value errors include the rejected text, including trailing text parsed as part of the value.
 * `FEE` is a positive amount with at most two decimal places, without a currency symbol.
 * The confirmation shows the linked client, title, status, deadline, and agreed fee. The displayed client list stays
   unchanged, including when it is filtered.
@@ -334,6 +335,7 @@ Format: `setstatus CLIENT_INDEX GIG_INDEX s/STATUS`
 
 * Both indexes follow [Understanding indexes and filtered results](#understanding-indexes-and-filtered-results).
 * `STATUS` is `NOT_STARTED`, `IN_PROGRESS`, or `COMPLETED`; parsing ignores case and surrounding whitespace.
+  If invalid, the error includes the rejected status text, including trailing text parsed as part of the value.
 * Supply exactly two indexes and one `s/` field. Missing or unsupported statuses, repeated `s/` fields, extra
   positional arguments, and indexes outside the displayed lists are rejected without changing stored data.
 * Requesting the gig's current status is rejected. Statuses can otherwise be changed in either direction.
@@ -365,6 +367,7 @@ Format: `addpayment CLIENT_INDEX GIG_INDEX a/AMOUNT d/DUE_DATE`
 * Both indexes and both fields are required. The `a/` and `d/` fields may appear in either order, once each.
 * `AMOUNT` must be positive with at most two decimal places, without a currency symbol.
 * `DUE_DATE` must be a valid calendar date in `yyyy-MM-dd` format.
+  Invalid-date errors include the rejected text, including trailing text parsed as part of the value.
 * Multiple obligations may be recorded for the same gig. New obligations start unpaid.
 * Invalid input leaves existing clients, gigs, and obligations unchanged.
 * Obligations survive restarting the app. The save file must include a `paymentObligations` array, even when empty.
