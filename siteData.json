@@ -169,22 +169,6 @@
         "gigabyte": "Gigabyte"
       },
       "headingKeywords": {}
-    },
-    {
-      "src": "team/ApproxNeo.md",
-      "title": "Clement's Project Portfolio Page",
-      "headings": {
-        "project-gigabyte": "Project: Gigabyte"
-      },
-      "headingKeywords": {}
-    },
-    {
-      "src": "team/johndoe.md",
-      "title": "John Doe's Project Portfolio Page",
-      "headings": {
-        "project-gigabyte": "Project: Gigabyte"
-      },
-      "headingKeywords": {}
     }
   ]
 }
