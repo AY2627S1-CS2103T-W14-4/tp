@@ -167,7 +167,7 @@ public class ParserUtil {
         try {
             return GigStatus.parse(status);
         } catch (IllegalArgumentException exception) {
-            throw new ParseException(GigStatus.MESSAGE_CONSTRAINTS, exception);
+            throw new ParseException(formatRejectedValue(GigStatus.MESSAGE_CONSTRAINTS, status.trim()), exception);
         }
     }
 
@@ -177,7 +177,7 @@ public class ParserUtil {
     public static GigTitle parseGigTitle(String title) throws ParseException {
         requireNonNull(title);
         if (!GigTitle.isValidTitle(title)) {
-            throw new ParseException(GigTitle.MESSAGE_CONSTRAINTS);
+            throw new ParseException(formatRejectedValue(GigTitle.MESSAGE_CONSTRAINTS, title.trim()));
         }
         return new GigTitle(title);
     }
@@ -189,7 +189,7 @@ public class ParserUtil {
         requireNonNull(deadline);
         String trimmedDeadline = deadline.trim();
         if (!Deadline.isValidDeadline(trimmedDeadline)) {
-            throw new ParseException(Deadline.MESSAGE_CONSTRAINTS);
+            throw new ParseException(formatRejectedValue(Deadline.MESSAGE_CONSTRAINTS, trimmedDeadline));
         }
         return new Deadline(trimmedDeadline);
     }
@@ -201,8 +201,27 @@ public class ParserUtil {
         requireNonNull(fee);
         String trimmedFee = fee.trim();
         if (!Fee.isValidFee(trimmedFee)) {
-            throw new ParseException(Fee.MESSAGE_CONSTRAINTS);
+            throw new ParseException(formatRejectedValue(Fee.MESSAGE_CONSTRAINTS, trimmedFee));
         }
         return new Fee(trimmedFee);
+    }
+
+    /** Formats an invalid value safely for display, limiting the size and replacing control characters. */
+    private static String formatRejectedValue(String constraints, String rejectedValue) {
+        StringBuilder safeValue = new StringBuilder();
+        int index = 0;
+        while (index < rejectedValue.length() && safeValue.length() < 80) {
+            int codePoint = rejectedValue.codePointAt(index);
+            if (Character.isISOControl(codePoint)) {
+                safeValue.append('\uFFFD');
+            } else {
+                safeValue.appendCodePoint(codePoint);
+            }
+            index += Character.charCount(codePoint);
+        }
+        if (index < rejectedValue.length()) {
+            safeValue.append("...");
+        }
+        return String.format("%s (rejected value: '%s')", constraints, safeValue);
     }
 }

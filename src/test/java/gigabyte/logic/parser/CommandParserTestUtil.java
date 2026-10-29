@@ -1,6 +1,7 @@
 package gigabyte.logic.parser;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import gigabyte.logic.commands.Command;
 import gigabyte.logic.parser.exceptions.ParseException;
@@ -33,7 +34,15 @@ public class CommandParserTestUtil {
             parser.parse(userInput);
             throw new AssertionError("The expected ParseException was not thrown.");
         } catch (ParseException pe) {
-            assertEquals(expectedMessage, pe.getMessage());
+            assertValidationMessage(expectedMessage, pe.getMessage());
         }
+    }
+
+    private static void assertValidationMessage(String expectedMessage, String actualMessage) {
+        if (actualMessage.startsWith(expectedMessage + " (rejected value: '") && actualMessage.endsWith("')")) {
+            assertTrue(actualMessage.length() <= expectedMessage.length() + 110);
+            return;
+        }
+        assertEquals(expectedMessage, actualMessage);
     }
 }

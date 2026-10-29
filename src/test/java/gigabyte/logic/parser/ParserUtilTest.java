@@ -251,10 +251,14 @@ public class ParserUtilTest {
 
     @Test
     public void parseGigTitle_invalidValue_throwsParseException() {
-        assertThrows(ParseException.class, GigTitle.MESSAGE_CONSTRAINTS, () ->
-                ParserUtil.parseGigTitle("   "));
-        assertThrows(ParseException.class, GigTitle.MESSAGE_CONSTRAINTS, () ->
-                ParserUtil.parseGigTitle("a".repeat(101)));
+        ParseException blankTitleException = org.junit.jupiter.api.Assertions.assertThrows(
+                ParseException.class, () -> ParserUtil.parseGigTitle("   "));
+        assertEquals(GigTitle.MESSAGE_CONSTRAINTS + " (rejected value: '')", blankTitleException.getMessage());
+
+        ParseException longTitleException = org.junit.jupiter.api.Assertions.assertThrows(
+                ParseException.class, () -> ParserUtil.parseGigTitle("a".repeat(101)));
+        assertEquals(GigTitle.MESSAGE_CONSTRAINTS + " (rejected value: '" + "a".repeat(80) + "...')",
+                longTitleException.getMessage());
     }
 
     @Test
