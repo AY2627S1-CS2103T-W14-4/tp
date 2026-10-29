@@ -10,6 +10,7 @@ import gigabyte.model.gig.PaymentObligation;
 import gigabyte.model.gig.PaymentObligationOrdering;
 import javafx.animation.PauseTransition;
 import javafx.application.Platform;
+import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
 import javafx.collections.transformation.FilteredList;
 import javafx.collections.transformation.SortedList;
@@ -25,11 +26,11 @@ import javafx.scene.layout.Region;
  */
 public class PaymentObligationListPanel extends UiPart<Region> {
     private static final String FXML = "PaymentObligationListPanel.fxml";
-    private static final String NO_GIG = "Select a gig to view its payment obligations.";
-    private static final String NO_PAYMENTS = "This gig has no payment obligations.";
-    private static final String PAID = "PAID";
-    private static final String OUTSTANDING = "OUTSTANDING";
-    private static final String OVERDUE = "OVERDUE";
+    private static final String EMPTY_STATE_NO_GIG = "Select a gig to view its payment obligations.";
+    private static final String EMPTY_STATE_NO_PAYMENTS = "This gig has no payment obligations.";
+    private static final String DISPLAY_STATE_PAID = "PAID";
+    private static final String DISPLAY_STATE_OUTSTANDING = "OUTSTANDING";
+    private static final String DISPLAY_STATE_OVERDUE = "OVERDUE";
 
     private final ObservableList<PaymentObligation> paymentObligations;
     private final FilteredList<PaymentObligation> filteredPayments;
@@ -60,7 +61,7 @@ public class PaymentObligationListPanel extends UiPart<Region> {
                 PaymentObligationOrdering.forSourceList(paymentObligations));
         paymentListView.setItems(sortedPayments);
         paymentListView.setCellFactory(unused -> createPaymentCell());
-        sortedPayments.addListener((javafx.collections.ListChangeListener<PaymentObligation>) change ->
+        sortedPayments.addListener((ListChangeListener<PaymentObligation>) change ->
                 updateEmptyState());
         // A blank hint gives its height to the list, which matters in short windows.
         emptyState.managedProperty().bind(emptyState.textProperty().isNotEmpty());
@@ -136,9 +137,10 @@ public class PaymentObligationListPanel extends UiPart<Region> {
     /** Returns the paid, outstanding, or overdue display state for {@code payment}. */
     private String getDisplayState(PaymentObligation payment) {
         if (payment.isPaid()) {
-            return PAID;
+            return DISPLAY_STATE_PAID;
         }
-        return payment.getDueDate().getValue().isBefore(LocalDate.now(clock)) ? OVERDUE : OUTSTANDING;
+        boolean isOverdue = payment.getDueDate().getValue().isBefore(LocalDate.now(clock));
+        return isOverdue ? DISPLAY_STATE_OVERDUE : DISPLAY_STATE_OUTSTANDING;
     }
 
     /** Schedules the next payment-state refresh for the next midnight in the local time zone. */
@@ -154,11 +156,16 @@ public class PaymentObligationListPanel extends UiPart<Region> {
         paymentStateRefreshTimer.playFromStart();
     }
 
+    /** Shows a hint in place of the list when there is no gig selected or nothing to display. */
     private void updateEmptyState() {
         if (isShowingOutstanding) {
             emptyState.setText(sortedPayments.isEmpty() ? "No outstanding payment obligations." : "");
             return;
         }
-        emptyState.setText(selectedGig == null ? NO_GIG : (sortedPayments.isEmpty() ? NO_PAYMENTS : ""));
+        if (selectedGig == null) {
+            emptyState.setText(EMPTY_STATE_NO_GIG);
+            return;
+        }
+        emptyState.setText(sortedPayments.isEmpty() ? EMPTY_STATE_NO_PAYMENTS : "");
     }
 }

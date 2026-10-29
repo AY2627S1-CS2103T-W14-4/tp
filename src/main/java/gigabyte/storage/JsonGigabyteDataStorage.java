@@ -26,8 +26,8 @@ public class JsonGigabyteDataStorage {
 
     private static final Logger logger = LogsCenter.getLogger(JsonGigabyteDataStorage.class);
 
-    private Path filePath;
     private boolean dataSavingBlocked;
+    private final Path filePath;
 
     public JsonGigabyteDataStorage(Path filePath) {
         this.filePath = filePath;
@@ -115,7 +115,7 @@ public class JsonGigabyteDataStorage {
 
         Optional<JsonSerializableGigabyteData> jsonGigabyteData = JsonUtil.readJsonFileStrict(
                 filePath, JsonSerializableGigabyteData.class);
-        if (!jsonGigabyteData.isPresent()) {
+        if (jsonGigabyteData.isEmpty()) {
             return Optional.empty();
         }
 

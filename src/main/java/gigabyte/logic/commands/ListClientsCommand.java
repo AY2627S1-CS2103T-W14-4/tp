@@ -14,7 +14,6 @@ public class ListClientsCommand extends Command {
 
     public static final String MESSAGE_SUCCESS = "Listed all clients.";
 
-
     @Override
     public CommandResult execute(Model model) {
         requireNonNull(model);

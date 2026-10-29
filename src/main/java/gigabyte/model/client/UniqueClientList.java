@@ -63,7 +63,7 @@ public class UniqueClientList implements Iterable<Client> {
         }
 
         int index = indexOfUid(target);
-        if (index == -1) {
+        if (index < 0) {
             throw new ClientNotFoundException();
         }
 
