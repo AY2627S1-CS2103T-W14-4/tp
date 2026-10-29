@@ -27,7 +27,8 @@ You can reach us at the email `gigabyte[at]comp.nus.edu.sg`
 [[github](https://github.com/patientotter)]
 
 * Role: Developer
-* Responsibilities: Data
+* Responsibilities: - Role: Developer
+- Responsibilities: Gig creation, editing, deletion and status filtering, recording payment obligations, outstanding payment overview
 
 ### Axel Heng
 
