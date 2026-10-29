@@ -374,7 +374,7 @@ public class GigListPanelTest {
     }
 
     @Test
-    public void gigCell_renderedWithDarkTheme_usesReadableTextColour() {
+    public void gigCell_renderedWithDarkTheme_usesReadableTextColor() {
         GigListPanel panel = createPanel();
         panel.showGigsFor(ALICE);
         Scene scene = new Scene(panel.getRoot(), 500, 300);

@@ -30,7 +30,7 @@ public class FeeTest {
     }
 
     @Test
-    public void constructor_validFee_storesNormalisedAmount() {
+    public void constructor_validFee_storesNormalizedAmount() {
         Fee fee = new Fee("1250.5");
 
         assertEquals(new BigDecimal("1250.50"), fee.getValue());
