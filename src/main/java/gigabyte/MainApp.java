@@ -43,6 +43,7 @@ public class MainApp extends Application {
     protected Logic logic;
     protected Storage storage;
     protected Model model;
+    protected String startupMessage = "";
 
     @Override
     public void init() throws Exception {
@@ -60,15 +61,17 @@ public class MainApp extends Application {
 
         logic = new LogicManager(model, storage);
 
-        ui = new UiManager(logic, storage.getGigabyteDataFilePath());
+        ui = new UiManager(logic, storage.getGigabyteDataFilePath(), startupMessage);
     }
 
     /**
      * Returns a {@code ModelManager} with the data from {@code storage} and {@code userPrefs}. <br>
-     * Sample data will be used if the data file is not found, or empty data will be used if it cannot be read.
+     * Sample data will be used if the data file is not found. An unreadable file is backed up before
+     * starting with empty data; commands that save are blocked if the backup fails.
      */
-    private Model initModelManager(Storage storage, ReadOnlyUserPrefs userPrefs) {
+    protected Model initModelManager(Storage storage, ReadOnlyUserPrefs userPrefs) {
         logger.info("Using data file : " + storage.getGigabyteDataFilePath());
+        startupMessage = "";
 
         Optional<ReadOnlyGigabyteData> gigabyteDataOptional;
         ReadOnlyGigabyteData initialData;
@@ -82,10 +85,32 @@ public class MainApp extends Application {
         } catch (DataLoadingException e) {
             logger.warning("Data file at " + storage.getGigabyteDataFilePath() + " could not be loaded."
                     + " Will be starting with an empty GigabyteData.");
+            startupMessage = recoverUnreadableDataFile(storage);
             initialData = new GigabyteData();
         }
 
         return new ModelManager(initialData, userPrefs);
+    }
+
+    /**
+     * Preserves the unreadable file and prepares a message for the result display.
+     */
+    private String recoverUnreadableDataFile(Storage storage) {
+        Path dataPath = storage.getGigabyteDataFilePath();
+        String message = "Could not load " + dataPath + " (corrupted, unreadable, or unsupported data).\n"
+                + "Started with no data.\n";
+        try {
+            Path backupPath = storage.backupGigabyteData();
+            return message + "Backup saved to " + backupPath + ".\n"
+                    + "New commands will overwrite " + dataPath + ".\n"
+                    + "To recover: close Gigabyte, repair a copy of the backup,\n"
+                    + "then restore it to " + dataPath + " before restarting.";
+        } catch (IOException e) {
+            logger.warning("Could not back up data file: " + StringUtil.getDetails(e));
+            return message + "Backup failed: " + e.getMessage() + "\n"
+                    + "Saving and all commands except help and exit are disabled to protect the original file.\n"
+                    + "Close Gigabyte, back up or repair " + dataPath + ", and restart.";
+        }
     }
 
     /**

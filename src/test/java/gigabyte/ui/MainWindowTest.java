@@ -75,6 +75,24 @@ public class MainWindowTest {
     }
 
     @Test
+    public void start_withRecoveryMessage_displaysWarningInResultArea() throws Exception {
+        String message = "Could not load data/gigabyte.json (corrupted data).\n"
+                + "Started with no data.\nBackup saved to data/gigabyte.json_backup-1.";
+        callOnJavaFxThread(() -> {
+            Stage stage = new Stage();
+            try {
+                new UiManager(new LogicStub(), temporaryFolder.resolve("data.json"), message).start(stage);
+                TextArea display = (TextArea) stage.getScene().lookup("#resultDisplay");
+                assertEquals(message, display.getText());
+                assertTrue(stage.isShowing());
+            } finally {
+                stage.hide();
+            }
+            return null;
+        });
+    }
+
+    @Test
     public void editClientCommand_renameOutOfFilter_clearsSelectionAndGigs() throws Exception {
         Model model = new ModelManager();
         model.addClient(ALICE);

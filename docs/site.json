@@ -2,7 +2,7 @@
   "baseUrl": "",
   "titlePrefix": "",
   "titleSuffix": "Gigabyte",
-  "faviconPath": "images/SeEduLogo.png",
+  "faviconPath": "images/favicon.png",
   "style": {
     "codeTheme": "light"
   },

@@ -5,11 +5,17 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import gigabyte.logic.commands.Command;
 import gigabyte.logic.parser.exceptions.ParseException;
+import gigabyte.model.gig.Deadline;
+import gigabyte.model.gig.GigStatus;
 
 /**
  * Contains helper methods for testing command parsers.
  */
 public class CommandParserTestUtil {
+
+    public static String rejectedValueMessage(String constraint, String value) {
+        return String.format("%s (rejected value: '%s')", constraint, value);
+    }
 
     /**
      * Asserts that the parsing of {@code userInput} by {@code parser} is successful and the command created
