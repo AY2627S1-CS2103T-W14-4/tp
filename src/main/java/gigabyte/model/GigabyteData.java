@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.BiPredicate;
@@ -429,14 +430,12 @@ public class GigabyteData implements ReadOnlyGigabyteData {
         }
     }
 
-    private static List<Gig> linkGigsToClients(
-            List<Client> clients, List<Gig> gigs) {
+    private static List<Gig> linkGigsToClients(List<Client> clients, List<Gig> gigs) {
         requireAllNonNull(clients);
         requireAllNonNull(gigs);
 
         return gigs.stream()
-                .map(gig -> gig.withClient(
-                        findMatchingClient(clients, gig.getClient())))
+                .map(gig -> gig.withClient(findMatchingClient(clients, gig.getClient())))
                 .toList();
     }
 
@@ -449,8 +448,7 @@ public class GigabyteData implements ReadOnlyGigabyteData {
         }
     }
 
-    private static Client findMatchingClient(
-            List<Client> clients, Client client) {
+    private static Client findMatchingClient(List<Client> clients, Client client) {
         requireNonNull(client);
 
         return clients.stream()
@@ -486,6 +484,6 @@ public class GigabyteData implements ReadOnlyGigabyteData {
 
     @Override
     public int hashCode() {
-        return java.util.Objects.hash(clients, gigs);
+        return Objects.hash(clients, gigs, paymentObligations);
     }
 }

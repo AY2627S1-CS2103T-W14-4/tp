@@ -5,6 +5,7 @@ import static gigabyte.testutil.TypicalClients.ALICE;
 import static gigabyte.testutil.TypicalClients.BENSON;
 import static gigabyte.testutil.TypicalIndexes.INDEX_FIRST_CLIENT;
 import static gigabyte.testutil.TypicalIndexes.INDEX_SECOND_CLIENT;
+import static gigabyte.testutil.TypicalModels.createModel;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
@@ -139,13 +140,6 @@ public class AddPaymentCommandTest {
         String expected = AddPaymentCommand.class.getCanonicalName() + "{clientIndex=" + FIRST
                 + ", gigIndex=" + SECOND + ", amount=" + AMOUNT + ", dueDate=" + DUE_DATE + "}";
         assertEquals(expected, command.toString());
-    }
-
-    private ModelManager createModel() {
-        ModelManager model = new ModelManager();
-        model.addClient(ALICE);
-        model.addClient(BENSON);
-        return model;
     }
 
     private Gig createGig(Client client, String fee) {

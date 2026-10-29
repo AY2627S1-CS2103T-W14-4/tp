@@ -1,9 +1,7 @@
 package gigabyte.ui;
 
 import java.util.function.Consumer;
-import java.util.logging.Logger;
 
-import gigabyte.commons.core.LogsCenter;
 import gigabyte.model.client.Client;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
@@ -16,7 +14,6 @@ import javafx.scene.layout.Region;
  */
 public class ClientListPanel extends UiPart<Region> {
     private static final String FXML = "ClientListPanel.fxml";
-    private final Logger logger = LogsCenter.getLogger(ClientListPanel.class);
 
     @FXML
     private ListView<Client> clientListView;

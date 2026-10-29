@@ -17,8 +17,8 @@ import gigabyte.model.UserPrefs;
 public class StorageManager implements Storage {
 
     private static final Logger logger = LogsCenter.getLogger(StorageManager.class);
-    private JsonGigabyteDataStorage gigabyteDataStorage;
-    private JsonUserPrefsStorage userPrefsStorage;
+    private final JsonGigabyteDataStorage gigabyteDataStorage;
+    private final JsonUserPrefsStorage userPrefsStorage;
 
     /**
      * Creates a {@code StorageManager} with the given Gigabyte data and user prefs storage.
@@ -44,7 +44,6 @@ public class StorageManager implements Storage {
     public void saveUserPrefs(ReadOnlyUserPrefs userPrefs) throws IOException {
         userPrefsStorage.saveUserPrefs(userPrefs);
     }
-
 
     // ================ GigabyteData methods ==============================
 
