@@ -8,6 +8,8 @@ import gigabyte.commons.core.GuiSettings;
 import gigabyte.commons.core.LogsCenter;
 import gigabyte.logic.commands.Command;
 import gigabyte.logic.commands.CommandResult;
+import gigabyte.logic.commands.ExitCommand;
+import gigabyte.logic.commands.HelpCommand;
 import gigabyte.logic.commands.exceptions.CommandException;
 import gigabyte.logic.parser.GigabyteParser;
 import gigabyte.logic.parser.exceptions.ParseException;
@@ -26,6 +28,10 @@ public class LogicManager implements Logic {
 
     public static final String FILE_OPS_PERMISSION_ERROR_FORMAT =
             "Could not save data to file %s due to insufficient permissions to write to the file or the folder.";
+
+    public static final String DATA_RECOVERY_ERROR_FORMAT =
+            "Commands are disabled because the unreadable data file could not be backed up. "
+            + "Only help and exit are available. Close Gigabyte, back up or repair %s, and restart.";
 
     private final Logger logger = LogsCenter.getLogger(LogicManager.class);
 
@@ -48,6 +54,12 @@ public class LogicManager implements Logic {
 
         CommandResult commandResult;
         Command command = gigabyteParser.parseCommand(commandText);
+        if (storage.isDataSavingBlocked()) {
+            if (command instanceof HelpCommand || command instanceof ExitCommand) {
+                return command.execute(model);
+            }
+            throw new CommandException(String.format(DATA_RECOVERY_ERROR_FORMAT, storage.getGigabyteDataFilePath()));
+        }
         commandResult = command.execute(model);
 
         try {

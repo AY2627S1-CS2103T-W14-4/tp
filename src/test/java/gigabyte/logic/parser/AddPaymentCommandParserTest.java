@@ -5,6 +5,7 @@ import static gigabyte.logic.parser.CliSyntax.PREFIX_AMOUNT;
 import static gigabyte.logic.parser.CliSyntax.PREFIX_DEADLINE;
 import static gigabyte.logic.parser.CommandParserTestUtil.assertParseFailure;
 import static gigabyte.logic.parser.CommandParserTestUtil.assertParseSuccess;
+import static gigabyte.logic.parser.CommandParserTestUtil.rejectedValueMessage;
 import static gigabyte.logic.parser.ParserUtil.MESSAGE_INVALID_INDEX;
 import static gigabyte.testutil.TypicalIndexes.INDEX_FIRST_CLIENT;
 import static gigabyte.testutil.TypicalIndexes.INDEX_SECOND_CLIENT;
@@ -96,15 +97,21 @@ public class AddPaymentCommandParserTest {
     @Test
     public void parse_invalidDueDate_throwsParseException() {
         // EP: empty due date
-        assertParseFailure(parser, "1 1 a/100 d/", Deadline.MESSAGE_CONSTRAINTS);
+        assertParseFailure(parser, "1 1 a/100 d/", rejectedValueMessage(Deadline.MESSAGE_CONSTRAINTS, ""));
 
         // EP: correct format but the date does not exist
-        assertParseFailure(parser, "1 1 a/100 d/2027-02-29", Deadline.MESSAGE_CONSTRAINTS); // Not a leap year
-        assertParseFailure(parser, "1 1 a/100 d/2027-13-01", Deadline.MESSAGE_CONSTRAINTS);
+        assertParseFailure(parser, "1 1 a/100 d/2027-02-29", rejectedValueMessage(Deadline.MESSAGE_CONSTRAINTS,
+                "2027-02-29")); // Not a leap year
+        assertParseFailure(parser, "1 1 a/100 d/2027-13-01", rejectedValueMessage(Deadline.MESSAGE_CONSTRAINTS,
+                "2027-13-01"));
 
         // EP: wrong date format
-        assertParseFailure(parser, "1 1 a/100 d/31-01-2027", Deadline.MESSAGE_CONSTRAINTS);
-        assertParseFailure(parser, "1 1 a/100 d/2027-1-1", Deadline.MESSAGE_CONSTRAINTS);
+        assertParseFailure(parser, "1 1 a/100 d/31-01-2027", rejectedValueMessage(Deadline.MESSAGE_CONSTRAINTS,
+                "31-01-2027"));
+        assertParseFailure(parser, "1 1 a/100 d/2027-1-1", rejectedValueMessage(Deadline.MESSAGE_CONSTRAINTS,
+                "2027-1-1"));
+        assertParseFailure(parser, "1 1 a/100 d/2027-01-01 x/1",
+                rejectedValueMessage(Deadline.MESSAGE_CONSTRAINTS, "2027-01-01 x/1"));
     }
 
     @Test

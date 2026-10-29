@@ -3,8 +3,12 @@ package gigabyte.storage;
 import static java.util.Objects.requireNonNull;
 
 import java.io.IOException;
+import java.io.OutputStream;
+import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
+import java.nio.file.LinkOption;
 import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
 import java.util.Optional;
 import java.util.logging.Logger;
 
@@ -22,6 +26,7 @@ public class JsonGigabyteDataStorage {
 
     private static final Logger logger = LogsCenter.getLogger(JsonGigabyteDataStorage.class);
 
+    private boolean dataSavingBlocked;
     private final Path filePath;
 
     public JsonGigabyteDataStorage(Path filePath) {
@@ -30,6 +35,46 @@ public class JsonGigabyteDataStorage {
 
     public Path getGigabyteDataFilePath() {
         return filePath;
+    }
+
+    /**
+     * Returns whether an unsuccessful backup is preventing data saves.
+     */
+    public boolean isDataSavingBlocked() {
+        return dataSavingBlocked;
+    }
+
+    /**
+     * Copies the unreadable savefile to the first available {@code <filename>_backup-N} beside it.
+     * Existing backups are never replaced. Saves are blocked if a complete backup cannot be created.
+     *
+     * @return the path of the completed backup.
+     * @throws IOException if the file cannot be backed up.
+     */
+    public Path backupGigabyteData() throws IOException {
+        dataSavingBlocked = true;
+        if (!Files.isRegularFile(filePath)) {
+            throw new IOException("The data file is missing or is not a regular file: " + filePath);
+        }
+
+        for (long number = 1; number > 0; number++) {
+            Path backupPath = filePath.resolveSibling(filePath.getFileName() + "_backup-" + number);
+            // Windows may report an existing directory as access denied rather than file already exists.
+            if (Files.exists(backupPath, LinkOption.NOFOLLOW_LINKS)) {
+                continue;
+            }
+            // CREATE_NEW reserves the name without following or replacing an existing file or link.
+            try (OutputStream backup = Files.newOutputStream(backupPath, StandardOpenOption.CREATE_NEW,
+                    StandardOpenOption.WRITE)) {
+                Files.copy(filePath, backup);
+            } catch (FileAlreadyExistsException e) {
+                continue;
+            }
+            dataSavingBlocked = false;
+            logger.info("Backed up unreadable data file to " + backupPath);
+            return backupPath;
+        }
+        throw new IOException("No available backup filename for " + filePath);
     }
 
     /**
@@ -99,6 +144,11 @@ public class JsonGigabyteDataStorage {
     public void saveGigabyteData(ReadOnlyGigabyteData gigabyteData, Path filePath) throws IOException {
         requireNonNull(gigabyteData);
         requireNonNull(filePath);
+
+        if (dataSavingBlocked) {
+            throw new IOException("Saving is disabled because the unreadable data file could not be backed up. "
+                    + "Back up or repair " + this.filePath + " and restart Gigabyte.");
+        }
 
         FileUtil.createIfMissing(filePath);
         JsonUtil.saveJsonFile(new JsonSerializableGigabyteData(gigabyteData), filePath);

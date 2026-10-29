@@ -255,6 +255,7 @@ Format: `addgig INDEX t/TITLE s/STATUS d/DEADLINE f/FEE`
   Non-breaking spaces count as whitespace, so a title made only of them is rejected. Internal spaces and common punctuation are allowed. Titles do not need to be unique.
 * `STATUS` is `NOT_STARTED`, `IN_PROGRESS`, or `COMPLETED` (case-insensitive).
 * `DEADLINE` is a valid calendar date in `yyyy-MM-dd` format.
+  Invalid-value errors include the rejected text, including trailing text parsed as part of the value.
 * `FEE` is a positive amount with at most two decimal places, without a currency symbol.
 * The confirmation shows the linked client, title, status, deadline, and agreed fee. The displayed client list stays
   unchanged, including when it is filtered.
@@ -338,6 +339,7 @@ Format: `setstatus CLIENT_INDEX GIG_INDEX s/STATUS`
 
 * Both indexes follow [Understanding indexes and filtered results](#understanding-indexes-and-filtered-results).
 * `STATUS` is `NOT_STARTED`, `IN_PROGRESS`, or `COMPLETED`; parsing ignores case and surrounding whitespace.
+  If invalid, the error includes the rejected status text, including trailing text parsed as part of the value.
 * Supply exactly two indexes and one `s/` field. Missing or unsupported statuses, repeated `s/` fields, extra
   positional arguments, and indexes outside the displayed lists are rejected without changing stored data.
 * Requesting the gig's current status is rejected. Statuses can otherwise be changed in either direction.
@@ -369,6 +371,7 @@ Format: `addpayment CLIENT_INDEX GIG_INDEX a/AMOUNT d/DUE_DATE`
 * Both indexes and both fields are required. The `a/` and `d/` fields may appear in either order, once each.
 * `AMOUNT` must be positive with at most two decimal places, without a currency symbol.
 * `DUE_DATE` must be a valid calendar date in `yyyy-MM-dd` format.
+  Invalid-date errors include the rejected text, including trailing text parsed as part of the value.
 * Multiple obligations may be recorded for the same gig. New obligations start unpaid.
 * Invalid input leaves existing clients, gigs, and obligations unchanged.
 * Obligations survive restarting the app. The save file must include a `paymentObligations` array, even when empty.
@@ -659,6 +662,18 @@ When upgrading from a version that saved to `data/addressbook.json`, Gigabyte au
 changes are saved to `data/gigabyte.json`. If both files exist, Gigabyte uses `data/gigabyte.json` and leaves
 `data/addressbook.json` untouched. If the rename fails, startup stops and the error is reported in the console.
 
+If the savefile cannot be loaded, Gigabyte shows a warning in the command result area and starts with no clients,
+gigs, or payment obligations. Before allowing new data to be saved, it copies the original file to
+`data/gigabyte.json_backup-1`. If that name already exists, it tries `_backup-2`, `_backup-3`, and so on, using the
+first available name without overwriting an existing backup. The warning shows the backup's location.
+
+After a successful backup, commands work normally and save to `data/gigabyte.json`; the backup is kept unchanged.
+To recover your records, close Gigabyte, repair a copy of the backup to match the current format, and restore it
+as `data/gigabyte.json` before restarting. Simply restoring the corrupted contents will cause another load failure.
+If a backup cannot be created, the warning explains the failure, saving is disabled, and only `help` and `exit`
+commands are available. Close Gigabyte, back up or repair the original file, resolve any file-access or disk-space
+problem, and restart before entering more commands.
+
 ### Editing the data file
 
 Gigabyte data is saved automatically as a JSON file `[JAR file location]/data/gigabyte.json`. Advanced users are welcome to update data directly by editing that data file.
@@ -682,7 +697,10 @@ keep a copy of the v1.3 file and convert it to the current schema if you need to
 <box type="warning" seamless>
 
 **Caution:**
-If the data file is invalid or uses an unsupported older format, Gigabyte starts with an empty client list at the next run. The original file remains on disk until the next successful command overwrites it, even if that command is `list`. Back up the file before editing it or trying an upgrade.<br>
+If the data file is invalid or uses an unsupported older format, Gigabyte shows a warning, backs up the original
+file, and starts with no data, as described in [Saving the data](#saving-the-data). Once a backup has been created,
+the next successful command overwrites the original savefile, even if that command is `list`. Keep your own backup
+before editing the file or trying an upgrade.<br>
 Furthermore, certain edits can cause Gigabyte to behave in unexpected ways (e.g., if a value entered is outside of the acceptable range). Therefore, edit the data file only if you are confident that you can update it correctly.
 </box>
 

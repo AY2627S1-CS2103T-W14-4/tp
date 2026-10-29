@@ -158,7 +158,7 @@ public class LogicManagerTest {
         assertEquals(GigStatus.IN_PROGRESS, logic.execute("gigs s/in_progress").getGigStatusFilter());
         assertEquals(before, model.getGigabyteData());
         assertEquals(savedData, Files.readString(path));
-        assertParseException("gigs s/WAITING", GigStatus.MESSAGE_CONSTRAINTS);
+        assertParseException("gigs s/WAITING", GigStatus.MESSAGE_CONSTRAINTS + " (rejected value: 'WAITING')");
         assertEquals(savedData, Files.readString(path));
     }
 
@@ -195,7 +195,7 @@ public class LogicManagerTest {
     public void execute_addGigWithInvalidFields_keepsDataUnchanged() {
         model.addClient(ALICE);
         assertParseException("addgig 1 t/Website redesign s/NOT_STARTED d/2027-02-29 f/100",
-                Deadline.MESSAGE_CONSTRAINTS);
+                Deadline.MESSAGE_CONSTRAINTS + " (rejected value: '2027-02-29')");
         assertParseException("addgig 1 t/Website redesign s/NOT_STARTED d/2027-01-31 f/0",
                 Fee.MESSAGE_CONSTRAINTS);
         assertCommandException("addgig 2 t/Website redesign s/NOT_STARTED d/2027-01-31 f/100",
@@ -215,7 +215,8 @@ public class LogicManagerTest {
         String savedData = Files.readString(path);
 
         assertParseException("addpayment 1 1 a/0 d/2027-02-28", Fee.MESSAGE_CONSTRAINTS);
-        assertParseException("addpayment 1 1 a/50 d/2027-02-29", Deadline.MESSAGE_CONSTRAINTS);
+        assertParseException("addpayment 1 1 a/50 d/2027-02-29",
+                Deadline.MESSAGE_CONSTRAINTS + " (rejected value: '2027-02-29')");
         assertCommandException("addpayment 2 1 a/50 d/2027-02-28", MESSAGE_INVALID_CLIENT_DISPLAYED_INDEX);
         assertCommandException("addpayment 1 2 a/50 d/2027-02-28", Messages.MESSAGE_INVALID_GIG_INDEX);
         assertEquals(before, model.getGigabyteData());
@@ -445,7 +446,8 @@ public class LogicManagerTest {
         Path path = temporaryFolder.resolve("gigabyteData.json");
         String saved = Files.readString(path);
 
-        assertParseException("editgig 1 1 t/Updated d/2027-02-29", Deadline.MESSAGE_CONSTRAINTS);
+        assertParseException("editgig 1 1 t/Updated d/2027-02-29",
+                Deadline.MESSAGE_CONSTRAINTS + " (rejected value: '2027-02-29')");
         assertParseException("editgig 1 1 t/Updated f/0", Fee.MESSAGE_CONSTRAINTS);
         assertParseException("editgig 1 1 t/Updated s/COMPLETED",
                 String.format(MESSAGE_INVALID_COMMAND_FORMAT, EditGigCommand.MESSAGE_USAGE));
@@ -509,7 +511,8 @@ public class LogicManagerTest {
         String usage = String.format(MESSAGE_INVALID_COMMAND_FORMAT, SetGigStatusCommand.MESSAGE_USAGE);
 
         assertParseException("setstatus 1 1", usage);
-        assertParseException("setstatus 1 1 s/WAITING", GigStatus.MESSAGE_CONSTRAINTS);
+        assertParseException("setstatus 1 1 s/WAITING",
+                GigStatus.MESSAGE_CONSTRAINTS + " (rejected value: 'WAITING')");
         assertParseException("setstatus 1 1 s/COMPLETED s/NOT_STARTED",
                 Messages.getErrorMessageForDuplicatePrefixes(CliSyntax.PREFIX_STATUS));
         assertParseException("setstatus 1 1 2 s/COMPLETED", usage);
