@@ -31,6 +31,10 @@
   and UML diagrams. These tools also assisted with preliminary pull
   request reviews, debugging implementation and build issues, and
   developing manual and automated test scenarios.
+* **Clement Neo (`approxneo`)** used **OpenAI Codex with Computer Use**
+  to generate and refine source code for storage and data-file loading,
+  and navigation commands. They were also used to generate and extend
+  automated tests, and draft documentation.
 
 --------------------------------------------------------------------------------------------------------------------
 
