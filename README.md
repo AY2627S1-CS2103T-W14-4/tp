@@ -16,20 +16,17 @@ We help freelancers keep their client work and payment obligations organised, ma
 
 ## Features
 
-- Add a client and their contact details.
-- View a client’s details and associated gigs.
-- Search and filter client records.
-- Edit client details.
-- Create a gig linked to a client, including its status, deadline, and agreed fee.
-- View gigs by client or status.
-- Use `deadlines` to view all active gig deadlines across clients, ordered from
-  soonest to latest; overdue gigs are labelled `OVERDUE`.
-- Update a gig’s status.
-- View upcoming gig deadlines in date order.
-- Record an invoice or payment obligation linked to a gig.
-- View outstanding and overdue payment obligations sorted by due date.
-- Mark a payment obligation as paid.
-- Preserve records when the application is closed and reopened.
+- Add, edit and delete clients, with their contact details and tags.
+- Find clients by name, and list all clients again.
+- Select a client to see their gigs, and a gig to see its payment obligations, with the mouse or keyboard.
+- Add, edit and delete gigs, each with a title, status, deadline and agreed fee.
+- Update a gig's status, or filter gigs across all clients by status.
+- Find gigs by words in their titles.
+- Use `deadlines` to see all active gig deadlines, soonest first; overdue gigs are labelled `OVERDUE`.
+- Record, edit and delete payment obligations for a gig, and mark them paid or unpaid.
+- Use `outstanding` to see all unpaid payment obligations, earliest due first; overdue ones are labelled `OVERDUE`.
+- Use `summary` to see client and gig counts with outstanding, overdue and paid totals.
+- Records are saved after every command and restored when the app is reopened.
 
 
 ## Documentation
