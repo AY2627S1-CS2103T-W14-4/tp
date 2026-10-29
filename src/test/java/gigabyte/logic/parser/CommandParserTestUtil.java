@@ -5,8 +5,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import gigabyte.logic.commands.Command;
 import gigabyte.logic.parser.exceptions.ParseException;
-import gigabyte.model.gig.Deadline;
-import gigabyte.model.gig.GigStatus;
 
 /**
  * Contains helper methods for testing command parsers.
