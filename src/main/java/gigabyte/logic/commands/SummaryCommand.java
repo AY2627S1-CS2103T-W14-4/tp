@@ -7,11 +7,11 @@ import java.time.Clock;
 import java.time.LocalDate;
 import java.util.EnumMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.function.Predicate;
 
 import gigabyte.model.Model;
+import gigabyte.model.gig.Fee;
 import gigabyte.model.gig.Gig;
 import gigabyte.model.gig.GigStatus;
 import gigabyte.model.gig.PaymentObligation;
@@ -79,13 +79,6 @@ public class SummaryCommand extends Command {
         return total;
     }
 
-    /** Returns {@code cents} as a dollar amount, e.g. {@code 123456} becomes {@code $1,234.56}. */
-    private static String formatCents(BigInteger cents) {
-        BigInteger whole = cents.divide(BigInteger.valueOf(100));
-        BigInteger fraction = cents.remainder(BigInteger.valueOf(100)).abs();
-        return String.format(Locale.ROOT, "$%,d.%02d", whole, fraction.intValue());
-    }
-
     /** Number of payments in a group and the sum of their amounts in cents. */
     private record PaymentTotal(long count, BigInteger cents) {
         private static final PaymentTotal EMPTY = new PaymentTotal(0, BigInteger.ZERO);
@@ -97,7 +90,7 @@ public class SummaryCommand extends Command {
 
         /** Returns the count followed by the dollar total in brackets, e.g. {@code 2 ($150.00)}. */
         private String format() {
-            return count + " (" + formatCents(cents) + ")";
+            return count + " (" + Fee.formatCents(cents) + ")";
         }
     }
 }

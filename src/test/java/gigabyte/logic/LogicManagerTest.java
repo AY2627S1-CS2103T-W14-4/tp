@@ -103,6 +103,31 @@ public class LogicManagerTest {
     }
 
     @Test
+    public void execute_moneyCommands_displayConsistentCurrencyAndPersistExactAmounts() throws Exception {
+        model.addClient(ALICE);
+        String amount = "999999999999.99";
+        String display = "$999,999,999,999.99";
+        List<String> commands = List.of(
+                "addgig 1 t/Large contract s/IN_PROGRESS d/2027-01-31 f/" + amount,
+                "editgig 1 1 t/Revised contract",
+                "addpayment 1 1 a/" + amount + " d/2027-02-28",
+                "editpayment 1 1 1 d/2027-03-31",
+                "markpaid 1 1 1",
+                "markunpaid 1 1 1",
+                "summary");
+        for (String command : commands) {
+            assertTrue(logic.execute(command).getFeedbackToUser().contains(display), command);
+        }
+
+        ReadOnlyGigabyteData restored = new JsonGigabyteDataStorage(temporaryFolder.resolve("gigabyteData.json"))
+                .readGigabyteData().orElseThrow();
+        assertEquals(amount, restored.getGigList().get(0).getAgreedFee().toString());
+        assertEquals(amount, restored.getPaymentObligationList().get(0).getAmount().toString());
+        assertTrue(logic.execute("deletepayment 1 1 1").getFeedbackToUser().contains(display));
+        assertTrue(model.getPaymentObligationList().isEmpty());
+    }
+
+    @Test
     public void execute_outstanding_preservesRecordsAndRejectsArguments() throws Exception {
         model.addClient(ALICE);
         logic.execute("addgig 1 t/Website s/IN_PROGRESS d/2027-01-31 f/100");
@@ -157,7 +182,7 @@ public class LogicManagerTest {
                 new Deadline("2027-01-31"), new Fee("1250.50"));
         assertEquals(expected, model.getGigList().get(0));
         assertEquals("New gig added for Alice Pauline: Title: Website redesign; Status: IN_PROGRESS; "
-                + "Deadline: 2027-01-31; Agreed fee: 1250.50", result.getFeedbackToUser());
+                + "Deadline: 2027-01-31; Agreed fee: $1,250.50", result.getFeedbackToUser());
 
         logic.execute("list");
         JsonGigabyteDataStorage storage = new JsonGigabyteDataStorage(temporaryFolder.resolve("gigabyteData.json"));
@@ -183,7 +208,7 @@ public class LogicManagerTest {
         model.addGig(new Gig(ALICE, new GigTitle("Website redesign"), GigStatus.IN_PROGRESS,
                 new Deadline("2027-01-31"), new Fee("100")));
         CommandResult result = logic.execute("addpayment 1 1 a/50.25 d/2027-02-28");
-        assertEquals("Recorded unpaid obligation for Alice Pauline, gig 1: Amount: 50.25; Due date: 2027-02-28",
+        assertEquals("Recorded unpaid obligation for Alice Pauline, gig 1: Amount: $50.25; Due date: 2027-02-28",
                 result.getFeedbackToUser());
         GigabyteData before = new GigabyteData(model.getGigabyteData());
         Path path = temporaryFolder.resolve("gigabyteData.json");
@@ -211,7 +236,7 @@ public class LogicManagerTest {
 
         CommandResult result = logic.execute("markpaid 1 1 1");
 
-        assertEquals("Marked payment obligation for Alice Pauline, gig 1, payment 1 as paid: Amount: 50.25; "
+        assertEquals("Marked payment obligation for Alice Pauline, gig 1, payment 1 as paid: Amount: $50.25; "
                 + "Due date: 2027-02-28", result.getFeedbackToUser());
         assertTrue(model.getPaymentObligationList().get(0).isPaid());
         ReadOnlyGigabyteData restored = new JsonGigabyteDataStorage(temporaryFolder.resolve("gigabyteData.json"))
@@ -230,7 +255,7 @@ public class LogicManagerTest {
 
         CommandResult result = logic.execute("markunpaid 1 1 1");
 
-        assertEquals("Marked payment obligation for Alice Pauline, gig 1, payment 1 as unpaid: Amount: 50.25; "
+        assertEquals("Marked payment obligation for Alice Pauline, gig 1, payment 1 as unpaid: Amount: $50.25; "
                 + "Due date: 2027-02-28", result.getFeedbackToUser());
         PaymentObligation payment = model.getPaymentObligationList().get(0);
         assertFalse(payment.isPaid());
@@ -396,7 +421,7 @@ public class LogicManagerTest {
 
         CommandResult result = logic.execute("editpayment 1 1 1 a/650 d/2027-05-15");
 
-        assertEquals("Edited payment obligation for Alice Pauline, gig 1, payment 1: Amount: 650.00; "
+        assertEquals("Edited payment obligation for Alice Pauline, gig 1, payment 1: Amount: $650.00; "
                 + "Due date: 2027-05-15", result.getFeedbackToUser());
         assertEquals(new Fee("650"), model.getPaymentObligationList().get(0).getAmount());
         assertEquals(new Deadline("2027-05-15"), model.getPaymentObligationList().get(0).getDueDate());

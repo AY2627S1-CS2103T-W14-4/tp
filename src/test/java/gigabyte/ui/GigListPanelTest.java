@@ -157,7 +157,7 @@ public class GigListPanelTest {
             view.getRoot().layout();
             assertTrue(view.getGigListView().lookupAll(".list-cell").stream().anyMatch(node ->
                     node instanceof ListCell<?> cell && !cell.isEmpty()
-                    && cell.getText().contains("Edited title") && cell.getText().contains("1800.00")
+                    && cell.getText().contains("Edited title") && cell.getText().contains("$1,800.00")
                     && cell.getText().contains("2026-01-01")));
         }
     }
@@ -406,8 +406,18 @@ public class GigListPanelTest {
         assertTrue(text.contains("Status: " + ALICE_GIG.getStatus()));
         assertTrue(text.contains("Client: " + ALICE_GIG.getClient().getName()));
         assertTrue(text.contains("Deadline: " + ALICE_GIG.getDeadline()));
-        assertTrue(text.contains("Fee: $" + ALICE_GIG.getAgreedFee()));
+        assertTrue(text.contains("Fee: $100.00"));
         assertTrue(cell.isWrapText());
+    }
+
+    @Test
+    public void gigCell_largeFee_showsCurrencyGroupingAndExactCents() {
+        Gig gig = new Gig(ALICE, new GigTitle("Large project"), GigStatus.IN_PROGRESS,
+                new Deadline("2027-01-31"), new Fee("999999999999.99"));
+        GigListPanel panel = new GigListPanel(FXCollections.observableArrayList(gig));
+        panel.showGigsFor(ALICE);
+
+        assertTrue(renderCells(panel).get(0).getText().contains("Fee: $999,999,999,999.99"));
     }
 
     @Test

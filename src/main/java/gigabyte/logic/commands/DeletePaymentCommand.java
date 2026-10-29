@@ -63,7 +63,7 @@ public class DeletePaymentCommand extends Command {
         PaymentObligation payment = payments.get(paymentIndex.getZeroBased());
         model.deletePaymentObligation(payment);
         return new CommandResult(String.format(MESSAGE_SUCCESS, client.getName(), gigIndex.getOneBased(),
-                gig.getTitle(), paymentIndex.getOneBased(), payment.getAmount(), payment.getDueDate(),
+                gig.getTitle(), paymentIndex.getOneBased(), payment.getAmount().toDisplayString(), payment.getDueDate(),
                 payment.isPaid() ? "PAID" : "UNPAID"));
     }
 

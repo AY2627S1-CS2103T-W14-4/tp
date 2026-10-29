@@ -61,7 +61,8 @@ public class AddGigCommand extends Command {
 
         Client client = displayedClients.get(clientIndex.getZeroBased());
         model.addGig(new Gig(client, title, status, deadline, fee));
-        return new CommandResult(String.format(MESSAGE_SUCCESS, client.getName(), title, status, deadline, fee));
+        return new CommandResult(String.format(MESSAGE_SUCCESS, client.getName(), title, status, deadline,
+                fee.toDisplayString()));
     }
 
     @Override

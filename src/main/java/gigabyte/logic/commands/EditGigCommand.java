@@ -72,7 +72,7 @@ public class EditGigCommand extends Command {
         model.setGig(target, replacement);
         return new CommandResult(String.format("Edited gig %d for %s: Title: %s; Deadline: %s; Agreed fee: %s",
                 gigIndex.getOneBased(), client.getName(), replacement.getTitle(),
-                replacement.getDeadline(), replacement.getAgreedFee()));
+                replacement.getDeadline(), replacement.getAgreedFee().toDisplayString()));
     }
 
     @Override
