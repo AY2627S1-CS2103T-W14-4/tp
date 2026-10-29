@@ -3,6 +3,7 @@ package gigabyte.logic.commands;
 import static gigabyte.testutil.Assert.assertThrows;
 import static gigabyte.testutil.TypicalClients.ALICE;
 import static gigabyte.testutil.TypicalClients.BENSON;
+import static gigabyte.testutil.TypicalModels.createModel;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertSame;
@@ -216,13 +217,6 @@ public class DeletePaymentCommandTest {
                 result.getFeedbackToUser());
         assertEquals(CommandResult.forOutstandingPayments("0 outstanding payment obligations."),
                 new OutstandingCommand().execute(model));
-    }
-
-    private ModelManager createModel() {
-        ModelManager model = new ModelManager();
-        model.addClient(ALICE);
-        model.addClient(BENSON);
-        return model;
     }
 
     private Gig addGig(ModelManager model, Client client) {

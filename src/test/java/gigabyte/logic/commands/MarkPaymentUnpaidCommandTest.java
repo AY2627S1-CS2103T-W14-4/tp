@@ -3,6 +3,8 @@ package gigabyte.logic.commands;
 import static gigabyte.testutil.Assert.assertThrows;
 import static gigabyte.testutil.TypicalClients.ALICE;
 import static gigabyte.testutil.TypicalClients.BENSON;
+import static gigabyte.testutil.TypicalModels.addGig;
+import static gigabyte.testutil.TypicalModels.createModel;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotSame;
@@ -18,13 +20,10 @@ import gigabyte.logic.Messages;
 import gigabyte.logic.commands.exceptions.CommandException;
 import gigabyte.model.GigabyteData;
 import gigabyte.model.ModelManager;
-import gigabyte.model.client.Client;
 import gigabyte.model.client.ClientNameContainsKeywordsPredicate;
 import gigabyte.model.gig.Deadline;
 import gigabyte.model.gig.Fee;
 import gigabyte.model.gig.Gig;
-import gigabyte.model.gig.GigStatus;
-import gigabyte.model.gig.GigTitle;
 import gigabyte.model.gig.PaymentObligation;
 
 public class MarkPaymentUnpaidCommandTest {
@@ -171,19 +170,5 @@ public class MarkPaymentUnpaidCommandTest {
         String expected = MarkPaymentUnpaidCommand.class.getCanonicalName() + "{clientIndex=" + FIRST
                 + ", gigIndex=" + SECOND + ", paymentIndex=" + THIRD + "}";
         assertEquals(expected, command.toString());
-    }
-
-    private ModelManager createModel() {
-        ModelManager model = new ModelManager();
-        model.addClient(ALICE);
-        model.addClient(BENSON);
-        return model;
-    }
-
-    private Gig addGig(ModelManager model, Client client) {
-        Gig gig = new Gig(client, new GigTitle("Website redesign"), GigStatus.NOT_STARTED,
-                new Deadline("2027-12-31"), new Fee("1250"));
-        model.addGig(gig);
-        return model.getGigList().get(model.getGigList().size() - 1);
     }
 }
