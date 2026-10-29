@@ -6,6 +6,8 @@ import java.time.Clock;
 import java.time.LocalDate;
 import java.time.ZonedDateTime;
 import java.util.Comparator;
+import java.util.Objects;
+import java.util.UUID;
 import java.util.function.Consumer;
 
 import gigabyte.model.client.Client;
@@ -19,13 +21,14 @@ import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
 import javafx.collections.transformation.FilteredList;
 import javafx.collections.transformation.SortedList;
+import javafx.fxml.FXML;
 import javafx.scene.control.Label;
 import javafx.scene.control.ListCell;
 import javafx.scene.control.ListView;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.Region;
 
-/** Panel displaying gigs for the selected client or a requested status across all clients. */
+/** Panel displaying gigs for a client, by status or title, or in deadline order. */
 public class GigListPanel extends UiPart<Region> {
     /** Shared ordering for active deadline views. */
     public static final Comparator<Gig> DEADLINE_COMPARATOR = Comparator
@@ -36,19 +39,24 @@ public class GigListPanel extends UiPart<Region> {
     private static final String NO_CLIENT = "Select a client to view their gigs.";
     private static final String NO_GIGS = "This client has no gigs.";
     private static final String NO_DEADLINES = "There are no active gig deadlines.";
+
     private final FilteredList<Gig> filteredGigs;
+    private final SortedList<Gig> sortedGigs;
     private final Clock clock;
     private final Consumer<Gig> gigSelectionHandler;
     private final PauseTransition deadlineRefreshTimer = new PauseTransition();
-    private Gig selectionBeforeUpdate;
-    private Gig reportedSelection;
-    private boolean isUpdatingGigs;
+
+    private UUID selectedGigIdBeforeUpdate;
+    private UUID lastNotifiedGigId;
+    private boolean isProcessingSourceChange;
+    private ViewMode viewMode = ViewMode.CLIENT;
     private Client selectedClient;
     private GigStatus selectedStatus;
-    private boolean isShowingDeadlineOverview;
-    private boolean isTitleSearchActive;
-    @javafx.fxml.FXML private Label emptyState;
-    @javafx.fxml.FXML private ListView<Gig> gigListView;
+
+    @FXML
+    private Label emptyState;
+    @FXML
+    private ListView<Gig> gigListView;
 
     /** Creates a gig list panel backed by the given gigs. */
     public GigListPanel(ObservableList<Gig> gigs) {
@@ -64,55 +72,88 @@ public class GigListPanel extends UiPart<Region> {
         super("GigListPanel.fxml", new BorderPane());
         this.clock = clock;
         this.gigSelectionHandler = gigSelectionHandler;
-        // Capture the selected identity before the filtered/sorted lists process the source change.
-        gigs.addListener((ListChangeListener<Gig>) change -> {
-            selectionBeforeUpdate = gigListView.getSelectionModel().getSelectedItem();
-            isUpdatingGigs = true;
-        });
+
+        // Listener registration must bracket the transformations to preserve the selected gig's identity.
+        captureSelectionBeforeSourceChanges(gigs);
         filteredGigs = new FilteredList<>(gigs, gig -> false);
-        SortedList<Gig> sortedGigs = new SortedList<>(filteredGigs);
-        gigListView.setItems(sortedGigs);
-        gigListView.setCellFactory(view -> {
-            ListCell<Gig> cell = new ListCell<>() {
-                @Override protected void updateItem(Gig gig, boolean empty) {
-                    super.updateItem(gig, empty);
-                    String overdue = gig != null && gig.getStatus() != GigStatus.COMPLETED
-                            && gig.getDeadline().getValue().isBefore(LocalDate.now(clock))
-                            ? "    OVERDUE" : "";
-                    setText(empty || gig == null ? null : String.format(
-                            "%s%nClient: %s%nStatus: %s    Deadline: %s%s    Fee: $%s",
-                            gig.getTitle(), gig.getClient().getName(), gig.getStatus(),
-                            gig.getDeadline(), overdue, gig.getAgreedFee()));
-                    setWrapText(true);
-                }
-            };
-            cell.getStyleClass().add("gig-list-cell");
-            cell.prefWidthProperty().bind(view.widthProperty().subtract(20));
-            return cell;
+        sortedGigs = new SortedList<>(filteredGigs);
+        configureListView();
+        configureSelectionListeners();
+        restoreSelectionAfterSourceChanges(gigs);
+
+        configureEmptyState();
+        Platform.runLater(this::scheduleDeadlineRefresh);
+    }
+
+    private void captureSelectionBeforeSourceChanges(ObservableList<Gig> gigs) {
+        gigs.addListener((ListChangeListener<Gig>) change -> {
+            Gig selected = gigListView.getSelectionModel().getSelectedItem();
+            selectedGigIdBeforeUpdate = selected == null ? null : selected.getUid();
+            isProcessingSourceChange = true;
         });
+    }
+
+    private void configureListView() {
+        gigListView.setItems(sortedGigs);
+        gigListView.setCellFactory(view -> createGigCell());
+    }
+
+    private ListCell<Gig> createGigCell() {
+        ListCell<Gig> cell = new ListCell<>() {
+            @Override
+            protected void updateItem(Gig gig, boolean empty) {
+                super.updateItem(gig, empty);
+                if (empty || gig == null) {
+                    setText(null);
+                    return;
+                }
+
+                String overdue = isOverdue(gig) ? "    OVERDUE" : "";
+                setText(String.format("%s%nClient: %s%nStatus: %s    Deadline: %s%s    Fee: $%s",
+                        gig.getTitle(), gig.getClient().getName(), gig.getStatus(),
+                        gig.getDeadline(), overdue, gig.getAgreedFee()));
+            }
+        };
+        cell.setWrapText(true);
+        cell.getStyleClass().add("gig-list-cell");
+        cell.prefWidthProperty().bind(gigListView.widthProperty().subtract(20));
+        return cell;
+    }
+
+    private boolean isOverdue(Gig gig) {
+        return gig.getStatus() != GigStatus.COMPLETED
+                && gig.getDeadline().getValue().isBefore(LocalDate.now(clock));
+    }
+
+    private void configureSelectionListeners() {
         // Row changes detect field-identical gigs; item changes detect a replacement at the same row.
         gigListView.getSelectionModel().selectedIndexProperty().addListener((observable, oldIndex, newIndex) ->
                 notifyGigSelection());
         gigListView.getSelectionModel().selectedItemProperty().addListener((observable, oldGig, newGig) ->
                 notifyGigSelection());
+    }
+
+    private void restoreSelectionAfterSourceChanges(ObservableList<Gig> gigs) {
         // Register after the transformations so restoration sees the final visible order. Intermediate
         // selections made by JavaFX must not switch the payment panel to a neighboring gig.
         gigs.addListener((ListChangeListener<Gig>) change -> {
             restoreGigSelection();
-            isUpdatingGigs = false;
+            isProcessingSourceChange = false;
             notifyGigSelection();
         });
+    }
+
+    private void configureEmptyState() {
         // A blank hint gives its height to the list, which matters in short windows.
         emptyState.managedProperty().bind(emptyState.textProperty().isNotEmpty());
         updateEmptyState();
-        filteredGigs.addListener((javafx.collections.ListChangeListener<Gig>) change -> updateEmptyState());
-        Platform.runLater(this::scheduleDeadlineRefresh);
+        filteredGigs.addListener((ListChangeListener<Gig>) change -> updateEmptyState());
     }
 
     private void restoreGigSelection() {
-        if (selectionBeforeUpdate != null) {
-            for (int index = 0; index < gigListView.getItems().size(); index++) {
-                if (gigListView.getItems().get(index).hasSameUid(selectionBeforeUpdate)) {
+        if (selectedGigIdBeforeUpdate != null) {
+            for (int index = 0; index < sortedGigs.size(); index++) {
+                if (sortedGigs.get(index).getUid().equals(selectedGigIdBeforeUpdate)) {
                     gigListView.getSelectionModel().clearAndSelect(index);
                     return;
                 }
@@ -122,26 +163,26 @@ public class GigListPanel extends UiPart<Region> {
     }
 
     private void notifyGigSelection() {
-        if (isUpdatingGigs) {
+        if (isProcessingSourceChange) {
             return;
         }
         int index = gigListView.getSelectionModel().getSelectedIndex();
-        Gig selected = index < 0 ? null : gigListView.getItems().get(index);
-        if (selected == null ? reportedSelection != null
-                : reportedSelection == null || !selected.hasSameUid(reportedSelection)) {
-            reportedSelection = selected;
-            gigSelectionHandler.accept(selected);
+        Gig selected = index < 0 ? null : sortedGigs.get(index);
+        UUID selectedGigId = selected == null ? null : selected.getUid();
+        if (Objects.equals(selectedGigId, lastNotifiedGigId)) {
+            return;
         }
+        lastNotifiedGigId = selectedGigId;
+        gigSelectionHandler.accept(selected);
     }
 
     /** Displays only the gigs belonging to {@code client}. */
     public void showGigsFor(Client client) {
         gigListView.getSelectionModel().clearSelection();
+        viewMode = ViewMode.CLIENT;
         selectedClient = client;
         selectedStatus = null;
-        isShowingDeadlineOverview = false;
-        isTitleSearchActive = false;
-        getSortedGigs().setComparator(null);
+        sortedGigs.setComparator(null);
         filteredGigs.setPredicate(gig -> isGigForClient(gig, client));
         updateEmptyState();
     }
@@ -152,11 +193,10 @@ public class GigListPanel extends UiPart<Region> {
     public void showGigsWithStatus(GigStatus status) {
         requireNonNull(status);
         gigListView.getSelectionModel().clearSelection();
+        viewMode = ViewMode.STATUS;
         selectedClient = null;
         selectedStatus = status;
-        isShowingDeadlineOverview = false;
-        isTitleSearchActive = false;
-        getSortedGigs().setComparator(null);
+        sortedGigs.setComparator(null);
         filteredGigs.setPredicate(gig -> gig.getStatus() == status);
         updateEmptyState();
     }
@@ -164,12 +204,11 @@ public class GigListPanel extends UiPart<Region> {
     /** Displays all non-completed gigs in deadline order. */
     public void showDeadlineOverview() {
         gigListView.getSelectionModel().clearSelection();
-        isShowingDeadlineOverview = true;
+        viewMode = ViewMode.DEADLINES;
         selectedClient = null;
         selectedStatus = null;
-        isTitleSearchActive = false;
         filteredGigs.setPredicate(gig -> gig.getStatus() != GigStatus.COMPLETED);
-        getSortedGigs().setComparator(DEADLINE_COMPARATOR);
+        sortedGigs.setComparator(DEADLINE_COMPARATOR);
         updateEmptyState();
     }
 
@@ -177,11 +216,10 @@ public class GigListPanel extends UiPart<Region> {
     public void showGigsMatchingTitle(GigTitleContainsKeywordsPredicate predicate) {
         requireNonNull(predicate);
         gigListView.getSelectionModel().clearSelection();
+        viewMode = ViewMode.TITLE_SEARCH;
         selectedClient = null;
         selectedStatus = null;
-        isShowingDeadlineOverview = false;
-        isTitleSearchActive = true;
-        getSortedGigs().setComparator(null);
+        sortedGigs.setComparator(null);
         filteredGigs.setPredicate(predicate);
         updateEmptyState();
     }
@@ -189,11 +227,6 @@ public class GigListPanel extends UiPart<Region> {
     /** Returns whether {@code gig} belongs to {@code client}. */
     static boolean isGigForClient(Gig gig, Client client) {
         return GigOrdering.isForClient(gig, client);
-    }
-
-    @SuppressWarnings("unchecked")
-    private SortedList<Gig> getSortedGigs() {
-        return (SortedList<Gig>) gigListView.getItems();
     }
 
     /** Refreshes overdue labels after the local date changes. */
@@ -225,19 +258,20 @@ public class GigListPanel extends UiPart<Region> {
     }
 
     private void updateEmptyState() {
-        if (selectedStatus != null) {
-            emptyState.setText(filteredGigs.isEmpty() ? "No gigs with status " + selectedStatus + "." : "");
+        if (!filteredGigs.isEmpty()) {
+            emptyState.setText("");
             return;
         }
-        if (isShowingDeadlineOverview) {
-            emptyState.setText(filteredGigs.isEmpty() ? NO_DEADLINES : "");
-            return;
-        }
-        if (isTitleSearchActive) {
-            emptyState.setText(filteredGigs.isEmpty() ? "No gigs match the supplied title keywords." : "");
-            return;
-        }
-        emptyState.setText(selectedClient == null ? NO_CLIENT
-                : (filteredGigs.isEmpty() ? NO_GIGS : ""));
+        emptyState.setText(switch (viewMode) {
+            case CLIENT -> selectedClient == null ? NO_CLIENT : NO_GIGS;
+            case STATUS -> "No gigs with status " + selectedStatus + ".";
+            case DEADLINES -> NO_DEADLINES;
+            case TITLE_SEARCH -> "No gigs match the supplied title keywords.";
+        });
+    }
+
+    /** The mutually exclusive gig views supported by this panel. */
+    private enum ViewMode {
+        CLIENT, STATUS, DEADLINES, TITLE_SEARCH
     }
 }
