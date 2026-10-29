@@ -241,10 +241,14 @@ public class GigabyteData implements ReadOnlyGigabyteData {
         gigs.remove(index);
     }
 
-    /** Adds a payment obligation linked to an existing gig. */
+    /**
+     * Adds a payment obligation linked to the stored gig with the same UID.
+     *
+     * @throws GigNotFoundException if the gig's UID is not stored.
+     */
     public void addPaymentObligation(PaymentObligation obligation) {
         requireNonNull(obligation);
-        int index = findGigIndex(gigs, obligation.getGig());
+        int index = findGigIndexByUid(gigs, obligation.getGig());
         if (index < 0) {
             throw new GigNotFoundException();
         }
@@ -337,29 +341,12 @@ public class GigabyteData implements ReadOnlyGigabyteData {
             List<Gig> oldGigs, List<Gig> newGigs, List<PaymentObligation> obligations) {
         List<Integer> replacementIndexes = matchReplacementGigIndexes(oldGigs, newGigs);
         return obligations.stream().map(obligation -> {
-            int index = findGigIndex(oldGigs, obligation.getGig());
+            int index = findGigIndexByUid(oldGigs, obligation.getGig());
             if (index < 0 || replacementIndexes.get(index) < 0) {
                 throw new GigNotFoundException();
             }
             return obligation.withGig(newGigs.get(replacementIndexes.get(index)));
         }).toList();
-    }
-
-    /**
-     * Preserves the exact gig when several gigs have identical fields, falling back to value equality for copies.
-     */
-    private static int findGigIndex(List<Gig> gigs, Gig target) {
-        for (int index = 0; index < gigs.size(); index++) {
-            if (gigs.get(index) == target) {
-                return index;
-            }
-        }
-        for (int index = 0; index < gigs.size(); index++) {
-            if (gigs.get(index).hasSameUid(target)) {
-                return index;
-            }
-        }
-        return gigs.indexOf(target);
     }
 
     /** Finds a gig by stable UID without falling back to equal field values. */
