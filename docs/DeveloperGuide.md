@@ -39,6 +39,11 @@
   with source-code development, debugging, test generation, and documentation
   refinement. The generated suggestions were reviewed, adapted, and validated
   before being included.
+* **Tang Ming Hong (`minghong-dev`)** used **Claude Code** to generate and refine
+  source code, generate and extend automated tests, plan features, and draft and
+  restructure documentation. **ChatGPT** was used to validate and cross-check
+  Claude Code's plans and code changes. The generated output was reviewed,
+  adapted, and tested before being included.
 
 --------------------------------------------------------------------------------------------------------------------
 
