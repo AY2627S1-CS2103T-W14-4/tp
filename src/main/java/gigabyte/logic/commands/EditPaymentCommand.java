@@ -5,21 +5,17 @@ import static gigabyte.logic.parser.CliSyntax.PREFIX_AMOUNT;
 import static gigabyte.logic.parser.CliSyntax.PREFIX_DEADLINE;
 import static java.util.Objects.requireNonNull;
 
-import java.util.List;
 import java.util.Optional;
 
 import gigabyte.commons.core.index.Index;
 import gigabyte.commons.util.ToStringBuilder;
-import gigabyte.logic.Messages;
 import gigabyte.logic.commands.exceptions.CommandException;
 import gigabyte.model.Model;
 import gigabyte.model.client.Client;
 import gigabyte.model.gig.Deadline;
 import gigabyte.model.gig.Fee;
 import gigabyte.model.gig.Gig;
-import gigabyte.model.gig.GigOrdering;
 import gigabyte.model.gig.PaymentObligation;
-import gigabyte.model.gig.PaymentObligationOrdering;
 
 /** Edits a payment obligation using the displayed client, gig, and payment indexes. */
 public class EditPaymentCommand extends Command {
@@ -60,24 +56,9 @@ public class EditPaymentCommand extends Command {
     @Override
     public CommandResult execute(Model model) throws CommandException {
         requireNonNull(model);
-        List<Client> clients = model.getFilteredClientList();
-        if (clientIndex.getZeroBased() >= clients.size()) {
-            throw new CommandException(Messages.MESSAGE_INVALID_CLIENT_DISPLAYED_INDEX);
-        }
-
-        Client client = clients.get(clientIndex.getZeroBased());
-        List<Gig> gigs = GigOrdering.forClient(model.getGigList(), client);
-        if (gigIndex.getZeroBased() >= gigs.size()) {
-            throw new CommandException(Messages.MESSAGE_INVALID_GIG_INDEX);
-        }
-
-        Gig gig = gigs.get(gigIndex.getZeroBased());
-        List<PaymentObligation> payments = PaymentObligationOrdering.forGig(model.getPaymentObligationList(), gig);
-        if (paymentIndex.getZeroBased() >= payments.size()) {
-            throw new CommandException(Messages.MESSAGE_INVALID_PAYMENT_INDEX);
-        }
-
-        PaymentObligation payment = payments.get(paymentIndex.getZeroBased());
+        Client client = CommandUtil.getClient(model, clientIndex);
+        Gig gig = CommandUtil.getGig(model, client, gigIndex);
+        PaymentObligation payment = CommandUtil.getPaymentObligation(model, gig, paymentIndex);
         PaymentObligation replacement = payment.withDetails(
                 amount.orElse(payment.getAmount()), dueDate.orElse(payment.getDueDate()));
         if (payment.equals(replacement)) {
