@@ -4,6 +4,7 @@ import static gigabyte.logic.Messages.MESSAGE_INVALID_COMMAND_FORMAT;
 import static gigabyte.logic.parser.CliSyntax.PREFIX_STATUS;
 import static gigabyte.logic.parser.CommandParserTestUtil.assertParseFailure;
 import static gigabyte.logic.parser.CommandParserTestUtil.assertParseSuccess;
+import static gigabyte.logic.parser.CommandParserTestUtil.rejectedValueMessage;
 import static gigabyte.logic.parser.ParserUtil.MESSAGE_INVALID_INDEX;
 
 import java.util.Locale;
@@ -74,14 +75,19 @@ public class SetGigStatusCommandParserTest {
     @Test
     public void parse_unsupportedStatusOrExtraArguments_rejectsInput() {
         // EP: unknown status
-        assertParseFailure(parser, "1 2 s/WAITING", GigStatus.MESSAGE_CONSTRAINTS);
+        assertParseFailure(parser, "1 2 s/WAITING", rejectedValueMessage(GigStatus.MESSAGE_CONSTRAINTS, "WAITING"));
 
         // EP: known status written with a space instead of an underscore
-        assertParseFailure(parser, "1 2 s/IN PROGRESS", GigStatus.MESSAGE_CONSTRAINTS);
+        assertParseFailure(parser, "1 2 s/IN PROGRESS",
+                rejectedValueMessage(GigStatus.MESSAGE_CONSTRAINTS, "IN PROGRESS"));
 
         // EP: valid status followed by extra text or an unsupported prefix
-        assertParseFailure(parser, "1 2 s/COMPLETED extra", GigStatus.MESSAGE_CONSTRAINTS);
-        assertParseFailure(parser, "1 2 s/COMPLETED d/2027-01-31", GigStatus.MESSAGE_CONSTRAINTS);
+        assertParseFailure(parser, "1 2 s/COMPLETED extra",
+                rejectedValueMessage(GigStatus.MESSAGE_CONSTRAINTS, "COMPLETED extra"));
+        assertParseFailure(parser, "1 2 s/COMPLETED d/2027-01-31",
+                rejectedValueMessage(GigStatus.MESSAGE_CONSTRAINTS, "COMPLETED d/2027-01-31"));
+        assertParseFailure(parser, "1 2 s/COMPLETED t/x",
+                rejectedValueMessage(GigStatus.MESSAGE_CONSTRAINTS, "COMPLETED t/x"));
     }
 
     @Test
