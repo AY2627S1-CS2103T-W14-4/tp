@@ -23,6 +23,28 @@
   packaging), [PlantUML](https://plantuml.com/) (UML diagrams), and [MarkBind](https://markbind.org/) (documentation
   website).
 
+### Notable uses of AI
+
+* **Lim Kerjun (`patientotter`)** used **OpenAI Codex and ChatGPT**
+  extensively to generate and refine source code for gig and payment
+  commands, generate and extend automated tests, and draft documentation
+  and UML diagrams. These tools also assisted with preliminary pull
+  request reviews, debugging implementation and build issues, and
+  developing manual and automated test scenarios.
+* **Clement Neo (`approxneo`)** used **OpenAI Codex with Computer Use**
+  to generate and refine source code for storage and data-file loading,
+  and navigation commands. They were also used to generate and extend
+  automated tests, and draft documentation.
+* **Axel Heng (`axelheng`)** used **OpenAI Codex and ChatGPT** to assist
+  with source-code development, debugging, test generation, and documentation
+  refinement. The generated suggestions were reviewed, adapted, and validated
+  before being included.
+* **Tang Ming Hong (`minghong-dev`)** used **Claude Code** to generate and refine
+  source code, generate and extend automated tests, plan features, and draft and
+  restructure documentation. **ChatGPT** was used to validate and cross-check
+  Claude Code's plans and code changes. The generated output was reviewed,
+  adapted, and tested before being included.
+
 --------------------------------------------------------------------------------------------------------------------
 
 ## **Setting up, getting started**
