@@ -14,12 +14,14 @@ import gigabyte.model.gig.Fee;
 
 /** Parses displayed indexes and optional replacement details for {@code editpayment}. */
 public class EditPaymentCommandParser implements Parser<EditPaymentCommand> {
+    private static final int INDEX_COUNT = 3;
+
     @Override
     public EditPaymentCommand parse(String args) throws ParseException {
         ArgumentMultimap arguments = ArgumentTokenizer.tokenize(args, PREFIX_AMOUNT, PREFIX_DEADLINE);
         String[] indexes = arguments.getPreamble().split("\\s+");
-        if (indexes.length != 3) {
-            throw invalidFormat();
+        if (indexes.length != INDEX_COUNT) {
+            throw new ParseException(getInvalidFormatMessage());
         }
         arguments.verifyNoDuplicatePrefixesFor(PREFIX_AMOUNT, PREFIX_DEADLINE);
 
@@ -31,8 +33,7 @@ public class EditPaymentCommandParser implements Parser<EditPaymentCommand> {
             gigIndex = ParserUtil.parseIndex(indexes[1]);
             paymentIndex = ParserUtil.parseIndex(indexes[2]);
         } catch (ParseException exception) {
-            throw new ParseException(
-                    String.format(MESSAGE_INVALID_COMMAND_FORMAT, EditPaymentCommand.MESSAGE_USAGE), exception);
+            throw new ParseException(getInvalidFormatMessage(), exception);
         }
 
         Optional<Fee> amount = Optional.empty();
@@ -50,7 +51,7 @@ public class EditPaymentCommandParser implements Parser<EditPaymentCommand> {
         return new EditPaymentCommand(clientIndex, gigIndex, paymentIndex, amount, dueDate);
     }
 
-    private static ParseException invalidFormat() {
-        return new ParseException(String.format(MESSAGE_INVALID_COMMAND_FORMAT, EditPaymentCommand.MESSAGE_USAGE));
+    private static String getInvalidFormatMessage() {
+        return String.format(MESSAGE_INVALID_COMMAND_FORMAT, EditPaymentCommand.MESSAGE_USAGE);
     }
 }

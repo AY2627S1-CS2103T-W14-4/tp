@@ -36,6 +36,8 @@ public class GigListPanel extends UiPart<Region> {
     private static final String NO_CLIENT = "Select a client to view their gigs.";
     private static final String NO_GIGS = "This client has no gigs.";
     private static final String NO_DEADLINES = "There are no active gig deadlines.";
+    /** Width kept free beside each cell, e.g. for the vertical scroll bar, so wrapped text fits. */
+    private static final double CELL_WIDTH_PADDING = 20;
     private final FilteredList<Gig> filteredGigs;
     private final Clock clock;
     private final PauseTransition deadlineRefreshTimer = new PauseTransition();
@@ -71,12 +73,13 @@ public class GigListPanel extends UiPart<Region> {
         gigListView.setItems(sortedGigs);
         gigListView.setCellFactory(view -> {
             ListCell<Gig> cell = new ListCell<>() {
-                @Override protected void updateItem(Gig gig, boolean empty) {
-                    super.updateItem(gig, empty);
+                @Override
+                protected void updateItem(Gig gig, boolean isEmpty) {
+                    super.updateItem(gig, isEmpty);
                     String overdue = gig != null && gig.getStatus() != GigStatus.COMPLETED
                             && gig.getDeadline().getValue().isBefore(LocalDate.now(clock))
                             ? "    OVERDUE" : "";
-                    setText(empty || gig == null ? null : String.format(
+                    setText(isEmpty || gig == null ? null : String.format(
                             "%s%nClient: %s%nStatus: %s    Deadline: %s%s    Fee: $%s",
                             gig.getTitle(), gig.getClient().getName(), gig.getStatus(),
                             gig.getDeadline(), overdue, gig.getAgreedFee()));
@@ -84,7 +87,7 @@ public class GigListPanel extends UiPart<Region> {
                 }
             };
             cell.getStyleClass().add("gig-list-cell");
-            cell.prefWidthProperty().bind(view.widthProperty().subtract(20));
+            cell.prefWidthProperty().bind(view.widthProperty().subtract(CELL_WIDTH_PADDING));
             return cell;
         });
         gigListView.getSelectionModel().selectedItemProperty().addListener((observable, oldGig, newGig) ->

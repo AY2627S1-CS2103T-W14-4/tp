@@ -8,12 +8,14 @@ import gigabyte.logic.parser.exceptions.ParseException;
 
 /** Parses the three displayed indexes for {@code markunpaid}. */
 public class MarkPaymentUnpaidCommandParser implements Parser<MarkPaymentUnpaidCommand> {
+    private static final int INDEX_COUNT = 3;
+
     @Override
     public MarkPaymentUnpaidCommand parse(String args) throws ParseException {
         String trimmedArgs = args.trim();
         String[] indexes = trimmedArgs.isEmpty() ? new String[0] : trimmedArgs.split("\\s+");
-        if (indexes.length != 3) {
-            throw invalidFormat();
+        if (indexes.length != INDEX_COUNT) {
+            throw new ParseException(getInvalidFormatMessage());
         }
 
         try {
@@ -22,13 +24,11 @@ public class MarkPaymentUnpaidCommandParser implements Parser<MarkPaymentUnpaidC
             Index paymentIndex = ParserUtil.parseIndex(indexes[2]);
             return new MarkPaymentUnpaidCommand(clientIndex, gigIndex, paymentIndex);
         } catch (ParseException exception) {
-            String message = String.format(MESSAGE_INVALID_COMMAND_FORMAT, MarkPaymentUnpaidCommand.MESSAGE_USAGE);
-            throw new ParseException(message, exception);
+            throw new ParseException(getInvalidFormatMessage(), exception);
         }
     }
 
-    private static ParseException invalidFormat() {
-        return new ParseException(String.format(MESSAGE_INVALID_COMMAND_FORMAT,
-                MarkPaymentUnpaidCommand.MESSAGE_USAGE));
+    private static String getInvalidFormatMessage() {
+        return String.format(MESSAGE_INVALID_COMMAND_FORMAT, MarkPaymentUnpaidCommand.MESSAGE_USAGE);
     }
 }
