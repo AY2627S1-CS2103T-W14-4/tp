@@ -93,6 +93,146 @@ public class MainWindowTest {
     }
 
     @Test
+    public void editClientCommand_renameOutOfFilter_clearsSelectionAndGigs() throws Exception {
+        Model model = new ModelManager();
+        model.addClient(ALICE);
+        model.addClient(BENSON);
+        model.addGig(ALICE_GIG);
+        Logic logic = new LogicManager(model, new StorageManager(
+                new JsonGigabyteDataStorage(temporaryFolder.resolve("edit-filter-data.json")),
+                new JsonUserPrefsStorage(temporaryFolder.resolve("edit-filter-preferences.json"))));
+        MainWindow window = callOnJavaFxThread(() -> {
+            MainWindow mainWindow = new MainWindow(new Stage(), logic,
+                    temporaryFolder.resolve("edit-filter-data.json"));
+            mainWindow.fillInnerParts();
+            return mainWindow;
+        });
+
+        try {
+            callOnJavaFxThread(() -> {
+                enterCommand(window, "find Alice");
+                ListView<Client> clientListView = window.getClientListPanel().getClientListView();
+                clientListView.getSelectionModel().select(0);
+                assertEquals(List.of(ALICE_GIG), window.getGigListPanel().getGigListView().getItems());
+
+                enterCommand(window, "edit 1 n/Amelia Pauline");
+
+                assertTrue(clientListView.getItems().isEmpty());
+                assertNull(clientListView.getSelectionModel().getSelectedItem());
+                assertTrue(window.getGigListPanel().getGigListView().getItems().isEmpty());
+                return null;
+            });
+        } finally {
+            callOnJavaFxThread(() -> {
+                window.getPrimaryStage().hide();
+                return null;
+            });
+        }
+    }
+
+    @Test
+    public void editGigCommand_deadlineReorders_preservesSelectedGigAndPayments() throws Exception {
+        Model model = new ModelManager();
+        model.addClient(ALICE);
+        model.addClient(BENSON);
+        model.addGig(ALICE_GIG);
+        model.addGig(BENSON_GIG);
+        model.addPaymentObligation(ALICE_PAYMENT);
+        model.addPaymentObligation(BENSON_PAYMENT);
+        Logic logic = new LogicManager(model, new StorageManager(
+                new JsonGigabyteDataStorage(temporaryFolder.resolve("edit-deadline-data.json")),
+                new JsonUserPrefsStorage(temporaryFolder.resolve("edit-deadline-preferences.json"))));
+        MainWindow window = callOnJavaFxThread(() -> {
+            MainWindow mainWindow = new MainWindow(new Stage(), logic,
+                    temporaryFolder.resolve("edit-deadline-data.json"));
+            mainWindow.fillInnerParts();
+            mainWindow.show();
+            return mainWindow;
+        });
+
+        try {
+            callOnJavaFxThread(() -> {
+                enterCommand(window, "deadlines");
+                window.getGigListPanel().getGigListView().getSelectionModel().select(0);
+                assertEquals(List.of(ALICE_PAYMENT),
+                        window.getPaymentObligationListPanel().getPaymentListView().getItems());
+
+                enterCommand(window, "editgig 1 1 d/2027-12-31");
+                return null;
+            });
+            callOnJavaFxThread(() -> {
+                Gig edited = model.getGigList().get(0);
+                ListView<Gig> gigs = window.getGigListPanel().getGigListView();
+                assertEquals(new Deadline("2027-12-31"), edited.getDeadline());
+                assertEquals(List.of(BENSON_GIG, edited), gigs.getItems());
+                assertEquals(1, gigs.getSelectionModel().getSelectedIndex());
+                assertSame(edited, gigs.getSelectionModel().getSelectedItem());
+                assertEquals(List.of(model.getPaymentObligationList().get(0)),
+                        window.getPaymentObligationListPanel().getPaymentListView().getItems());
+
+                gigs.getSelectionModel().select(0);
+                assertEquals(List.of(BENSON_PAYMENT),
+                        window.getPaymentObligationListPanel().getPaymentListView().getItems());
+                return null;
+            });
+        } finally {
+            callOnJavaFxThread(() -> {
+                window.getPrimaryStage().hide();
+                return null;
+            });
+        }
+    }
+
+    @Test
+    public void editClientCommand_contactEdits_preserveSelectedGigAndPayments() throws Exception {
+        for (int clientIndex : new int[] {1, 2}) {
+            Model model = new ModelManager();
+            model.addClient(ALICE);
+            model.addClient(BENSON);
+            model.addGig(ALICE_GIG);
+            model.addGig(BENSON_GIG);
+            model.addPaymentObligation(ALICE_PAYMENT);
+            model.addPaymentObligation(BENSON_PAYMENT);
+            Logic logic = new LogicManager(model, new StorageManager(
+                    new JsonGigabyteDataStorage(temporaryFolder.resolve("edit-contact-data.json")),
+                    new JsonUserPrefsStorage(temporaryFolder.resolve("edit-contact-preferences.json"))));
+            MainWindow window = callOnJavaFxThread(() -> {
+                MainWindow mainWindow = new MainWindow(new Stage(), logic,
+                        temporaryFolder.resolve("edit-contact-data.json"));
+                mainWindow.fillInnerParts();
+                mainWindow.show();
+                return mainWindow;
+            });
+
+            try {
+                callOnJavaFxThread(() -> {
+                    window.getClientListPanel().getClientListView().getSelectionModel().select(0);
+                    window.getGigListPanel().getGigListView().getSelectionModel().select(0);
+                    assertEquals(List.of(ALICE_PAYMENT),
+                            window.getPaymentObligationListPanel().getPaymentListView().getItems());
+
+                    enterCommand(window, "edit " + clientIndex + " e/updated@example.com");
+                    return null;
+                });
+                callOnJavaFxThread(() -> {
+                    assertEquals("updated@example.com", model.getGigabyteData().getClientList()
+                            .get(clientIndex - 1).getEmail().value);
+                    assertSame(model.getGigList().get(0), window.getGigListPanel().getGigListView()
+                            .getSelectionModel().getSelectedItem());
+                    assertEquals(List.of(model.getPaymentObligationList().get(0)),
+                            window.getPaymentObligationListPanel().getPaymentListView().getItems());
+                    return null;
+                });
+            } finally {
+                callOnJavaFxThread(() -> {
+                    window.getPrimaryStage().hide();
+                    return null;
+                });
+            }
+        }
+    }
+
+    @Test
     public void gigAndPaymentCommands_switchViewsAndPreserveClientWorkflow() throws Exception {
         Model model = new ModelManager();
         model.addClient(ALICE);

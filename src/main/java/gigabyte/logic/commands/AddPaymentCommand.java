@@ -63,7 +63,7 @@ public class AddPaymentCommand extends Command {
         Gig gig = gigs.get(gigIndex.getZeroBased());
         model.addPaymentObligation(new PaymentObligation(gig, amount, dueDate, false));
         return new CommandResult(String.format(MESSAGE_SUCCESS, client.getName(), gigIndex.getOneBased(),
-                amount, dueDate));
+                amount.toDisplayString(), dueDate));
     }
 
     @Override

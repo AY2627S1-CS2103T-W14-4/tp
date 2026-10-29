@@ -15,6 +15,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.List;
+
 import org.junit.jupiter.api.Test;
 
 import gigabyte.commons.core.index.Index;
@@ -25,6 +27,7 @@ import gigabyte.model.Model;
 import gigabyte.model.ModelManager;
 import gigabyte.model.UserPrefs;
 import gigabyte.model.client.Client;
+import gigabyte.model.client.ClientNameContainsKeywordsPredicate;
 import gigabyte.testutil.ClientBuilder;
 import gigabyte.testutil.EditClientDescriptorBuilder;
 
@@ -93,8 +96,30 @@ public class EditClientCommandTest {
     }
 
     @Test
-    public void execute_filteredList_success() {
-        showClientAtIndex(model, INDEX_FIRST_CLIENT);
+    public void execute_filteredEmail_preservesFilter() {
+        ClientNameContainsKeywordsPredicate predicate = new ClientNameContainsKeywordsPredicate(List.of("Alice"));
+        model.updateFilteredClientList(predicate);
+
+        Client clientInFilteredList = model.getFilteredClientList().get(INDEX_FIRST_CLIENT.getZeroBased());
+        Client editedClient = new ClientBuilder(clientInFilteredList).withEmail("updated@example.com").build();
+        EditClientCommand editCommand = new EditClientCommand(INDEX_FIRST_CLIENT,
+                new EditClientDescriptorBuilder().withEmail("updated@example.com").build());
+
+        String expectedMessage = String.format(EditClientCommand.MESSAGE_EDIT_CLIENT_SUCCESS,
+                Messages.format(editedClient));
+
+        Model expectedModel = new ModelManager(new GigabyteData(model.getGigabyteData()), new UserPrefs());
+        expectedModel.updateFilteredClientList(predicate);
+        expectedModel.setClient(clientInFilteredList, editedClient);
+
+        assertCommandSuccess(editCommand, model, expectedMessage, expectedModel);
+        assertEquals(List.of(editedClient), model.getFilteredClientList());
+    }
+
+    @Test
+    public void execute_renamedClient_leavesFilteredList() {
+        ClientNameContainsKeywordsPredicate predicate = new ClientNameContainsKeywordsPredicate(List.of("Alice"));
+        model.updateFilteredClientList(predicate);
 
         Client clientInFilteredList = model.getFilteredClientList().get(INDEX_FIRST_CLIENT.getZeroBased());
         Client editedClient = new ClientBuilder(clientInFilteredList).withName(VALID_NAME_BOB).build();
@@ -105,9 +130,12 @@ public class EditClientCommandTest {
                 Messages.format(editedClient));
 
         Model expectedModel = new ModelManager(new GigabyteData(model.getGigabyteData()), new UserPrefs());
-        expectedModel.setClient(model.getFilteredClientList().get(0), editedClient);
+        expectedModel.updateFilteredClientList(predicate);
+        expectedModel.setClient(clientInFilteredList, editedClient);
 
         assertCommandSuccess(editCommand, model, expectedMessage, expectedModel);
+        assertEquals(List.of(), model.getFilteredClientList());
+        assertEquals(editedClient, model.getGigabyteData().getClientList().get(0));
     }
 
     @Test

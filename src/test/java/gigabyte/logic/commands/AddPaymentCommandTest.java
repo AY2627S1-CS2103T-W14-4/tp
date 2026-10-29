@@ -55,7 +55,7 @@ public class AddPaymentCommandTest {
         assertFalse(obligations.get(1).isPaid());
         assertEquals(before.getClientList(), model.getFilteredClientList());
         assertEquals(before.getGigList(), model.getGigList());
-        assertEquals("Recorded unpaid obligation for Alice Pauline, gig 2: Amount: 50.25; Due date: 2027-01-31",
+        assertEquals("Recorded unpaid obligation for Alice Pauline, gig 2: Amount: $50.25; Due date: 2027-01-31",
                 result.getFeedbackToUser());
     }
 

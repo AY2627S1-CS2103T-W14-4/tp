@@ -68,13 +68,16 @@
   For example, in `add n/NAME`, replace `NAME` with a value such as `John Doe`.
 
 * Items in square brackets are optional.<br>
-  For example, `n/NAME [t/TAG]` can be used as `n/John Doe t/friend` or as `n/John Doe`.
+  For example, `n/NAME [t/TAG]` can be used as `n/John Doe t/corporate` or as `n/John Doe`.
 
 * Items followed by `...` can appear zero or more times.<br>
-  For example, `[t/TAG]... ` may be omitted, or written as `t/friend` or `t/friend t/family`.
+  For example, `[t/TAG]... ` may be omitted, or written as `t/corporate` or `t/corporate t/repeat`.
 
 * Parameters can be in any order.<br>
   For example, if the command specifies `n/NAME p/PHONE_NUMBER`, `p/PHONE_NUMBER n/NAME` is also acceptable.
+
+* Money amounts are displayed with a dollar sign, comma thousands separators, and two decimal places,
+  for example, `$1,234.50`. Enter amounts without dollar signs or commas, such as `a/1234.50` or `f/1234.50`.
 
 * Extraneous parameters for `summary`, `help`, `list`, `exit`, and `clear` are ignored.<br>
   For example, `help 123` is interpreted as `help`.<br>
@@ -119,8 +122,7 @@ Format: `add n/NAME p/PHONE_NUMBER e/EMAIL a/ADDRESS [t/TAG]... `
 
 Examples:
 * `add n/John Doe p/98765432 e/johnd@example.com a/John street, block 123, #01-01`
-* `add n/Betsy Crowe t/friend e/betsycrowe@example.com a/Newgate Prison p/1234567 t/criminal`
-* `add n/Carl Kurz p/+65 9123 4567 e/carlk@example.com a/12 Orchard Road`
+* `add n/Betsy Crowe t/startup e/betsycrowe@example.com a/71 Ayer Rajah Crescent p/1234567 t/referral`
 
 ### Listing all clients: `list`
 
@@ -289,6 +291,8 @@ Format: `editgig CLIENT_INDEX GIG_INDEX [t/TITLE] [d/DEADLINE] [f/FEE]`
   edits that would leave the gig unchanged are rejected without changing records.
 * Client and status views refresh immediately. Changing a deadline reorders the deadline overview; changing a title
   can also change the order when deadlines are equal. Both indexes are resolved before the edit is applied.
+* A selected gig stays selected when its row moves, and its payments remain visible. If an edited title no longer
+  matches the current title search, the gig leaves the results and its selection and payment view clear.
 
 Examples: `editgig 1 2 t/Updated landing page`, `editgig 1 2 d/2027-04-30 f/1800.00`.
 After `find Bernice`, `editgig 1 1 t/Revised branding` edits the first matching client's first gig.
@@ -514,7 +518,7 @@ Examples:
 Example success message:
 
 ```text
-Deleted payment obligation for Alex Yeoh, gig 1 (Portfolio website redesign), payment 1: Amount: 1250.00; Due date: 2027-01-15; Previous state: PAID
+Deleted payment obligation for Alex Yeoh, gig 1 (Portfolio website redesign), payment 1: Amount: $1,250.00; Due date: 2027-01-15; Previous state: PAID
 ```
 
 Unsuccessful examples:
@@ -539,6 +543,9 @@ Format: `edit INDEX [n/NAME] [p/PHONE] [e/EMAIL] [a/ADDRESS] [t/TAG]... `
 * Edits the client at the specified `INDEX`. The index refers to the index number shown in the displayed client list. The index **must be a positive integer** 1, 2, 3, ...
 * At least one of the optional fields must be provided.
 * Existing values will be updated to the input values.
+* The active client filter stays in place. Contact edits preserve the selected gig and its payment view, including
+  when editing another client. A rename that no longer matches the filter removes the client from the results;
+  if that client was selected, its gig and payment views clear.
 * A new phone number follows the same rules as in [`add`](#adding-a-client-add).
 * When editing tags, all of the client's existing tags are removed; adding tags is not cumulative.
   Each tag follows the same rules as in [`add`](#adding-a-client-add).
@@ -593,6 +600,8 @@ Format: `findgig KEYWORD [MORE_KEYWORDS]`
 
 * The search is case-insensitive and considers gig titles only.
 * Each keyword must match a complete word; for example, `site` does not match `website`.
+* Punctuation at the start or end of a word is ignored, so `invoice` matches `Invoice, overdue` and `(invoice)`.
+  Punctuation inside a word is kept, so `commerce` does not match `e-commerce`.
 * Multiple keywords use OR semantics: a gig is shown when its title contains at least one keyword.
 * Duplicate keywords do not duplicate results.
 * Results include gigs for all clients, even when the client list is filtered, and retain the original gig order.
@@ -711,7 +720,7 @@ supported.
 
 Action     | Format, Examples
 -----------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------
-**Add**    | `add n/NAME p/PHONE_NUMBER e/EMAIL a/ADDRESS [t/TAG]... ` <br> e.g., `add n/James Ho p/22224444 e/jamesho@example.com a/123, Clementi Rd, 1234665 t/friend t/colleague`
+**Add**    | `add n/NAME p/PHONE_NUMBER e/EMAIL a/ADDRESS [t/TAG]... ` <br> e.g., `add n/James Ho p/22224444 e/jamesho@example.com a/123, Clementi Rd, 1234665 t/corporate t/repeat`
 **Add gig** | `addgig INDEX t/TITLE s/STATUS d/DEADLINE f/FEE` <br> e.g., `addgig 1 t/Website redesign s/NOT_STARTED d/2027-01-31 f/1250.00`
 **Delete gig permanently** | `deletegig CLIENT_INDEX GIG_INDEX` <br> e.g., `deletegig 2 2`
 **Add payment** | `addpayment CLIENT_INDEX GIG_INDEX a/AMOUNT d/DUE_DATE` <br> e.g., `addpayment 1 2 a/500.00 d/2027-01-31`
