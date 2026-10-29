@@ -7,6 +7,7 @@ import static gigabyte.logic.commands.CommandTestUtil.ADDRESS_DESC_AMY;
 import static gigabyte.logic.commands.CommandTestUtil.EMAIL_DESC_AMY;
 import static gigabyte.logic.commands.CommandTestUtil.NAME_DESC_AMY;
 import static gigabyte.logic.commands.CommandTestUtil.PHONE_DESC_AMY;
+import static gigabyte.logic.parser.ParserUtil.MESSAGE_INVALID_INDEX;
 import static gigabyte.testutil.Assert.assertThrows;
 import static gigabyte.testutil.TypicalClients.ALICE;
 import static gigabyte.testutil.TypicalClients.AMY;
@@ -102,6 +103,31 @@ public class LogicManagerTest {
     }
 
     @Test
+    public void execute_moneyCommands_displayConsistentCurrencyAndPersistExactAmounts() throws Exception {
+        model.addClient(ALICE);
+        String amount = "999999999999.99";
+        String display = "$999,999,999,999.99";
+        List<String> commands = List.of(
+                "addgig 1 t/Large contract s/IN_PROGRESS d/2027-01-31 f/" + amount,
+                "editgig 1 1 t/Revised contract",
+                "addpayment 1 1 a/" + amount + " d/2027-02-28",
+                "editpayment 1 1 1 d/2027-03-31",
+                "markpaid 1 1 1",
+                "markunpaid 1 1 1",
+                "summary");
+        for (String command : commands) {
+            assertTrue(logic.execute(command).getFeedbackToUser().contains(display), command);
+        }
+
+        ReadOnlyGigabyteData restored = new JsonGigabyteDataStorage(temporaryFolder.resolve("gigabyteData.json"))
+                .readGigabyteData().orElseThrow();
+        assertEquals(amount, restored.getGigList().get(0).getAgreedFee().toString());
+        assertEquals(amount, restored.getPaymentObligationList().get(0).getAmount().toString());
+        assertTrue(logic.execute("deletepayment 1 1 1").getFeedbackToUser().contains(display));
+        assertTrue(model.getPaymentObligationList().isEmpty());
+    }
+
+    @Test
     public void execute_outstanding_preservesRecordsAndRejectsArguments() throws Exception {
         model.addClient(ALICE);
         logic.execute("addgig 1 t/Website s/IN_PROGRESS d/2027-01-31 f/100");
@@ -137,6 +163,17 @@ public class LogicManagerTest {
     }
 
     @Test
+    public void execute_addAndEditFormattedPhone_keepsPhoneAsTypedAcrossReload() throws Exception {
+        logic.execute("add n/Amy Bee p/+65 9123 4567 e/amy@example.com a/1 Test Street");
+        assertEquals("+65 9123 4567", model.getFilteredClientList().get(0).getPhone().value);
+        assertEquals("+65 9123 4567", readSavedData().getClientList().get(0).getPhone().value);
+
+        logic.execute("edit 1 p/+1-202-555-0143");
+        assertEquals("+1-202-555-0143", model.getFilteredClientList().get(0).getPhone().value);
+        assertEquals("+1-202-555-0143", readSavedData().getClientList().get(0).getPhone().value);
+    }
+
+    @Test
     public void execute_addGig_persistsAcrossReloadAndSubsequentCommands() throws Exception {
         model.addClient(ALICE);
         CommandResult result = logic.execute(
@@ -145,7 +182,7 @@ public class LogicManagerTest {
                 new Deadline("2027-01-31"), new Fee("1250.50"));
         assertEquals(expected, model.getGigList().get(0));
         assertEquals("New gig added for Alice Pauline: Title: Website redesign; Status: IN_PROGRESS; "
-                + "Deadline: 2027-01-31; Agreed fee: 1250.50", result.getFeedbackToUser());
+                + "Deadline: 2027-01-31; Agreed fee: $1,250.50", result.getFeedbackToUser());
 
         logic.execute("list");
         JsonGigabyteDataStorage storage = new JsonGigabyteDataStorage(temporaryFolder.resolve("gigabyteData.json"));
@@ -171,7 +208,7 @@ public class LogicManagerTest {
         model.addGig(new Gig(ALICE, new GigTitle("Website redesign"), GigStatus.IN_PROGRESS,
                 new Deadline("2027-01-31"), new Fee("100")));
         CommandResult result = logic.execute("addpayment 1 1 a/50.25 d/2027-02-28");
-        assertEquals("Recorded unpaid obligation for Alice Pauline, gig 1: Amount: 50.25; Due date: 2027-02-28",
+        assertEquals("Recorded unpaid obligation for Alice Pauline, gig 1: Amount: $50.25; Due date: 2027-02-28",
                 result.getFeedbackToUser());
         GigabyteData before = new GigabyteData(model.getGigabyteData());
         Path path = temporaryFolder.resolve("gigabyteData.json");
@@ -199,7 +236,7 @@ public class LogicManagerTest {
 
         CommandResult result = logic.execute("markpaid 1 1 1");
 
-        assertEquals("Marked payment obligation for Alice Pauline, gig 1, payment 1 as paid: Amount: 50.25; "
+        assertEquals("Marked payment obligation for Alice Pauline, gig 1, payment 1 as paid: Amount: $50.25; "
                 + "Due date: 2027-02-28", result.getFeedbackToUser());
         assertTrue(model.getPaymentObligationList().get(0).isPaid());
         ReadOnlyGigabyteData restored = new JsonGigabyteDataStorage(temporaryFolder.resolve("gigabyteData.json"))
@@ -218,7 +255,7 @@ public class LogicManagerTest {
 
         CommandResult result = logic.execute("markunpaid 1 1 1");
 
-        assertEquals("Marked payment obligation for Alice Pauline, gig 1, payment 1 as unpaid: Amount: 50.25; "
+        assertEquals("Marked payment obligation for Alice Pauline, gig 1, payment 1 as unpaid: Amount: $50.25; "
                 + "Due date: 2027-02-28", result.getFeedbackToUser());
         PaymentObligation payment = model.getPaymentObligationList().get(0);
         assertFalse(payment.isPaid());
@@ -244,9 +281,13 @@ public class LogicManagerTest {
         Gig removed = model.getGigList().get(1);
         Path path = temporaryFolder.resolve("gigabyteData.json");
         String saved = Files.readString(path);
-        for (String invalid : new String[] {"", "1", "1 2 3", "0 1", "1 -1", "1 abc", "2147483648 1"}) {
+        for (String invalid : new String[] {"", "1", "1 2 3"}) {
             assertParseException("deletegig " + invalid,
                     String.format(MESSAGE_INVALID_COMMAND_FORMAT, DeleteGigCommand.MESSAGE_USAGE));
+            assertEquals(saved, Files.readString(path));
+        }
+        for (String invalid : new String[] {"0 1", "1 -1", "1 abc", "2147483648 1"}) {
+            assertParseException("deletegig " + invalid, MESSAGE_INVALID_INDEX);
             assertEquals(saved, Files.readString(path));
         }
         assertCommandException("deletegig 2 1", MESSAGE_INVALID_CLIENT_DISPLAYED_INDEX);
@@ -354,8 +395,12 @@ public class LogicManagerTest {
         String savedData = Files.readString(path);
         String usage = String.format(MESSAGE_INVALID_COMMAND_FORMAT, DeletePaymentCommand.MESSAGE_USAGE);
 
-        for (String args : new String[] {"", "1 1", "1 1 1 1", "0 1 1", "1 -1 1", "1 1 abc"}) {
+        for (String args : new String[] {"", "1 1", "1 1 1 1"}) {
             assertParseException("deletepayment " + args, usage);
+            assertEquals(savedData, Files.readString(path));
+        }
+        for (String args : new String[] {"0 1 1", "1 -1 1", "1 1 abc"}) {
+            assertParseException("deletepayment " + args, MESSAGE_INVALID_INDEX);
             assertEquals(savedData, Files.readString(path));
         }
         assertCommandException("deletepayment 2 1 1", MESSAGE_INVALID_CLIENT_DISPLAYED_INDEX);
@@ -376,7 +421,7 @@ public class LogicManagerTest {
 
         CommandResult result = logic.execute("editpayment 1 1 1 a/650 d/2027-05-15");
 
-        assertEquals("Edited payment obligation for Alice Pauline, gig 1, payment 1: Amount: 650.00; "
+        assertEquals("Edited payment obligation for Alice Pauline, gig 1, payment 1: Amount: $650.00; "
                 + "Due date: 2027-05-15", result.getFeedbackToUser());
         assertEquals(new Fee("650"), model.getPaymentObligationList().get(0).getAmount());
         assertEquals(new Deadline("2027-05-15"), model.getPaymentObligationList().get(0).getDueDate());
@@ -492,6 +537,14 @@ public class LogicManagerTest {
     @Test
     public void getFilteredClientList_modifyList_throwsUnsupportedOperationException() {
         assertThrows(UnsupportedOperationException.class, () -> logic.getFilteredClientList().remove(0));
+    }
+
+    /**
+     * Reads the data file that {@code logic} saves to, as a fresh load from disk.
+     */
+    private ReadOnlyGigabyteData readSavedData() throws Exception {
+        JsonGigabyteDataStorage storage = new JsonGigabyteDataStorage(temporaryFolder.resolve("gigabyteData.json"));
+        return storage.readGigabyteData().orElseThrow();
     }
 
     /**

@@ -58,6 +58,22 @@ public class PaymentObligationListPanelTest {
     }
 
     @Test
+    public void showPaymentsFor_hintBlankOrShown_hintTakesSpaceOnlyWhenShown() {
+        PaymentObligationListPanel panel = createPanel(FXCollections.observableArrayList(
+                createPayment(FIRST_GIG, "100", "2026-10-12", false)));
+        assertTrue(panel.getEmptyState().isManaged());
+
+        // Gig with payments: the hint is blank, so the list gets its space.
+        panel.showPaymentsFor(FIRST_GIG);
+        assertEquals("", panel.getEmptyState().getText());
+        assertFalse(panel.getEmptyState().isManaged());
+
+        // No gig selected: the hint is shown again.
+        panel.showPaymentsFor(null);
+        assertTrue(panel.getEmptyState().isManaged());
+    }
+
+    @Test
     public void showOutstandingPayments_multipleClients_sortsExcludesPaidAndKeepsStableTies() {
         Gig otherGig = new Gig(BENSON, new GigTitle("Logo"), GigStatus.COMPLETED,
                 new Deadline("2027-01-31"), new Fee("500"));
@@ -350,6 +366,18 @@ public class PaymentObligationListPanelTest {
         panel.refreshPaymentStates();
 
         assertTrue(renderCells(panel).get(0).getText().contains("OVERDUE"));
+    }
+
+    @Test
+    public void paymentCell_largeAmount_usesSameFormatInGigAndOutstandingViews() {
+        PaymentObligation payment = createPayment(FIRST_GIG, "999999999999.99", "2099-02-28", false);
+        PaymentObligationListPanel panel = createPanel(FXCollections.observableArrayList(payment));
+        panel.showPaymentsFor(FIRST_GIG);
+        assertTrue(renderCells(panel).get(0).getText().contains("Amount: $999,999,999,999.99"));
+
+        panel.showOutstandingPayments();
+
+        assertTrue(renderCells(panel).get(0).getText().contains("Amount: $999,999,999,999.99"));
     }
 
     @Test

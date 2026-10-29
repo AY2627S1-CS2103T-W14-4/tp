@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
 
 import java.io.IOException;
+import java.math.BigInteger;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
@@ -22,6 +23,7 @@ import gigabyte.commons.exceptions.DataLoadingException;
 import gigabyte.commons.util.JsonUtil;
 import gigabyte.model.GigabyteData;
 import gigabyte.model.ReadOnlyGigabyteData;
+import gigabyte.model.gig.PaymentObligation;
 
 /** Verifies the save-file format at the storage boundary. */
 public class JsonGigabyteDataFormatTest {
@@ -44,6 +46,9 @@ public class JsonGigabyteDataFormatTest {
               }]
             }
             """;
+    /** Maps each record array to its field stored as integer cents. */
+    private static final Map<String, String> CENTS_FIELDS =
+            Map.of("gigs", "feeCents", "paymentObligations", "amountCents");
 
     @TempDir
     Path testFolder;
@@ -59,6 +64,25 @@ public class JsonGigabyteDataFormatTest {
         assertSame(data.getGigList().get(0), data.getPaymentObligationList().get(0).getGig());
         storage.saveGigabyteData(data);
         assertEquals(currentJson(), JsonUtil.fromJsonString(Files.readString(path), ObjectNode.class));
+    }
+
+    @Test
+    public void readAndSave_eachPaidState_preservesIntegerCentsAndBoolean() throws Exception {
+        for (boolean isPaid : List.of(true, false)) {
+            ObjectNode json = currentJson();
+            firstRecord(json, "paymentObligations").put("paid", isPaid);
+            Path path = testFolder.resolve("paid-" + isPaid + ".json");
+            Files.writeString(path, json.toString());
+            JsonGigabyteDataStorage storage = new JsonGigabyteDataStorage(path);
+            ReadOnlyGigabyteData data = storage.readGigabyteData().orElseThrow();
+
+            assertEquals(BigInteger.valueOf(125050), data.getGigList().get(0).getAgreedFee().getCents());
+            PaymentObligation payment = data.getPaymentObligationList().get(0);
+            assertEquals(BigInteger.valueOf(5025), payment.getAmount().getCents());
+            assertEquals(isPaid, payment.isPaid());
+            storage.saveGigabyteData(data);
+            assertEquals(json, JsonUtil.fromJsonString(Files.readString(path), ObjectNode.class));
+        }
     }
 
     @Test
@@ -157,13 +181,65 @@ public class JsonGigabyteDataFormatTest {
     }
 
     @Test
-    public void read_fractionalCents_throwsDataLoadingException() throws Exception {
-        for (var entry : Map.of("gigs", "feeCents", "paymentObligations", "amountCents").entrySet()) {
+    public void read_floatingPointCents_throwsDataLoadingException() throws Exception {
+        for (var entry : CENTS_FIELDS.entrySet()) {
+            for (double cents : List.of(50.25, 5025.0)) {
+                ObjectNode json = currentJson();
+                ObjectNode record = (ObjectNode) json.get(entry.getKey()).get(0);
+                record.put(entry.getValue(), cents);
+                assertInvalidSave(json);
+            }
+        }
+    }
+
+    @Test
+    public void read_quotedCents_throwsDataLoadingException() throws Exception {
+        for (var entry : CENTS_FIELDS.entrySet()) {
             ObjectNode json = currentJson();
             ObjectNode record = (ObjectNode) json.get(entry.getKey()).get(0);
-            record.put(entry.getValue(), 50.25);
+            record.put(entry.getValue(), record.get(entry.getValue()).asText());
             assertInvalidSave(json);
         }
+    }
+
+    @Test
+    public void read_booleanCents_throwsDataLoadingException() throws Exception {
+        for (var entry : CENTS_FIELDS.entrySet()) {
+            ObjectNode json = currentJson();
+            ObjectNode record = (ObjectNode) json.get(entry.getKey()).get(0);
+            record.put(entry.getValue(), true);
+            assertInvalidSave(json);
+        }
+    }
+
+    @Test
+    public void read_quotedPaid_throwsDataLoadingException() throws Exception {
+        for (String paid : List.of("true", "false")) {
+            ObjectNode json = currentJson();
+            firstRecord(json, "paymentObligations").put("paid", paid);
+            assertInvalidSave(json);
+        }
+    }
+
+    @Test
+    public void read_numericPaid_throwsDataLoadingException() throws Exception {
+        for (int paid : List.of(0, 1)) {
+            ObjectNode json = currentJson();
+            firstRecord(json, "paymentObligations").put("paid", paid);
+            assertInvalidSave(json);
+        }
+    }
+
+    @Test
+    public void read_unknownRecordField_throwsDataLoadingException() throws Exception {
+        for (String records : List.of("clients", "gigs", "paymentObligations")) {
+            ObjectNode json = currentJson();
+            firstRecord(json, records).put("unknownField", 1);
+            assertInvalidSave(json);
+        }
+        ObjectNode json = currentJson();
+        json.put("unknownField", 1);
+        assertInvalidSave(json);
     }
 
     @Test
@@ -178,6 +254,10 @@ public class JsonGigabyteDataFormatTest {
 
     private ObjectNode currentJson() throws IOException {
         return JsonUtil.fromJsonString(CURRENT_JSON, ObjectNode.class);
+    }
+
+    private static ObjectNode firstRecord(ObjectNode json, String records) {
+        return (ObjectNode) json.get(records).get(0);
     }
 
     private void assertInvalidSave(JsonNode json) throws IOException {

@@ -68,7 +68,7 @@ public class MarkPaymentUnpaidCommand extends Command {
 
         model.setPaymentPaidState(payment, false);
         return new CommandResult(String.format(MESSAGE_SUCCESS, client.getName(), gigIndex.getOneBased(),
-                paymentIndex.getOneBased(), payment.getAmount(), payment.getDueDate()));
+                paymentIndex.getOneBased(), payment.getAmount().toDisplayString(), payment.getDueDate()));
     }
 
     @Override

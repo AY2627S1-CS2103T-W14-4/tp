@@ -153,9 +153,9 @@ How the parsing works:
 * Some prefixes are shared by different commands (e.g., `t/` is a tag for `add` but a title for `addgig`, and `a/` is
   an address for `add` but an amount for `addpayment`). Each `XYZCommandParser` passes only the prefixes it accepts
   to `ArgumentTokenizer`, so the meaning of a prefix depends on the command being parsed.
-* `deadlines`, `summary`, `list`, `clear`, `help`, and `exit` have no parser class: `GigabyteParser` creates these
-  commands directly and ignores any arguments. `outstanding` is also created directly, but `GigabyteParser` rejects
-  any arguments supplied to it. Overview commands return `CommandResult` view instructions that `MainWindow` applies
+* `summary`, `list`, `clear`, `help`, and `exit` have no parser class: `GigabyteParser` creates these commands
+  directly and ignores any arguments. `deadlines` and `outstanding` are also created directly, but `GigabyteParser`
+  rejects any arguments supplied to them. Overview commands return `CommandResult` view instructions that `MainWindow` applies
   without changing the current client filter.
 
 ### Model component
@@ -214,9 +214,12 @@ The `Storage` component,
   `JsonAdaptedPaymentObligation`. Gigs store `clientUid`; payment obligations store `gigUid`; monetary values are
   stored as integer cents.
 * reads only the current save format through `JsonUtil.readJsonFileStrict`, rejecting unknown fields and
-  fractional values for integer fields. The adapters require all three top-level arrays and each record's required
-  fields; IDs and titles are never generated during loading. Older formats fail with `DataLoadingException`.
-  User preferences continue to use the separate, permissive `JsonUtil.readJsonFile` path.
+  fractional values for integer fields. `JsonAdaptedGig` and `JsonAdaptedPaymentObligation` read `feeCents`,
+  `amountCents` and `paid` through `StrictJsonDeserializers`, which accept only a JSON integer or a JSON boolean
+  and reject quoted values such as `"5025"` or `"true"` instead of converting them. The adapters require all three
+  top-level arrays and each record's required fields; IDs and titles are never generated during loading. Older
+  formats fail with `DataLoadingException`. User preferences continue to use the separate, permissive
+  `JsonUtil.readJsonFile` path.
 * migrates `data/addressbook.json` to `data/gigabyte.json` during `MainApp.init`, before loading data, if the current
   file does not exist. `JsonGigabyteDataStorage.migrateLegacyDataFile` moves the file without changing its contents
   or replacing an existing destination. An `IOException` during migration stops startup.
@@ -231,8 +234,9 @@ The save-file fields are:
 | Payment obligation | `gigUid`, `amountCents`, `dueDate`, `paid` |
 
 UUIDs must be valid, references must resolve to saved records, titles must be valid text, and monetary values must
-be positive integer cents. Null collections and null records are rejected. There is no automatic conversion of
-`persons`, name- or index-based references, decimal amount fields, or missing IDs and titles.
+be positive JSON integers of cents. `paid` must be JSON `true` or `false`. Null collections and null records are
+rejected. There is no automatic conversion of quoted numbers or booleans, `persons`, name- or index-based
+references, decimal amount fields, or missing IDs and titles.
 
 #### Data file format
 
@@ -346,7 +350,8 @@ Each `Client` and `Gig` has an immutable UUID. A `Gig` holds the canonical `Clie
 `gigUid`, avoiding ambiguous links when clients or gigs have equal display fields.
 
 When a client is edited, `GigabyteData#setClient` rebuilds that client's immutable gigs with `Gig#withClient` and then
-relinks payment obligations to the replacement gig objects. `Gig#withClient` preserves the gig UUID and title, so
+relinks payment obligations to the replacement gig objects. Only affected rows are replaced in the observable lists,
+preserving unrelated stored objects and selections. `Gig#withClient` preserves the gig UUID and title, so
 editing contact details does not break payment links or discard gig information. During loading, storage resolves
 `clientUid` and `gigUid` against the saved UUIDs and rejects missing or invalid references.
 
@@ -449,6 +454,11 @@ Payment amounts are stored separately from the gig's agreed fee, so changing the
 payment. The gig views observe the gig list, so the selected client's gigs, status results, title search results, and
 the deadline overview update immediately. `setstatus` uses the same `Model#setGig` path, with `Gig#withStatus` creating
 the replacement.
+
+`GigListPanel` captures the selected gig before its source list changes and restores its selection by UUID after
+filtering and sorting finish. Intermediate row changes do not switch the payment view. A deleted gig or one that
+leaves the active filter clears its selection and payments. `ClientListPanel` treats replacement details with the
+same client UUID as the same selection, preserving the current gig view during contact edits.
 
 #### Design considerations:
 
@@ -1119,10 +1129,11 @@ with `java -jar gigabyte.jar`. Back up `data/gigabyte.json` before any test that
 </box>
 
 Every command that takes indexes (`edit`, `delete`, `addgig`, `editgig`, `setstatus`, `deletegig`, `addpayment`,
-`editpayment`, `markpaid`, `markunpaid`, and `deletepayment`) checks them in the same way: zero, negative, and
-non-numeric indexes produce the command-format error, and an index that is too large produces an "invalid index"
-error. This is tested once, in [Adding payment obligations](#adding-payment-obligations), and is not repeated for
-each command.
+`editpayment`, `markpaid`, `markunpaid`, and `deletepayment`) checks them in the same way: a missing or extra index,
+or extra words before the first prefix, produces the command-format error with the command's usage; zero, negative,
+and non-numeric indexes produce `Index must be a positive integer.`; and an index larger than the displayed list
+produces an "invalid index" error. This is tested once, in [Adding payment obligations](#adding-payment-obligations),
+and is not repeated for each command.
 
 ### Launch, sample data, and empty states
 
@@ -1135,7 +1146,7 @@ each command.
       gig's status, deadline, and fee. The Payment obligations panel still says
       `Select a gig to view its payment obligations.`
    1. Select `Portfolio website redesign`.<br>
-      Expected: The panel shows the sample `$1250.00` obligation due `2027-01-15` as `PAID`.
+      Expected: The panel shows the sample `$1,250.00` obligation due `2027-01-15` as `PAID`.
    1. Select `Bernice Yu`, then select `Quarterly newsletter template`.<br>
       Expected: The Payment obligations panel says `This gig has no payment obligations.`
    1. Select `Charlotte Oliveiro`.<br>
@@ -1162,7 +1173,7 @@ Start this section from a fresh test folder so the sample clients and gigs are p
       Expected: The result names `Alex Yeoh` and repeats the normalized title, status, deadline, and fee.
    1. Select `Alex Yeoh`.<br>
       Expected: `Conference landing page` appears after Alex's two sample gigs with status `IN_PROGRESS`, deadline
-      `2027-06-30`, and fee `$1800.50`.
+      `2027-06-30`, and fee `$1,800.50`.
 
 1. **Title validation**
    1. Test case: `addgig 1 t/    s/NOT_STARTED d/2027-06-30 f/100`<br>
@@ -1191,9 +1202,11 @@ Start each numbered test from a fresh test folder. Client and gig indexes use th
 and the selected client's normal recorded gig order, even while an overview is open.
 
 1. **Edit details and reorder the deadline view**
-   1. Test case: `deadlines`, then `editgig 1 2 t/Revised photography d/2026-10-01 f/1350`.<br>
+   1. Test case: `deadlines`, select Alex's second gig, then
+      `editgig 1 2 t/Revised photography d/2026-10-01 f/1350`.<br>
       Expected: Alex's second gig retains its UID, `NOT_STARTED` status, and `$1200.00` payment. The deadline
-      overview refreshes without another `deadlines` command; the revised gig moves to the first row.
+      overview refreshes without another `deadlines` command; the revised gig moves to the first row and stays
+      selected, with its payment still visible.
    1. Test case: `find Alex`, then `editgig 1 2 d/2027-12-01`.<br>
       Expected: The same gig's deadline changes again while the filtered client list remains Alex only.
       Select Alex and his second gig: its payment remains linked and unchanged.
@@ -1215,6 +1228,10 @@ and the selected client's normal recorded gig order, even while an overview is o
    1. Test case: `findgig no-such-title`, then `findgig`.<br>
       Expected: The first command shows `No gigs match the supplied title keywords.`; the second is rejected
       without changing stored records. Input `list` to restore all clients.
+   1. Test case: `addgig 1 t/Invoice, overdue s/NOT_STARTED d/2027-06-30 f/100`, then `findgig invoice`, then
+      `findgig voice`.<br>
+      Expected: `findgig invoice` shows the new gig because the trailing comma is ignored. `findgig voice` does not
+      show it because `voice` is only part of a word.
 
 ### Updating gig statuses and reviewing gigs
 
@@ -1239,6 +1256,9 @@ Start each test in this section from a fresh test folder.
    1. Test case: `deadlines`<br>
       Expected: Every non-completed gig appears across all clients, ordered by deadline. `Overdue follow-up` is
       first and labelled `OVERDUE`; `Brand identity refresh` is absent because it is completed.
+   1. Test case: `deadlines unexpected`<br>
+      Expected: An invalid command format message with the `deadlines` usage is shown. The deadline overview stays
+      visible and no data changes.
    1. Select `Bernice Yu`.<br>
       Expected: The overview closes and Bernice's normal gig list is restored.
 
@@ -1263,7 +1283,7 @@ Start each test in this section from a fresh test folder.
 
 1. **Edit a client**
    1. Test case: `find Jamie`, followed by `edit 1 p/87654321 t/priority`.<br>
-      Expected: The complete client list is displayed again. Jamie's phone changes to `87654321`, and `priority`
+      Expected: The client list remains filtered to Jamie. Jamie's phone changes to `87654321`, and `priority`
       replaces the existing tags.
 
 1. **Find and list clients**
@@ -1282,9 +1302,9 @@ Start this section from a fresh test folder. Alex's sample gigs make `CLIENT_IND
 
 1. **Valid payment obligation**
    1. Select `Alex Yeoh`, then select `Portfolio website redesign`.<br>
-      Expected: The panel shows the sample `$1250.00` obligation due `2027-01-15` as `PAID`.
+      Expected: The panel shows the sample `$1,250.00` obligation due `2027-01-15` as `PAID`.
    1. Test case: `addpayment 1 1 a/500.00 d/2099-07-15`<br>
-      Expected: The result says an unpaid obligation was recorded for `Alex Yeoh`, gig 1, with amount `500.00` and
+      Expected: The result says an unpaid obligation was recorded for `Alex Yeoh`, gig 1, with amount `$500.00` and
       due date `2099-07-15`. Without reselecting the gig, the panel immediately shows
       `2. Amount: $500.00`, `Due: 2099-07-15`, and `OUTSTANDING` after the earlier sample payment.
 
@@ -1301,11 +1321,14 @@ Start this section from a fresh test folder. Alex's sample gigs make `CLIENT_IND
 
 1. **Invalid client and gig indexes** (representative of all commands that take indexes)
    1. Repeat `addpayment CLIENT_INDEX 1 a/500 d/2099-07-15` with `CLIENT_INDEX` set to `0`, `-1`, `abc`, and `999`.<br>
-      Expected: No obligation is recorded. The first three produce the command-format error; `999` reports an invalid
-      client index.
+      Expected: No obligation is recorded. The first three report `Index must be a positive integer.`; `999` reports
+      an invalid client index.
    1. Repeat `addpayment 1 GIG_INDEX a/500 d/2099-07-15` with `GIG_INDEX` set to `0`, `-1`, `abc`, and `999`.<br>
-      Expected: No obligation is recorded. The first three produce the command-format error; `999` reports that the
-      gig index is invalid for this client.
+      Expected: No obligation is recorded. The first three report `Index must be a positive integer.`; `999` reports
+      that the gig index is invalid for this client.
+   1. Test case: `addpayment 1 a/500 d/2099-07-15`, `addpayment 1 1 2 a/500 d/2099-07-15`, and
+      `addpayment 1 1 extra a/500 d/2099-07-15`.<br>
+      Expected: No obligation is recorded. Each reports `Invalid command format!` followed by the `addpayment` usage.
 
 ### Correcting payment status
 
@@ -1352,10 +1375,10 @@ Use a fresh test folder for each numbered test below. Deletion is permanent and 
 1. **Paid, future unpaid, overdue, final payment, and restart**
    1. Test case: `addpayment 1 1 a/500 d/2099-01-31`, then `addpayment 1 1 a/100 d/2000-01-31`.<br>
       Select Alex Yeoh and Portfolio website redesign. Expected order: overdue `$100.00` (1), sample paid
-      `$1250.00` (2), future unpaid `$500.00` (3).
+      `$1,250.00` (2), future unpaid `$500.00` (3).
    1. Test case: `deletepayment 1 1 2`.<br>
       Expected: Only the paid row disappears immediately. Feedback names Alex Yeoh, gig 1 (Portfolio website
-      redesign), payment 2, amount `1250.00`, due date `2027-01-15`, and previous state `PAID`.
+      redesign), payment 2, amount `$1,250.00`, due date `2027-01-15`, and previous state `PAID`.
       The remaining rows become 1 and 2 in the same order. The client and gig remain selected and unchanged.
    1. Test case: `outstanding`, then `deletepayment 1 1 1`.<br>
       Expected: The overdue `$100.00` row disappears without rerunning `outstanding`. Feedback includes its amount,
@@ -1387,10 +1410,11 @@ Use a fresh test folder for each numbered test below. Deletion is permanent and 
 1. **Invalid indexes and syntax leave data unchanged**
    1. Select Alex and his first gig. Copy `data/gigabyte.json` for comparison.
    1. Try `deletepayment 1 1 1.5` and `deletepayment 1 1 2147483648`.<br>
-      Expected: Both are rejected with the command-format error. The payment list, parents, and saved file remain
-      unchanged.
+      Expected: Both are rejected with `Index must be a positive integer.` The payment list, parents, and saved file
+      remain unchanged.
    1. Try `deletepayment`, `deletepayment 1 1`, and `deletepayment 1 1 1 2`.<br>
-      Expected: Each reports the required syntax. The saved file still matches the copy.
+      Expected: Each reports `Invalid command format!` with the required syntax. The saved file still matches the
+      copy.
 
 1. **Outstanding overview becomes empty**
    1. In the disposable test folder, input `clear`, then
@@ -1404,15 +1428,15 @@ Use a fresh test folder for each numbered test below. Deletion is permanent and 
 ### Editing payment obligations
 
 Start this section from a fresh test folder. Select `Alex Yeoh`, then select `Portfolio website redesign` so the
-sample `$1250.00` paid obligation is payment 1.
+sample `$1,250.00` paid obligation is payment 1.
 
 1. **Edit amount, due date, and both fields**
    1. Test case: `editpayment 1 1 1 a/1300`<br>
-      Expected: Payment 1 immediately shows `$1300.00`, keeps due date `2027-01-15`, and remains `PAID`.
+      Expected: Payment 1 immediately shows `$1,300.00`, keeps due date `2027-01-15`, and remains `PAID`.
    1. Test case: `addpayment 1 1 a/500 d/2099-07-15`<br>
       Expected: An unpaid `$500.00` obligation is added as payment 2.
    1. Test case: `editpayment 1 1 1 d/2099-08-01`<br>
-      Expected: The same paid payment keeps amount `$1300.00`, moves from payment 1 to payment 2 after the earlier
+      Expected: The same paid payment keeps amount `$1,300.00`, moves from payment 1 to payment 2 after the earlier
       `$500.00` obligation, and remains `PAID`.
    1. Test case: `editpayment 1 1 2 a/1350 d/2020-08-01`<br>
       Expected: The paid payment changes both fields atomically, moves back to payment 1, and keeps its paid state and
@@ -1458,11 +1482,11 @@ Start each test in this section from a fresh test folder unless the test says ot
       Expected: All five commands succeed.
    1. Select `Alex Yeoh`, then select `Portfolio website redesign`.<br>
       Expected: Exactly five payments appear. Their displayed indexes restart from 1 and their amounts are ordered
-      `$100.00`, `$1250.00`, `$200.00`, `$250.00`, `$300.00`. The `$1250.00` sample row is `PAID`; the two
+      `$100.00`, `$1,250.00`, `$200.00`, `$250.00`, `$300.00`. The `$1,250.00` sample row is `PAID`; the two
       obligations due on `2099-02-01` retain the order in which they were recorded. The `$100.00` row is `OVERDUE`
       and visually distinct from the three new `OUTSTANDING` rows.
    1. Select `Product launch photography`.<br>
-      Expected: The sample `$1200.00` obligation due `2027-03-01` and the new `$900.00` obligation due `2099-01-01`
+      Expected: The sample `$1,200.00` obligation due `2027-03-01` and the new `$900.00` obligation due `2099-01-01`
       appear in that order; none of the first gig's payments remain visible.
 
 1. **Mark a payment paid and reject a repeated attempt**
@@ -1472,7 +1496,7 @@ Start each test in this section from a fresh test folder unless the test says ot
       `addpayment 1 1 a/720 d/2020-05-01`<br>
       Expected: All three obligations are recorded as unpaid.
    1. Select `Alex Yeoh`, then select `Portfolio website redesign`.<br>
-      Expected: The `$720.00` row is payment 1, the sample `$1250.00` paid row is payment 2, and the `$700.00` and
+      Expected: The `$720.00` row is payment 1, the sample `$1,250.00` paid row is payment 2, and the `$700.00` and
       `$710.00` rows are payments 3 and 4 respectively.
    1. Test case: `markpaid 1 1 3`<br>
       Expected: The `$700.00` row shows `PAID`. Its muted paid styling is visibly different from the blue outstanding
@@ -1489,8 +1513,8 @@ Start each test in this section from a fresh test folder unless the test says ot
       earlier sample paid row.
    1. Test case: `find Charlotte`, followed by `outstanding`.<br>
       Expected: Outstanding obligations across all clients appear despite the filtered client list. The overdue
-      `$100.00` row is first and labelled `OVERDUE`; the sample `$1800.00` and `$1200.00` unpaid rows follow in
-      due-date order. The sample `$1250.00` and new `$500.00` paid rows are absent.
+      `$100.00` row is first and labelled `OVERDUE`; the sample `$1,800.00` and `$1,200.00` unpaid rows follow in
+      due-date order. The sample `$1,250.00` and new `$500.00` paid rows are absent.
    1. Test case: `outstanding extra`.<br>
       Expected: The command is rejected, the existing overview remains visible, and no data changes.
 
@@ -1525,19 +1549,19 @@ Start each test in this section from a fresh test folder unless the test says ot
 ### Viewing the summary
 
 Start this section from a fresh test folder. The overdue figures below assume the test runs before `2026-12-15`.
-From that date onwards, the sample `$1800.00` obligation is also overdue, so add `1 ($1,800.00)` to each overdue
+From that date onwards, the sample `$1,800.00` obligation is also overdue, so add `1 ($1,800.00)` to each overdue
 figure.
 
 1. **Summary of the sample data**
    1. Test case: `summary`<br>
       Expected: The result shows `Clients: 6` and `Gigs: 4 total`, with `NOT_STARTED: 1`, `IN_PROGRESS: 2`, and
-      `COMPLETED: 1`. Under `Payments:`, it shows `Outstanding: 2 ($3,000.00)`, `Of which overdue: 0 ($0.00)`, and
-      `Marked paid: 1 ($1,250.00)`.
+      `COMPLETED: 1`. It shows `Payments: 3 total`, with `Outstanding: 2 ($3,000.00)`,
+      `Of which overdue: 0 ($0.00)`, and `Marked paid: 1 ($1,250.00)`.
 
 1. **Summary ignores the client filter**
    1. Test case: `find Alex`, then `addpayment 1 1 a/100.50 d/2000-01-01`, then `summary`.<br>
-      Expected: The result still shows `Clients: 6`. It now shows `Outstanding: 3 ($3,100.50)` and
-      `Of which overdue: 1 ($100.50)`. The filtered client list and the current panels are unchanged.
+      Expected: The result still shows `Clients: 6`. It now shows `Payments: 4 total`,
+      `Outstanding: 3 ($3,100.50)`, and `Of which overdue: 1 ($100.50)`. The filtered client list and the current panels are unchanged.
 
 ### Commands after filtering clients
 
@@ -1606,11 +1630,11 @@ Use a disposable fresh sample-data folder for each test. Deletion is permanent a
       | `edit 1 p/91234567` | Alex's phone is `91234567`. |
       | `delete 3` | Charlotte is absent; other clients and gigs remain. |
       | `addgig 1 t/Retest s/NOT_STARTED d/2099-01-01 f/100` | Alex has a third gig named Retest. |
-      | `editgig 1 2 f/1300` | Alex's second gig has a `$1300.00` fee and its payment remains. |
+      | `editgig 1 2 f/1300` | Alex's second gig has a `$1,300.00` fee and its payment remains. |
       | `setstatus 1 2 s/COMPLETED` | Alex's second gig is completed. |
       | `deletegig 2 2` | Bernice's second gig is absent; her first gig remains. |
       | `addpayment 1 2 a/80 d/2099-02-01` | Alex's second gig has its sample payment and the new `$80.00` payment. |
-      | `editpayment 1 2 1 a/1300` | Alex's second gig's sample payment is `$1300.00`, still unpaid. |
+      | `editpayment 1 2 1 a/1300` | Alex's second gig's sample payment is `$1,300.00`, still unpaid. |
       | `markpaid 1 2 1` | Alex's second gig's sample payment is paid. |
       | `markunpaid 1 1 1` | Alex's first gig's sample payment is unpaid. |
       | `deletepayment 1 2 1` | Alex's second gig has no payments. |
@@ -1678,9 +1702,9 @@ Use a disposable fresh sample-data folder for each test. Deletion is permanent a
 1. Test case: `editpayment 1 3 1 a/1050 d/2027-10-20`.<br>
    Expected: The payment amount and due date change while it remains unpaid and linked to the edited gig.
 1. Test case: `markpaid 1 3 1`<br>
-   Expected: The `$1050.00` obligation immediately changes to `PAID`.
+   Expected: The `$1,050.00` obligation immediately changes to `PAID`.
 1. Test case: `markunpaid 1 3 1`, then `outstanding`.<br>
-   Expected: The corrected `$1050.00` payment appears in the unpaid overview.
+   Expected: The corrected `$1,050.00` payment appears in the unpaid overview.
 1. Test case: `markpaid 1 3 1` again.<br>
    Expected: The payment leaves the open outstanding overview immediately.
 1. Test case: `gigs s/COMPLETED`<br>
@@ -1688,12 +1712,12 @@ Use a disposable fresh sample-data folder for each test. Deletion is permanent a
 1. Test case: `deadlines`<br>
    Expected: Active gigs are shown in deadline order; `Delivered website` is absent because it is completed.
 1. Test case: `outstanding`<br>
-   Expected: Unpaid obligations across all clients are shown in due-date order; the paid `$1050.00` obligation is
+   Expected: Unpaid obligations across all clients are shown in due-date order; the paid `$1,050.00` obligation is
    absent.
 1. Test case: `exit`, relaunch from the same folder, input `find Alex`, and select Alex.<br>
-   Expected: `Delivered website` is still present with status `COMPLETED`, deadline `2027-09-30`, and fee `$2100.00`.
+   Expected: `Delivered website` is still present with status `COMPLETED`, deadline `2027-09-30`, and fee `$2,100.00`.
 1. Select `Delivered website`.<br>
-   Expected: Its Payment obligations panel shows `1. Amount: $1050.00`, due `2027-10-20`, as `PAID`. No payment from
+   Expected: Its Payment obligations panel shows `1. Amount: $1,050.00`, due `2027-10-20`, as `PAID`. No payment from
    another gig is shown.
 1. Test case: `deletegig 1 3`.<br>
    Expected: Deletion is blocked by the paid payment. Input `deletepayment 1 3 1`, then `deletegig 1 3`.<br>

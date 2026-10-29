@@ -32,8 +32,8 @@ public class AddClientCommand extends Command {
             + PREFIX_PHONE + "98765432 "
             + PREFIX_EMAIL + "johnd@example.com "
             + PREFIX_ADDRESS + "311, Clementi Ave 2, #02-25 "
-            + PREFIX_TAG + "friends "
-            + PREFIX_TAG + "owesMoney";
+            + PREFIX_TAG + "corporate "
+            + PREFIX_TAG + "referral";
 
     public static final String MESSAGE_SUCCESS = "New client added: %1$s";
     public static final String MESSAGE_DUPLICATE_CLIENT = "This client already exists in the client list.";
@@ -55,9 +55,14 @@ public class AddClientCommand extends Command {
         if (model.hasClient(toAdd)) {
             throw new CommandException(MESSAGE_DUPLICATE_CLIENT);
         }
+        if (model.hasOtherClientWithSameNormalizedName(toAdd)) {
+            throw new CommandException(Messages.MESSAGE_DUPLICATE_CLIENT_NAME);
+        }
 
+        String sharedContactNotes = Messages.formatSharedContactNotes(toAdd,
+                model.getGigabyteData().getClientList());
         model.addClient(toAdd);
-        return new CommandResult(String.format(MESSAGE_SUCCESS, Messages.format(toAdd)));
+        return new CommandResult(String.format(MESSAGE_SUCCESS, Messages.format(toAdd)) + sharedContactNotes);
     }
 
     @Override

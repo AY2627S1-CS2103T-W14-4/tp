@@ -80,17 +80,17 @@ public class GigabyteParser {
             case EditGigCommand.COMMAND_WORD -> new EditGigCommandParser().parse(arguments);
             case DeleteClientCommand.COMMAND_WORD -> new DeleteClientCommandParser().parse(arguments);
             case DeleteGigCommand.COMMAND_WORD -> new DeleteGigCommandParser().parse(arguments);
-            case DeadlinesCommand.COMMAND_WORD -> new DeadlinesCommand();
+            case DeadlinesCommand.COMMAND_WORD -> {
+                requireNoArguments(arguments, DeadlinesCommand.MESSAGE_USAGE);
+                yield new DeadlinesCommand();
+            }
             case ClearClientsCommand.COMMAND_WORD -> new ClearClientsCommand();
             case FindClientCommand.COMMAND_WORD -> new FindClientCommandParser().parse(arguments);
             case FindGigCommand.COMMAND_WORD -> new FindGigCommandParser().parse(arguments);
             case FilterGigsCommand.COMMAND_WORD -> new FilterGigsCommandParser().parse(arguments);
             case ListClientsCommand.COMMAND_WORD -> new ListClientsCommand();
             case OutstandingCommand.COMMAND_WORD -> {
-                if (!arguments.isBlank()) {
-                    throw new ParseException(String.format(MESSAGE_INVALID_COMMAND_FORMAT,
-                            OutstandingCommand.MESSAGE_USAGE));
-                }
+                requireNoArguments(arguments, OutstandingCommand.MESSAGE_USAGE);
                 yield new OutstandingCommand();
             }
             case SummaryCommand.COMMAND_WORD -> new SummaryCommand();
@@ -101,6 +101,19 @@ public class GigabyteParser {
                 throw new ParseException(MESSAGE_UNKNOWN_COMMAND);
             }
         };
+    }
+
+    /**
+     * Rejects any input after the command word of a command that takes no parameters.
+     *
+     * @param arguments the input after the command word
+     * @param messageUsage the usage message of the command
+     * @throws ParseException if {@code arguments} is not blank
+     */
+    private static void requireNoArguments(String arguments, String messageUsage) throws ParseException {
+        if (!arguments.isBlank()) {
+            throw new ParseException(String.format(MESSAGE_INVALID_COMMAND_FORMAT, messageUsage));
+        }
     }
 
 }

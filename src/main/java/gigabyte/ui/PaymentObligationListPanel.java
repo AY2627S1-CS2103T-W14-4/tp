@@ -63,6 +63,8 @@ public class PaymentObligationListPanel extends UiPart<Region> {
         paymentListView.setCellFactory(unused -> createPaymentCell());
         sortedPayments.addListener((ListChangeListener<PaymentObligation>) change ->
                 updateEmptyState());
+        // A blank hint gives its height to the list, which matters in short windows.
+        emptyState.managedProperty().bind(emptyState.textProperty().isNotEmpty());
         updateEmptyState();
         Platform.runLater(this::scheduleNextPaymentStateRefresh);
     }
@@ -120,8 +122,8 @@ public class PaymentObligationListPanel extends UiPart<Region> {
                 }
 
                 String displayState = getDisplayState(payment);
-                setText(String.format("%d. Amount: $%s    Due: %s    %s%nClient: %s%nGig: %s",
-                        getIndex() + 1, payment.getAmount(), payment.getDueDate(), displayState,
+                setText(String.format("%d. Amount: %s    Due: %s    %s%nClient: %s%nGig: %s",
+                        getIndex() + 1, payment.getAmount().toDisplayString(), payment.getDueDate(), displayState,
                         payment.getGig().getClient().getName(), payment.getGig().getTitle()));
                 getStyleClass().add("payment-" + displayState.toLowerCase(Locale.ROOT));
             }

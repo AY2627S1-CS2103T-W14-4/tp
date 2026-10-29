@@ -157,7 +157,7 @@ public class GigListPanelTest {
             view.getRoot().layout();
             assertTrue(view.getGigListView().lookupAll(".list-cell").stream().anyMatch(node ->
                     node instanceof ListCell<?> cell && !cell.isEmpty()
-                    && cell.getText().contains("Edited title") && cell.getText().contains("1800.00")
+                    && cell.getText().contains("Edited title") && cell.getText().contains("$1,800.00")
                     && cell.getText().contains("2026-01-01")));
         }
     }
@@ -169,6 +169,21 @@ public class GigListPanelTest {
         panel.showGigsFor(CARL);
 
         assertEquals("This client has no gigs.", panel.getEmptyState().getText());
+    }
+
+    @Test
+    public void showGigsFor_hintBlankOrShown_hintTakesSpaceOnlyWhenShown() {
+        GigListPanel panel = createPanel();
+        assertTrue(panel.getEmptyState().isManaged());
+
+        // Client with gigs: the hint is blank, so the list gets its space.
+        panel.showGigsFor(ALICE);
+        assertEquals("", panel.getEmptyState().getText());
+        assertFalse(panel.getEmptyState().isManaged());
+
+        // Client without gigs: the hint is shown again.
+        panel.showGigsFor(CARL);
+        assertTrue(panel.getEmptyState().isManaged());
     }
 
     @Test
@@ -190,6 +205,28 @@ public class GigListPanelTest {
         panel.getGigListView().getSelectionModel().select(0);
 
         assertEquals(ALICE_GIG, selectedGig.get());
+    }
+
+    @Test
+    public void selectingFieldIdenticalGigs_invokesSelectionHandlerForEachRow() {
+        Gig firstGig = new Gig(ALICE, new GigTitle("Twin"), GigStatus.NOT_STARTED,
+                new Deadline("2027-01-31"), new Fee("100"));
+        Gig secondGig = firstGig.withNewUid();
+        PaymentObligation firstPayment = new PaymentObligation(firstGig, new Fee("10"),
+                new Deadline("2027-01-31"), false);
+        PaymentObligation secondPayment = new PaymentObligation(secondGig, new Fee("20"),
+                new Deadline("2027-01-31"), false);
+        PaymentObligationListPanel payments = new PaymentObligationListPanel(
+                FXCollections.observableArrayList(firstPayment, secondPayment));
+        GigListPanel panel = new GigListPanel(
+                FXCollections.observableArrayList(firstGig, secondGig), payments::showPaymentsFor);
+        panel.showGigsFor(ALICE);
+
+        panel.getGigListView().getSelectionModel().select(0);
+        assertEquals(List.of(firstPayment), payments.getPaymentListView().getItems());
+
+        panel.getGigListView().getSelectionModel().select(1);
+        assertEquals(List.of(secondPayment), payments.getPaymentListView().getItems());
     }
 
     @Test
@@ -369,8 +406,18 @@ public class GigListPanelTest {
         assertTrue(text.contains("Status: " + ALICE_GIG.getStatus()));
         assertTrue(text.contains("Client: " + ALICE_GIG.getClient().getName()));
         assertTrue(text.contains("Deadline: " + ALICE_GIG.getDeadline()));
-        assertTrue(text.contains("Fee: $" + ALICE_GIG.getAgreedFee()));
+        assertTrue(text.contains("Fee: $100.00"));
         assertTrue(cell.isWrapText());
+    }
+
+    @Test
+    public void gigCell_largeFee_showsCurrencyGroupingAndExactCents() {
+        Gig gig = new Gig(ALICE, new GigTitle("Large project"), GigStatus.IN_PROGRESS,
+                new Deadline("2027-01-31"), new Fee("999999999999.99"));
+        GigListPanel panel = new GigListPanel(FXCollections.observableArrayList(gig));
+        panel.showGigsFor(ALICE);
+
+        assertTrue(renderCells(panel).get(0).getText().contains("Fee: $999,999,999,999.99"));
     }
 
     @Test

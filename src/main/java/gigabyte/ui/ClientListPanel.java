@@ -33,8 +33,11 @@ public class ClientListPanel extends UiPart<Region> {
         this.clientSelectionHandler = clientSelectionHandler;
         clientListView.setItems(clientList);
         clientListView.setCellFactory(listView -> new ClientListViewCell());
-        clientListView.getSelectionModel().selectedItemProperty().addListener((observable, oldClient, newClient)
-                -> clientSelectionHandler.accept(newClient));
+        clientListView.getSelectionModel().selectedItemProperty().addListener((observable, oldClient, newClient) -> {
+            if (oldClient == null || newClient == null || !oldClient.hasSameUid(newClient)) {
+                clientSelectionHandler.accept(newClient);
+            }
+        });
     }
 
     /** Returns the underlying client list view. */

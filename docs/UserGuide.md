@@ -68,16 +68,20 @@
   For example, in `add n/NAME`, replace `NAME` with a value such as `John Doe`.
 
 * Items in square brackets are optional.<br>
-  For example, `n/NAME [t/TAG]` can be used as `n/John Doe t/friend` or as `n/John Doe`.
+  For example, `n/NAME [t/TAG]` can be used as `n/John Doe t/corporate` or as `n/John Doe`.
 
 * Items followed by `...` can appear zero or more times.<br>
-  For example, `[t/TAG]... ` may be omitted, or written as `t/friend` or `t/friend t/family`.
+  For example, `[t/TAG]... ` may be omitted, or written as `t/corporate` or `t/corporate t/repeat`.
 
 * Parameters can be in any order.<br>
   For example, if the command specifies `n/NAME p/PHONE_NUMBER`, `p/PHONE_NUMBER n/NAME` is also acceptable.
 
-* Extraneous parameters for commands that take no parameters, such as `help`, `list`, `exit`, and `clear`, are ignored.<br>
-  For example, `help 123` is interpreted as `help`.
+* Money amounts are displayed with a dollar sign, comma thousands separators, and two decimal places,
+  for example, `$1,234.50`. Enter amounts without dollar signs or commas, such as `a/1234.50` or `f/1234.50`.
+
+* Extraneous parameters for `summary`, `help`, `list`, `exit`, and `clear` are ignored.<br>
+  For example, `help 123` is interpreted as `help`.<br>
+  `deadlines` and `outstanding` also take no parameters, but reject any extra input with an invalid command format message.
 
 * If you are using a PDF version of this document, be careful when copying and pasting commands that span multiple lines as space characters surrounding line-breaks may be omitted when copied over to the application.
 </box>
@@ -97,7 +101,19 @@ Adds a client to the client list.
 
 Format: `add n/NAME p/PHONE_NUMBER e/EMAIL a/ADDRESS [t/TAG]... `
 
+* `PHONE_NUMBER` must have at least 3 digits and may start with a `+`. Digits may be grouped with single spaces
+  or hyphens, e.g. `+65 9123 4567`, `6123-4567` or `+1-202-555-0143`. Letters, brackets and other symbols are not
+  allowed, and the number cannot start or end with a space or hyphen, or contain two in a row.
+* The phone number is saved and shown exactly as you type it.
 * Each `TAG` must contain only letters and digits (no spaces or symbols) and be at most 25 characters long.
+* The client is rejected if its name matches an existing client's name after ignoring case, leading and trailing
+  spaces, and repeated spaces between words. For example, if `John Doe` exists, `john doe`, `JOHN DOE` and
+  `John  Doe` are all rejected.
+* Names that differ in any other way count as different clients, even if they look alike. For example, `Jon Doe`,
+  `JohnDoe` and `John A Doe` are all accepted alongside `John Doe`. Typos and nicknames are not detected.
+* If another client already has the same phone number, or the same email (ignoring case), the client is still added,
+  and the result names that client, e.g. `Note: Bernice Yu has the same phone number.` This lets you record people who
+  share a phone number or email, while still spotting accidental duplicates.
 
 <box type="tip" seamless>
 
@@ -106,7 +122,7 @@ Format: `add n/NAME p/PHONE_NUMBER e/EMAIL a/ADDRESS [t/TAG]... `
 
 Examples:
 * `add n/John Doe p/98765432 e/johnd@example.com a/John street, block 123, #01-01`
-* `add n/Betsy Crowe t/friend e/betsycrowe@example.com a/Newgate Prison p/1234567 t/criminal`
+* `add n/Betsy Crowe t/startup e/betsycrowe@example.com a/71 Ayer Rajah Crescent p/1234567 t/referral`
 
 ### Listing all clients: `list`
 
@@ -132,6 +148,15 @@ numbers, decimals, text, and indexes larger than the displayed list are invalid.
 * Commands take indexes in the order client, gig, payment, stopping after the last index shown in their format.
 
 Example: after `find Bernice`, `addgig 1 ...` targets Bernice. After `list`, Bernice is client 2 in the sample data.
+
+When an index is wrong, the error message tells you what kind of mistake it is:
+
+* An index that is zero, negative, a decimal, or text, such as `delete 0` or `markpaid 1 -1 1`, shows
+  `Index must be a positive integer.`
+* A missing or extra index, or extra words before the first prefix, such as `markpaid 1 1`, `markpaid 1 1 1 2`, or
+  `editgig 1 2 extra t/Website`, shows `Invalid command format!` followed by the command's correct format.
+* An index larger than the displayed list, such as `delete 99`, shows that the index is invalid, for example
+  `The client index provided is invalid.`
 
 ### Viewing gigs and payment obligations
 
@@ -211,6 +236,9 @@ overview updates automatically when gigs are added, changed, or removed.
 
 If there are no active gigs, the panel displays `There are no active gig deadlines.`
 
+`deadlines` takes no parameters. Extra input, such as `deadlines 1`, is rejected with an invalid command format
+message, and the current view stays unchanged.
+
 ### Creating a gig: `addgig`
 
 Creates a gig linked to an existing client and saves it automatically.
@@ -263,6 +291,8 @@ Format: `editgig CLIENT_INDEX GIG_INDEX [t/TITLE] [d/DEADLINE] [f/FEE]`
   edits that would leave the gig unchanged are rejected without changing records.
 * Client and status views refresh immediately. Changing a deadline reorders the deadline overview; changing a title
   can also change the order when deadlines are equal. Both indexes are resolved before the edit is applied.
+* A selected gig stays selected when its row moves, and its payments remain visible. If an edited title no longer
+  matches the current title search, the gig leaves the results and its selection and payment view clear.
 
 Examples: `editgig 1 2 t/Updated landing page`, `editgig 1 2 d/2027-04-30 f/1800.00`.
 After `find Bernice`, `editgig 1 1 t/Revised branding` edits the first matching client's first gig.
@@ -488,7 +518,7 @@ Examples:
 Example success message:
 
 ```text
-Deleted payment obligation for Alex Yeoh, gig 1 (Portfolio website redesign), payment 1: Amount: 1250.00; Due date: 2027-01-15; Previous state: PAID
+Deleted payment obligation for Alex Yeoh, gig 1 (Portfolio website redesign), payment 1: Amount: $1,250.00; Due date: 2027-01-15; Previous state: PAID
 ```
 
 Unsuccessful examples:
@@ -513,9 +543,18 @@ Format: `edit INDEX [n/NAME] [p/PHONE] [e/EMAIL] [a/ADDRESS] [t/TAG]... `
 * Edits the client at the specified `INDEX`. The index refers to the index number shown in the displayed client list. The index **must be a positive integer** 1, 2, 3, ...
 * At least one of the optional fields must be provided.
 * Existing values will be updated to the input values.
+* The active client filter stays in place. Contact edits preserve the selected gig and its payment view, including
+  when editing another client. A rename that no longer matches the filter removes the client from the results;
+  if that client was selected, its gig and payment views clear.
+* A new phone number follows the same rules as in [`add`](#adding-a-client-add).
 * When editing tags, all of the client's existing tags are removed; adding tags is not cumulative.
   Each tag follows the same rules as in [`add`](#adding-a-client-add).
 * To remove all of a client's tags, enter `t/` without a tag after it.
+* A new name is checked against every other client using the same rule as in [`add`](#adding-a-client-add).
+  Changing only the capitalisation or spacing of a client's own name (e.g. `John Doe` to `JOHN DOE`) is allowed,
+  unless another client already has exactly the new name.
+* If the edited client then has the same phone number or email as another client, the edit is still saved, and the
+  result shows the same note as `add`. A client is never compared with itself.
 
 Examples:
 * `edit 1 p/91234567 e/alexnew@example.com` changes Alex's phone and email in fresh sample data.
@@ -561,6 +600,8 @@ Format: `findgig KEYWORD [MORE_KEYWORDS]`
 
 * The search is case-insensitive and considers gig titles only.
 * Each keyword must match a complete word; for example, `site` does not match `website`.
+* Punctuation at the start or end of a word is ignored, so `invoice` matches `Invoice, overdue` and `(invoice)`.
+  Punctuation inside a word is kept, so `commerce` does not match `e-commerce`.
 * Multiple keywords use OR semantics: a gig is shown when its title contains at least one keyword.
 * Duplicate keywords do not duplicate results.
 * Results include gigs for all clients, even when the client list is filtered, and retain the original gig order.
@@ -625,6 +666,10 @@ for an empty collection. Each client must include its `uid`, contact fields, and
 its `uid`, `clientUid`, `title`, `status`, `deadline`, and `feeCents`. Each payment obligation must include its
 `gigUid`, `amountCents`, `dueDate`, and `paid` state.
 
+Two clients in the data file must not have exactly the same name. Data files from earlier versions may contain clients
+whose names differ only in case or spacing, such as `John Doe` and `john doe`. These files still load, and both
+clients can be edited as usual. Gigabyte only stops you from creating new pairs like this with `add` or `edit`.
+
 Only the current JSON format is supported. In particular, v1.3 files using `persons`, missing UUIDs or titles,
 client-name links, decimal `fee`/`amount` strings, or `gigIndex` references cannot be loaded. Unknown fields and
 missing required fields are rejected. The automatic filename move does not convert JSON formats. Before upgrading,
@@ -660,7 +705,7 @@ supported.
 
 Action     | Format, Examples
 -----------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------
-**Add**    | `add n/NAME p/PHONE_NUMBER e/EMAIL a/ADDRESS [t/TAG]... ` <br> e.g., `add n/James Ho p/22224444 e/jamesho@example.com a/123, Clementi Rd, 1234665 t/friend t/colleague`
+**Add**    | `add n/NAME p/PHONE_NUMBER e/EMAIL a/ADDRESS [t/TAG]... ` <br> e.g., `add n/James Ho p/22224444 e/jamesho@example.com a/123, Clementi Rd, 1234665 t/corporate t/repeat`
 **Add gig** | `addgig INDEX t/TITLE s/STATUS d/DEADLINE f/FEE` <br> e.g., `addgig 1 t/Website redesign s/NOT_STARTED d/2027-01-31 f/1250.00`
 **Delete gig permanently** | `deletegig CLIENT_INDEX GIG_INDEX` <br> e.g., `deletegig 2 2`
 **Add payment** | `addpayment CLIENT_INDEX GIG_INDEX a/AMOUNT d/DUE_DATE` <br> e.g., `addpayment 1 2 a/500.00 d/2027-01-31`

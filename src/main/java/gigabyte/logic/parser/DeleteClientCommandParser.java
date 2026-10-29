@@ -1,7 +1,5 @@
 package gigabyte.logic.parser;
 
-import static gigabyte.logic.Messages.MESSAGE_INVALID_COMMAND_FORMAT;
-
 import gigabyte.commons.core.index.Index;
 import gigabyte.logic.commands.DeleteClientCommand;
 import gigabyte.logic.parser.exceptions.ParseException;
@@ -17,13 +15,8 @@ public class DeleteClientCommandParser implements Parser<DeleteClientCommand> {
      * @throws ParseException if the user input does not conform to the expected format
      */
     public DeleteClientCommand parse(String args) throws ParseException {
-        try {
-            Index index = ParserUtil.parseIndex(args);
-            return new DeleteClientCommand(index);
-        } catch (ParseException pe) {
-            throw new ParseException(
-                    String.format(MESSAGE_INVALID_COMMAND_FORMAT, DeleteClientCommand.MESSAGE_USAGE), pe);
-        }
+        Index index = ParserUtil.parseIndexes(args, 1, DeleteClientCommand.MESSAGE_USAGE).get(0);
+        return new DeleteClientCommand(index);
     }
 
 }

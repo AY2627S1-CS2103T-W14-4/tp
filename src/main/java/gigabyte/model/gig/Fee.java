@@ -5,6 +5,7 @@ import static java.util.Objects.requireNonNull;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.util.Locale;
 import java.util.Objects;
 
 /**
@@ -37,6 +38,21 @@ public class Fee {
     /** Returns this fee as an exact integer count of cents. */
     public BigInteger getCents() {
         return value.movePointRight(2).toBigIntegerExact();
+    }
+
+    /**
+     * Returns this amount with a dollar sign, comma grouping, and two decimal places.
+     */
+    public String toDisplayString() {
+        return formatCents(getCents());
+    }
+
+    /**
+     * Formats an exact number of cents for display, including zero summary totals.
+     */
+    public static String formatCents(BigInteger cents) {
+        requireNonNull(cents);
+        return String.format(Locale.ROOT, "$%,.2f", new BigDecimal(cents, 2));
     }
 
     /** Creates a fee from a positive integer count of cents. */

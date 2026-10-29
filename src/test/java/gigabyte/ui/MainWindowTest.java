@@ -40,14 +40,23 @@ import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
 import javafx.geometry.Rectangle2D;
+import javafx.scene.control.ListCell;
+import javafx.scene.control.ListView;
+import javafx.scene.control.SplitPane;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
+import javafx.scene.layout.Region;
 import javafx.stage.Screen;
 import javafx.stage.Stage;
 
 public class MainWindowTest {
+    private static final double SCALED_1280_BY_720_CONTENT_WIDTH = 841;
+    private static final double SCALED_1280_BY_720_CONTENT_HEIGHT = 401;
+    /** Window content of a maximised window on a 1920x1080 screen at 100% scale. */
+    private static final double FULL_HD_CONTENT_WIDTH = 1902;
+    private static final double FULL_HD_CONTENT_HEIGHT = 985;
     private static final Gig ALICE_GIG = new Gig(ALICE, new GigTitle("Website redesign"), GigStatus.IN_PROGRESS,
             new Deadline("2027-01-31"), new Fee("1000"));
     private static final PaymentObligation ALICE_PAYMENT = new PaymentObligation(
@@ -63,6 +72,146 @@ public class MainWindowTest {
     @BeforeAll
     public static void setUpJavaFx() {
         JavaFxTestUtil.startToolkit();
+    }
+
+    @Test
+    public void editClientCommand_renameOutOfFilter_clearsSelectionAndGigs() throws Exception {
+        Model model = new ModelManager();
+        model.addClient(ALICE);
+        model.addClient(BENSON);
+        model.addGig(ALICE_GIG);
+        Logic logic = new LogicManager(model, new StorageManager(
+                new JsonGigabyteDataStorage(temporaryFolder.resolve("edit-filter-data.json")),
+                new JsonUserPrefsStorage(temporaryFolder.resolve("edit-filter-preferences.json"))));
+        MainWindow window = callOnJavaFxThread(() -> {
+            MainWindow mainWindow = new MainWindow(new Stage(), logic,
+                    temporaryFolder.resolve("edit-filter-data.json"));
+            mainWindow.fillInnerParts();
+            return mainWindow;
+        });
+
+        try {
+            callOnJavaFxThread(() -> {
+                enterCommand(window, "find Alice");
+                ListView<Client> clientListView = window.getClientListPanel().getClientListView();
+                clientListView.getSelectionModel().select(0);
+                assertEquals(List.of(ALICE_GIG), window.getGigListPanel().getGigListView().getItems());
+
+                enterCommand(window, "edit 1 n/Amelia Pauline");
+
+                assertTrue(clientListView.getItems().isEmpty());
+                assertNull(clientListView.getSelectionModel().getSelectedItem());
+                assertTrue(window.getGigListPanel().getGigListView().getItems().isEmpty());
+                return null;
+            });
+        } finally {
+            callOnJavaFxThread(() -> {
+                window.getPrimaryStage().hide();
+                return null;
+            });
+        }
+    }
+
+    @Test
+    public void editGigCommand_deadlineReorders_preservesSelectedGigAndPayments() throws Exception {
+        Model model = new ModelManager();
+        model.addClient(ALICE);
+        model.addClient(BENSON);
+        model.addGig(ALICE_GIG);
+        model.addGig(BENSON_GIG);
+        model.addPaymentObligation(ALICE_PAYMENT);
+        model.addPaymentObligation(BENSON_PAYMENT);
+        Logic logic = new LogicManager(model, new StorageManager(
+                new JsonGigabyteDataStorage(temporaryFolder.resolve("edit-deadline-data.json")),
+                new JsonUserPrefsStorage(temporaryFolder.resolve("edit-deadline-preferences.json"))));
+        MainWindow window = callOnJavaFxThread(() -> {
+            MainWindow mainWindow = new MainWindow(new Stage(), logic,
+                    temporaryFolder.resolve("edit-deadline-data.json"));
+            mainWindow.fillInnerParts();
+            mainWindow.show();
+            return mainWindow;
+        });
+
+        try {
+            callOnJavaFxThread(() -> {
+                enterCommand(window, "deadlines");
+                window.getGigListPanel().getGigListView().getSelectionModel().select(0);
+                assertEquals(List.of(ALICE_PAYMENT),
+                        window.getPaymentObligationListPanel().getPaymentListView().getItems());
+
+                enterCommand(window, "editgig 1 1 d/2027-12-31");
+                return null;
+            });
+            callOnJavaFxThread(() -> {
+                Gig edited = model.getGigList().get(0);
+                ListView<Gig> gigs = window.getGigListPanel().getGigListView();
+                assertEquals(new Deadline("2027-12-31"), edited.getDeadline());
+                assertEquals(List.of(BENSON_GIG, edited), gigs.getItems());
+                assertEquals(1, gigs.getSelectionModel().getSelectedIndex());
+                assertSame(edited, gigs.getSelectionModel().getSelectedItem());
+                assertEquals(List.of(model.getPaymentObligationList().get(0)),
+                        window.getPaymentObligationListPanel().getPaymentListView().getItems());
+
+                gigs.getSelectionModel().select(0);
+                assertEquals(List.of(BENSON_PAYMENT),
+                        window.getPaymentObligationListPanel().getPaymentListView().getItems());
+                return null;
+            });
+        } finally {
+            callOnJavaFxThread(() -> {
+                window.getPrimaryStage().hide();
+                return null;
+            });
+        }
+    }
+
+    @Test
+    public void editClientCommand_contactEdits_preserveSelectedGigAndPayments() throws Exception {
+        for (int clientIndex : new int[] {1, 2}) {
+            Model model = new ModelManager();
+            model.addClient(ALICE);
+            model.addClient(BENSON);
+            model.addGig(ALICE_GIG);
+            model.addGig(BENSON_GIG);
+            model.addPaymentObligation(ALICE_PAYMENT);
+            model.addPaymentObligation(BENSON_PAYMENT);
+            Logic logic = new LogicManager(model, new StorageManager(
+                    new JsonGigabyteDataStorage(temporaryFolder.resolve("edit-contact-data.json")),
+                    new JsonUserPrefsStorage(temporaryFolder.resolve("edit-contact-preferences.json"))));
+            MainWindow window = callOnJavaFxThread(() -> {
+                MainWindow mainWindow = new MainWindow(new Stage(), logic,
+                        temporaryFolder.resolve("edit-contact-data.json"));
+                mainWindow.fillInnerParts();
+                mainWindow.show();
+                return mainWindow;
+            });
+
+            try {
+                callOnJavaFxThread(() -> {
+                    window.getClientListPanel().getClientListView().getSelectionModel().select(0);
+                    window.getGigListPanel().getGigListView().getSelectionModel().select(0);
+                    assertEquals(List.of(ALICE_PAYMENT),
+                            window.getPaymentObligationListPanel().getPaymentListView().getItems());
+
+                    enterCommand(window, "edit " + clientIndex + " e/updated@example.com");
+                    return null;
+                });
+                callOnJavaFxThread(() -> {
+                    assertEquals("updated@example.com", model.getGigabyteData().getClientList()
+                            .get(clientIndex - 1).getEmail().value);
+                    assertSame(model.getGigList().get(0), window.getGigListPanel().getGigListView()
+                            .getSelectionModel().getSelectedItem());
+                    assertEquals(List.of(model.getPaymentObligationList().get(0)),
+                            window.getPaymentObligationListPanel().getPaymentListView().getItems());
+                    return null;
+                });
+            } finally {
+                callOnJavaFxThread(() -> {
+                    window.getPrimaryStage().hide();
+                    return null;
+                });
+            }
+        }
     }
 
     @Test
@@ -540,6 +689,88 @@ public class MainWindowTest {
         assertTrue(mainWindow.getPrimaryStage().getMinHeight() <= 720 / 1.5);
         assertEquals(480, MainWindow.clampWindowDimension(600, 450, 720 / 1.5));
         assertEquals(440, MainWindow.clampWindowDimension(600, 450, 440));
+    }
+
+    @Test
+    public void listHeights_scaled1280By720_eachListFitsOneFullRow() throws Exception {
+        MainWindow mainWindow = callOnJavaFxThread(() -> {
+            MainWindow window = new MainWindow(new Stage(), new LogicStub(), Path.of("data.json"));
+            window.show();
+            window.fillInnerParts();
+            return window;
+        });
+
+        try {
+            callOnJavaFxThread(() -> {
+                mainWindow.getClientListPanel().getClientListView().getSelectionModel().select(0);
+                mainWindow.getGigListPanel().getGigListView().getSelectionModel().select(0);
+                SplitPane splitPane = (SplitPane) mainWindow.getRoot().getScene().lookup(".split-pane");
+
+                // Default split, then the divider dragged fully up and fully down.
+                for (double dividerPosition : new double[] {0.5, 0.0, 1.0}) {
+                    splitPane.setDividerPositions(dividerPosition);
+                    layOutAtScaled1280By720(mainWindow);
+                    assertFirstRowFits(mainWindow.getGigListPanel().getGigListView());
+                    assertFirstRowFits(mainWindow.getPaymentObligationListPanel().getPaymentListView());
+                }
+                return null;
+            });
+        } finally {
+            callOnJavaFxThread(() -> {
+                mainWindow.getPrimaryStage().hide();
+                return null;
+            });
+        }
+    }
+
+    @Test
+    public void resultDisplayHeight_fullHdWindow_keepsFullHeight() throws Exception {
+        MainWindow mainWindow = callOnJavaFxThread(() -> {
+            MainWindow window = new MainWindow(new Stage(), new LogicStub(), Path.of("data.json"));
+            window.show();
+            window.fillInnerParts();
+            return window;
+        });
+
+        try {
+            callOnJavaFxThread(() -> {
+                layOut(mainWindow, FULL_HD_CONTENT_WIDTH, FULL_HD_CONTENT_HEIGHT);
+                Region resultDisplay = (Region) mainWindow.getRoot().getScene().lookup("#resultDisplayPlaceholder");
+                assertEquals(100, resultDisplay.getHeight());
+                return null;
+            });
+        } finally {
+            callOnJavaFxThread(() -> {
+                mainWindow.getPrimaryStage().hide();
+                return null;
+            });
+        }
+    }
+
+    /**
+     * Lays out the window content at the size it gets on a 1280x720 screen at 150% scale: 853x480 logical,
+     * minus the 48px Windows taskbar and the window's title bar and borders.
+     */
+    private static void layOutAtScaled1280By720(MainWindow window) {
+        layOut(window, SCALED_1280_BY_720_CONTENT_WIDTH, SCALED_1280_BY_720_CONTENT_HEIGHT);
+    }
+
+    private static void layOut(MainWindow window, double contentWidth, double contentHeight) {
+        Region root = (Region) window.getRoot().getScene().getRoot();
+        root.resize(contentWidth, contentHeight);
+        root.applyCss();
+        root.layout();
+    }
+
+    private static void assertFirstRowFits(ListView<?> listView) {
+        ListCell<?> firstRow = listView.lookupAll(".list-cell").stream()
+                .filter(node -> node instanceof ListCell<?> cell && cell.isVisible() && cell.getIndex() == 0)
+                .map(node -> (ListCell<?>) node)
+                .findFirst()
+                .orElseThrow();
+        double visibleHeight = listView.getHeight() - listView.snappedTopInset() - listView.snappedBottomInset();
+        assertTrue(visibleHeight >= firstRow.getHeight(), listView.getId() + " is " + visibleHeight
+                + "px tall but its first row needs " + firstRow.getHeight() + "px");
     }
 
     @Test

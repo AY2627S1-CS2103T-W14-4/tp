@@ -63,7 +63,7 @@ public class DeletePaymentCommandTest {
         assertEquals(before.getClientList(), model.getGigabyteData().getClientList());
         assertEquals(before.getGigList(), model.getGigList());
         assertEquals(new CommandResult("Deleted payment obligation for Alice Pauline, gig 1 (Website redesign), "
-                + "payment 2: Amount: 50.25; Due date: 2099-01-31; Previous state: PAID"), result);
+                + "payment 2: Amount: $50.25; Due date: 2099-01-31; Previous state: PAID"), result);
     }
 
     @Test
@@ -213,7 +213,7 @@ public class DeletePaymentCommandTest {
         assertSame(gig, model.getGigList().get(0));
         assertEquals(List.of(ALICE, BENSON), model.getFilteredClientList());
         assertEquals("Deleted payment obligation for Alice Pauline, gig 1 (Website redesign), "
-                + "payment 1: Amount: 50.25; Due date: " + dueDate + "; Previous state: UNPAID",
+                + "payment 1: Amount: $50.25; Due date: " + dueDate + "; Previous state: UNPAID",
                 result.getFeedbackToUser());
         assertEquals(CommandResult.forOutstandingPayments("0 outstanding payment obligations."),
                 new OutstandingCommand().execute(model));

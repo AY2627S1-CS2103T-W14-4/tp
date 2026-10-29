@@ -5,6 +5,7 @@ import static gigabyte.logic.parser.CliSyntax.PREFIX_AMOUNT;
 import static gigabyte.logic.parser.CliSyntax.PREFIX_DEADLINE;
 import static gigabyte.logic.parser.CommandParserTestUtil.assertParseFailure;
 import static gigabyte.logic.parser.CommandParserTestUtil.assertParseSuccess;
+import static gigabyte.logic.parser.ParserUtil.MESSAGE_INVALID_INDEX;
 import static gigabyte.testutil.TypicalIndexes.INDEX_FIRST_CLIENT;
 import static gigabyte.testutil.TypicalIndexes.INDEX_SECOND_CLIENT;
 
@@ -50,6 +51,9 @@ public class AddPaymentCommandParserTest {
 
         // EP: more than two indexes
         assertParseFailure(parser, "1 2 3 a/100 d/2027-01-31", INVALID_FORMAT);
+
+        // EP: extra words before the first prefix
+        assertParseFailure(parser, "1 2 extra a/100 d/2027-01-31", INVALID_FORMAT);
     }
 
     @Test
@@ -113,7 +117,7 @@ public class AddPaymentCommandParserTest {
 
     /** Asserts that {@code invalidIndex} is rejected as both the client index and the gig index. */
     private void assertInvalidIndexRejected(String invalidIndex) {
-        assertParseFailure(parser, invalidIndex + " 1 a/100 d/2027-01-31", INVALID_FORMAT);
-        assertParseFailure(parser, "1 " + invalidIndex + " a/100 d/2027-01-31", INVALID_FORMAT);
+        assertParseFailure(parser, invalidIndex + " 1 a/100 d/2027-01-31", MESSAGE_INVALID_INDEX);
+        assertParseFailure(parser, "1 " + invalidIndex + " a/100 d/2027-01-31", MESSAGE_INVALID_INDEX);
     }
 }

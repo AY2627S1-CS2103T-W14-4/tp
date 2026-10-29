@@ -41,13 +41,15 @@
         </StackPane>
 
         <StackPane VBox.vgrow="NEVER" fx:id="resultDisplayPlaceholder" styleClass="pane-with-border"
-                   minHeight="100" prefHeight="100" maxHeight="100">
+                   minHeight="60" prefHeight="100" maxHeight="100">
           <padding>
             <Insets top="5" right="10" bottom="5" left="10" />
           </padding>
         </StackPane>
 
-        <HBox VBox.vgrow="ALWAYS">
+        <!-- 225 fits one gig row and one payment row at 1280x720, 150% scale.
+             In shorter windows the result box shrinks instead; in taller ones this row grows. -->
+        <HBox VBox.vgrow="ALWAYS" minHeight="225" prefHeight="225">
         <VBox fx:id="clientList" styleClass="pane-with-border" minWidth="340" prefWidth="340" HBox.hgrow="ALWAYS">
           <padding>
             <Insets top="10" right="10" bottom="10" left="10" />
@@ -55,9 +57,10 @@
           <StackPane fx:id="clientListPanelPlaceholder" VBox.vgrow="ALWAYS"/>
         </VBox>
         <VBox styleClass="pane-with-border" minWidth="340" prefWidth="500" HBox.hgrow="ALWAYS">
+          <!-- Each minimum is padding + heading + one row, so dragging the divider can't hide a list. -->
           <SplitPane dividerPositions="0.5" orientation="VERTICAL" VBox.vgrow="ALWAYS">
-            <StackPane fx:id="gigListPanelPlaceholder" />
-            <StackPane fx:id="paymentObligationListPanelPlaceholder" />
+            <StackPane fx:id="gigListPanelPlaceholder" minHeight="91" />
+            <StackPane fx:id="paymentObligationListPanelPlaceholder" minHeight="107" />
           </SplitPane>
         </VBox>
         </HBox>
