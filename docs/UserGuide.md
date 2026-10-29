@@ -595,6 +595,8 @@ Format: `findgig KEYWORD [MORE_KEYWORDS]`
 
 * The search is case-insensitive and considers gig titles only.
 * Each keyword must match a complete word; for example, `site` does not match `website`.
+* Punctuation at the start or end of a word is ignored, so `invoice` matches `Invoice, overdue` and `(invoice)`.
+  Punctuation inside a word is kept, so `commerce` does not match `e-commerce`.
 * Multiple keywords use OR semantics: a gig is shown when its title contains at least one keyword.
 * Duplicate keywords do not duplicate results.
 * Results include gigs for all clients, even when the client list is filtered, and retain the original gig order.
