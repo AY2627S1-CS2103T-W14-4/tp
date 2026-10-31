@@ -76,6 +76,10 @@
 * Parameters can be in any order.<br>
   For example, if the command specifies `n/NAME p/PHONE_NUMBER`, `p/PHONE_NUMBER n/NAME` is also acceptable.
 
+* A prefix such as `a/` or `t/` starts a new parameter wherever it follows a space, even inside a value. Avoid them
+  inside names and gig titles. See the cautions in [`add`](#adding-a-client-add), [`edit`](#editing-a-client-edit),
+  [`addgig`](#creating-a-gig-addgig) and [`editgig`](#editing-a-gig-editgig).
+
 * Money amounts are displayed with a dollar sign, comma thousands separators, and two decimal places,
   for example, `$1,234.50`. Enter amounts without dollar signs or commas, such as `a/1234.50` or `f/1234.50`.
 
@@ -101,6 +105,7 @@ Adds a client to the client list.
 
 Format: `add n/NAME p/PHONE_NUMBER e/EMAIL a/ADDRESS [t/TAG]... `
 
+* `NAME` may contain only letters, digits and spaces. Other characters, such as `'`, `-`, `.` and `/`, are rejected.
 * `PHONE_NUMBER` must have at least 3 digits and may start with a `+`. Digits may be grouped with single spaces
   or hyphens, e.g. `+65 9123 4567`, `6123-4567` or `+1-202-555-0143`. Letters, brackets and other symbols are not
   allowed, and the number cannot start or end with a space or hyphen, or contain two in a row.
@@ -114,6 +119,19 @@ Format: `add n/NAME p/PHONE_NUMBER e/EMAIL a/ADDRESS [t/TAG]... `
 * If another client already has the same phone number, or the same email (ignoring case), the client is still added,
   and the result names that client, e.g. `Note: Bernice Yu has the same phone number.` This lets you record people who
   share a phone number or email, while still spotting accidental duplicates.
+
+<box type="warning" seamless>
+
+**Caution: avoid `a/` and `t/` inside a name.**<br>
+Gigabyte treats ` a/` (address) and ` t/` (tag) as the start of a new field wherever they follow a space, even inside
+a name.
+
+* `add n/Muthu a/l Raju ...` is rejected with `Multiple values specified for the following single-valued field(s): a/`.
+* `add n/Lee t/a ...` is **saved without any error** as a client named `Lee` with the tag `a`.
+
+Write such names without the slash, e.g. `Muthu al Raju` or `Raj so Kumar`. Writing `A/L` in upper case does not
+help, because names cannot contain `/`.
+</box>
 
 <box type="tip" seamless>
 
@@ -262,6 +280,14 @@ Format: `addgig INDEX t/TITLE s/STATUS d/DEADLINE f/FEE`
   unchanged, including when it is filtered.
 * Gigs, including their titles, are retained after restarting the app. Every saved gig must have a valid title.
 
+<box type="warning" seamless>
+
+**Caution: avoid ` t/`, ` s/`, ` d/` and ` f/` inside a title.**<br>
+These start a new field wherever they follow a space, even inside a title. A title such as `Fix s/w bugs` or
+`Portrait shoot at f/2.8` is rejected because the prefix is repeated. Write it without the slash, e.g. `Fix sw bugs`
+or `Portrait shoot at f2.8`. Other prefixes are safe in titles, e.g. `Install a/c units`.
+</box>
+
 Successful examples:
 
 * `addgig 1 t/Website redesign s/NOT_STARTED d/2027-01-31 f/1250.00`
@@ -299,6 +325,15 @@ Format: `editgig CLIENT_INDEX GIG_INDEX [t/TITLE] [d/DEADLINE] [f/FEE]`
   can also change the order when deadlines are equal. Both indexes are resolved before the edit is applied.
 * A selected gig stays selected when its row moves, and its payments remain visible. If an edited title no longer
   matches the current title search, the gig leaves the results and its selection and payment view clear.
+
+<box type="warning" seamless>
+
+**Caution: a prefix inside a new title can silently change another field.**<br>
+`editgig 1 1 t/Portrait shoot at f/2.8` saves the title `Portrait shoot at` and **changes the fee** to `$2.80`. No
+error is shown. The same happens with ` d/` followed by a valid date. Write titles without these prefixes, as
+described in [`addgig`](#creating-a-gig-addgig). If this happens, check the result message and run `editgig` again
+with the correct title, deadline and fee.
+</box>
 
 Examples: `editgig 1 2 t/Updated landing page`, `editgig 1 2 d/2027-04-30 f/1800.00`.
 After `find Bernice`, `editgig 1 1 t/Revised branding` edits the first matching client's first gig.
@@ -558,11 +593,21 @@ Format: `edit INDEX [n/NAME] [p/PHONE] [e/EMAIL] [a/ADDRESS] [t/TAG]... `
 * When editing tags, all of the client's existing tags are removed; adding tags is not cumulative.
   Each tag follows the same rules as in [`add`](#adding-a-client-add).
 * To remove all of a client's tags, enter `t/` without a tag after it.
-* A new name is checked against every other client using the same rule as in [`add`](#adding-a-client-add).
+* A new name follows the same character rules as in [`add`](#adding-a-client-add), and is checked for duplicates
+  against every other client in the same way.
   Changing only the capitalisation or spacing of a client's own name (e.g. `John Doe` to `JOHN DOE`) is allowed,
   unless another client already has exactly the new name.
 * If the edited client then has the same phone number or email as another client, the edit is still saved, and the
   result shows the same note as `add`. A client is never compared with itself.
+
+<box type="warning" seamless>
+
+**Caution: `a/` or `t/` inside a new name silently changes other fields.**<br>
+`edit 1 n/Muthu a/l Raju` saves the name `Muthu` and **overwrites the address** with `l Raju`. `edit 1 n/Lee t/a`
+saves the name `Lee` and **replaces all tags** with `a`. No error is shown. Write such names without the slash, as
+described in [`add`](#adding-a-client-add). If this happens, check the result message and run `edit` again with the
+correct name, address and tags.
+</box>
 
 Examples:
 * `edit 1 p/91234567 e/alexnew@example.com` changes Alex's phone and email in fresh sample data.
@@ -721,6 +766,11 @@ supported.
    file and convert it before issuing a command in v1.4.
 1. **Saving is not atomic.** A failed disk write can leave the destination file incomplete. Keep an external backup
    before large or destructive changes.
+1. **Prefixes inside names and gig titles start a new field.** This applies to ` a/` or ` t/` inside a client name,
+   and to ` t/`, ` s/`, ` d/` or ` f/` inside a gig title. `add`, `edit` and `editgig` can then save the wrong fields
+   without an error. Write such names and titles without the slash. See the cautions in
+   [`add`](#adding-a-client-add), [`edit`](#editing-a-client-edit), [`addgig`](#creating-a-gig-addgig) and
+   [`editgig`](#editing-a-gig-editgig).
 
 --------------------------------------------------------------------------------------------------------------------
 
