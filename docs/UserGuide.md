@@ -254,6 +254,7 @@ Format: `addgig INDEX t/TITLE s/STATUS d/DEADLINE f/FEE`
 * All four fields are required and may appear in any order. Each prefix must appear exactly once.
 * `TITLE` is a short description containing 1–100 characters after leading and trailing whitespace is removed.
   Non-breaking spaces count as whitespace, so a title made only of them is rejected. Internal spaces and common punctuation are allowed. Titles do not need to be unique.
+  Most emoji count as 2 characters toward the limit, and emoji with a skin tone, as well as flags, count as 4.
 * `STATUS` is `NOT_STARTED`, `IN_PROGRESS`, or `COMPLETED` (case-insensitive).
 * `DEADLINE` is a valid calendar date in `yyyy-MM-dd` format.
   Invalid-value errors include the rejected text, including trailing text parsed as part of the value.
@@ -717,6 +718,12 @@ supported.
 ## Known issues
 
 1. **If you minimize the Help Window** and then run the `help` command (or use the `Help` menu, or the keyboard shortcut `F1`) again, the original Help Window will remain minimized, and no new Help Window will appear. The remedy is to manually restore the minimized Help Window.
+1. **Running two copies of Gigabyte from the same folder loses changes.** Each copy keeps its own data and saves it
+   after every command, so a command in one copy, even `list`, overwrites changes made in the other. Close any other
+   Gigabyte window before making changes.
+1. **Emoji count as more than one character in gig titles.** Most emoji count as 2 characters toward the
+   100-character limit, and emoji with a skin tone, as well as flags, count as 4. For example, a title of 51 😀 is
+   rejected. If a title with emoji is rejected for length, shorten it.
 1. **v1.3 JSON is not migrated.** The old filename is moved, but its older record shape is rejected. Keep the old
    file and convert it before issuing a command in v1.4.
 1. **Saving is not atomic.** A failed disk write can leave the destination file incomplete. Keep an external backup
