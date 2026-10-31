@@ -1159,9 +1159,9 @@ testers are expected to do more *exploratory* testing.
 
 <box type="info" seamless>
 
-**Preparation:** Build the release candidate with `gradlew shadowJar` (macOS/Linux: `./gradlew shadowJar`) and copy
-`build/libs/gigabyte.jar` into an otherwise empty test folder. Unless a test says otherwise, launch it from that folder
-with `java -jar gigabyte.jar`. Back up `data/gigabyte.json` before any test that changes or corrupts it.
+**Preparation:** Ensure Java 25 is installed, then copy the released `gigabyte.jar` into an otherwise empty folder
+that you can write to. Unless a test says otherwise, open a terminal in that folder and launch the app with
+`java -jar gigabyte.jar`. Back up `data/gigabyte.json` before any test that changes or corrupts it.
 </box>
 
 Every command that takes indexes (`edit`, `delete`, `addgig`, `editgig`, `setstatus`, `deletegig`, `addpayment`,
@@ -1240,7 +1240,7 @@ and the selected client's normal recorded gig order, even while an overview is o
 1. **Edit details and reorder the deadline view**
    1. Test case: `deadlines`, select Alex's second gig, then
       `editgig 1 2 t/Revised photography d/2026-10-01 f/1350`.<br>
-      Expected: Alex's second gig retains its UID, `NOT_STARTED` status, and `$1200.00` payment. The deadline
+      Expected: Alex's second gig retains its UID, `NOT_STARTED` status, and `$1,200.00` payment. The deadline
       overview refreshes without another `deadlines` command; the revised gig moves to the first row and stays
       selected, with its payment still visible.
    1. Test case: `find Alex`, then `editgig 1 2 d/2027-12-01`.<br>
@@ -1704,10 +1704,10 @@ Use a disposable fresh sample-data folder for each test. Deletion is permanent a
    1. In a disposable test folder, close the JAR and place a valid v1.3 JSON save using the older `persons`
       collection at `data/addressbook.json`; ensure `data/gigabyte.json` is absent. Keep an untouched backup.
       Relaunch the JAR.<br>
-      Expected for the current release candidate: the file is moved to `data/gigabyte.json` without conversion,
-      loading fails, and the app starts with empty data and a warning naming the numbered backup. Both the moved
-      file and the backup retain the original contents until a successful command replaces the moved file.
-      This is a release compatibility gap if v1.3 data loading is required.
+      Expected: v1.3 files are not converted, as stated in the UG's Known issues. The file is moved to
+      `data/gigabyte.json`, loading fails, and the app starts with empty data and a warning naming the numbered
+      backup. Both the moved file and the backup keep the original contents until a successful command replaces the
+      moved file.
    1. Close the window without entering a command and compare the moved file with the backup.<br>
       Expected: They are byte-for-byte identical. A separate test with current-format JSON in
       `data/addressbook.json` loads successfully after the filename move.
