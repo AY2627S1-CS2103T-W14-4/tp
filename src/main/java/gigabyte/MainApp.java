@@ -1,6 +1,8 @@
 package gigabyte;
 
 import java.io.IOException;
+import java.net.URISyntaxException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Optional;
@@ -35,15 +37,25 @@ public class MainApp extends Application {
     public static final String VERSION = "V1.6.0";
 
     private static final Logger logger = LogsCenter.getLogger(MainApp.class);
-    private static final Path USER_PREFS_FILE_PATH = Paths.get("preferences.json");
-    private static final Path GIGABYTE_DATA_FILE_PATH = Paths.get("data", "gigabyte.json");
-    private static final Path LEGACY_DATA_FILE_PATH = Paths.get("data", "addressbook.json");
+    private static final Path APPLICATION_DIRECTORY = getApplicationDirectory();
+    private static final Path USER_PREFS_FILE_PATH = APPLICATION_DIRECTORY.resolve("preferences.json");
+    private static final Path GIGABYTE_DATA_FILE_PATH = APPLICATION_DIRECTORY.resolve("data", "gigabyte.json");
+    private static final Path LEGACY_DATA_FILE_PATH = APPLICATION_DIRECTORY.resolve("data", "addressbook.json");
 
     protected Ui ui;
     protected Logic logic;
     protected Storage storage;
     protected Model model;
     protected String startupMessage = "";
+
+    private static Path getApplicationDirectory() {
+        try {
+            Path location = Paths.get(MainApp.class.getProtectionDomain().getCodeSource().getLocation().toURI());
+            return Files.isRegularFile(location) ? location.getParent() : Paths.get("").toAbsolutePath();
+        } catch (URISyntaxException e) {
+            return Paths.get("").toAbsolutePath();
+        }
+    }
 
     @Override
     public void init() throws Exception {
