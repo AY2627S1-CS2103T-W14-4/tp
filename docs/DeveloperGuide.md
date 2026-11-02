@@ -223,10 +223,13 @@ titles do not satisfy the required format.
 
 #### Data file format
 
-The folder containing `gigabyte.jar` is the base for application files, regardless of the process's working directory.
-`MainApp` uses `[JAR folder]/data/gigabyte.json` for application data and `[JAR folder]/preferences.json` for GUI
-preferences. Log files are also kept in the JAR folder. `JsonSerializableGigabyteData` stores three top-level arrays:
-`clients`, `gigs`, and `paymentObligations`. The following is a complete example with one record of each type:
+The folder containing `gigabyte.jar` is the base for the data and preferences files, regardless of the process's
+working directory. `MainApp` uses `[JAR folder]/data/gigabyte.json` for application data and
+`[JAR folder]/preferences.json` for GUI preferences. Log files are the exception: `LogsCenter` writes `gigabyte.log` to
+the working directory the app is launched from, which may not be the JAR folder.
+
+`JsonSerializableGigabyteData` stores three top-level arrays: `clients`, `gigs`, and `paymentObligations`. The
+following is a complete example with one record of each type:
 
 ```json
 {
