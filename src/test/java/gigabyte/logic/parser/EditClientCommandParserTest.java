@@ -177,11 +177,26 @@ public class EditClientCommandParserTest {
     }
 
     @Test
-    public void parse_addressContainingPhonePrefix_success() {
-        String address = "Block 99 p/888";
+    public void parse_addressContainingUppercasePhonePrefix_success() {
+        String address = "Block 99 P/888";
         String userInput = INDEX_FIRST_CLIENT.getOneBased() + " a/" + address;
         EditClientDescriptor descriptor = new EditClientDescriptorBuilder().withAddress(address).build();
         assertParseSuccess(parser, userInput, new EditClientCommand(INDEX_FIRST_CLIENT, descriptor));
+    }
+
+    @Test
+    public void parse_phoneAfterAddress_updatesBothFields() {
+        EditClientDescriptor descriptor = new EditClientDescriptorBuilder().withAddress(VALID_ADDRESS_AMY)
+                .withPhone(VALID_PHONE_BOB).build();
+        assertParseSuccess(parser, "1" + ADDRESS_DESC_AMY + PHONE_DESC_BOB,
+                new EditClientCommand(INDEX_FIRST_CLIENT, descriptor));
+    }
+
+    @Test
+    public void parse_invalidOrRepeatedPhoneAfterAddress_failure() {
+        assertParseFailure(parser, "1" + ADDRESS_DESC_AMY + INVALID_PHONE_DESC, Phone.MESSAGE_CONSTRAINTS);
+        assertParseFailure(parser, "1" + PHONE_DESC_AMY + ADDRESS_DESC_AMY + PHONE_DESC_BOB,
+                Messages.getErrorMessageForDuplicatePrefixes(PREFIX_PHONE));
     }
 
     @Test
