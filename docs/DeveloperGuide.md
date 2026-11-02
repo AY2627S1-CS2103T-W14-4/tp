@@ -953,10 +953,9 @@ testers are expected to do more *exploratory* testing.
 
 <box type="info" seamless>
 
-**Preparation:** Build the release candidate with `gradlew shadowJar` (macOS/Linux: `./gradlew shadowJar`) and copy
-`build/libs/gigabyte.jar` into an otherwise empty test folder. Unless a test says otherwise, open a terminal in that
-folder and run `java -jar gigabyte.jar`. In the instructions below, `data/gigabyte.json` and its numbered backups are
-inside this test folder because it contains the JAR. Back up the data file before any test that changes or corrupts it.
+**Preparation:** Ensure Java 25 is installed, then copy the released `gigabyte.jar` into an otherwise empty folder
+that you can write to. Unless a test says otherwise, open a terminal in that folder and launch the app with
+`java -jar gigabyte.jar`. Back up `data/gigabyte.json` before any test that changes or corrupts it.
 </box>
 
 Every command that takes indexes (`edit`, `delete`, `addgig`, `editgig`, `setstatus`, `deletegig`, `addpayment`,
@@ -1035,7 +1034,7 @@ and the selected client's normal recorded gig order, even while an overview is o
 1. **Edit details and reorder the deadline view**
    1. Test case: `deadlines`, select Alex's second gig, then
       `editgig 1 2 t/Revised photography d/2026-10-01 f/1350`.<br>
-      Expected: Alex's second gig retains its UID, `NOT_STARTED` status, and `$1200.00` payment. The deadline
+      Expected: Alex's second gig retains its UID, `NOT_STARTED` status, and `$1,200.00` payment. The deadline
       overview refreshes without another `deadlines` command; the revised gig moves to the first row and stays
       selected, with its payment still visible.
    1. Test case: `find Alex`, then `editgig 1 2 d/2027-12-01`.<br>
@@ -1486,6 +1485,26 @@ Use a disposable fresh sample-data folder for each test. Deletion is permanent a
    1. Relaunch the same JAR from the same folder, select Alex, then select `Persistence check`.<br>
       Expected: `Persistence check` is still Alex's third gig with status `IN_PROGRESS`, deadline `2027-09-01`, and
       fee `$900.00`. Its Payment obligations panel shows `1. Amount: $450.00`, due `2027-09-15`, as `PAID`.
+
+1. **Previous save-file name**
+   1. In a test folder, close the app and rename `data/gigabyte.json` to `data/addressbook.json`, then relaunch.<br>
+      Expected: All saved data is loaded, `data/gigabyte.json` exists with the same contents, and
+      `data/addressbook.json` no longer exists. Subsequent commands save to `data/gigabyte.json`.
+   1. Close the app, place a different valid save at `data/addressbook.json` while keeping `data/gigabyte.json`,
+      then relaunch.<br>
+      Expected: Gigabyte loads `data/gigabyte.json` and leaves both files unchanged.
+
+1. **v1.3 format compatibility boundary**
+   1. In a disposable test folder, close the JAR and place a valid v1.3 JSON save using the older `persons`
+      collection at `data/addressbook.json`; ensure `data/gigabyte.json` is absent. Keep an untouched backup.
+      Relaunch the JAR.<br>
+      Expected: v1.3 files are not converted, as stated in the UG's Known issues. The file is moved to
+      `data/gigabyte.json`, loading fails, and the app starts with empty data and a warning naming the numbered
+      backup. Both the moved file and the backup keep the original contents until a successful command replaces the
+      moved file.
+   1. Close the window without entering a command and compare the moved file with the backup.<br>
+      Expected: They are byte-for-byte identical. A separate test with current-format JSON in
+      `data/addressbook.json` loads successfully after the filename move.
 
 1. **Missing data file**
    1. In a test folder, close the app and rename `data/gigabyte.json` to
