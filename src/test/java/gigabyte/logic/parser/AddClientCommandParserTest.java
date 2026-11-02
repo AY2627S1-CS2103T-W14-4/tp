@@ -138,6 +138,14 @@ public class AddClientCommandParserTest {
     }
 
     @Test
+    public void parse_addressContainingPhonePrefix_success() {
+        String address = "Block 99 p/888";
+        Client expectedClient = new ClientBuilder(BOB).withAddress(address).withTags().build();
+        assertParseSuccess(parser, NAME_DESC_BOB + PHONE_DESC_BOB + EMAIL_DESC_BOB + " a/" + address,
+                new AddClientCommand(expectedClient));
+    }
+
+    @Test
     public void parse_compulsoryFieldMissing_failure() {
         String expectedMessage = String.format(MESSAGE_INVALID_COMMAND_FORMAT, AddClientCommand.MESSAGE_USAGE);
 
