@@ -227,8 +227,9 @@ titles do not satisfy the required format.
 
 #### Data file format
 
-`MainApp` uses `data/gigabyte.json` for application data and `preferences.json` for GUI preferences. Both paths
-are relative to the process's working directory. `JsonSerializableGigabyteData` stores three top-level arrays:
+The folder containing `gigabyte.jar` is the base for application files, regardless of the process's working directory.
+`MainApp` uses `[JAR folder]/data/gigabyte.json` for application data and `[JAR folder]/preferences.json` for GUI
+preferences. Log files are also kept in the JAR folder. `JsonSerializableGigabyteData` stores three top-level arrays:
 `clients`, `gigs`, and `paymentObligations`. The following is a complete example with one record of each type:
 
 ```json
@@ -299,8 +300,9 @@ each save, so a failed write does not guarantee that the previous file contents 
 At startup, a missing data file causes `MainApp` to use sample data. A malformed JSON file or a validation failure
 reported as `DataLoadingException` causes `MainApp` to request a backup through `Storage#backupGigabyteData` before
 starting with empty data. `JsonGigabyteDataStorage` copies the original bytes to the first available sibling path
-`<filename>_backup-N`, starting at 1 (for example, `gigabyte.json_backup-1`). The copy never replaces an existing
-file or directory; a filename collision advances to the next number. The original file is not changed at startup.
+`<filename>_backup-N`, starting at 1 (for example, `[JAR folder]/data/gigabyte.json_backup-1`).
+The copy never replaces an existing file or directory; a filename collision advances to the next number. The original
+file is not changed at startup.
 `MainApp` passes a warning and the backup path through `UiManager` to the main window's command result area.
 After a successful backup, the next successful save, even after `list`, replaces the original with the current
 model while preserving the backup.
@@ -952,8 +954,9 @@ testers are expected to do more *exploratory* testing.
 <box type="info" seamless>
 
 **Preparation:** Build the release candidate with `gradlew shadowJar` (macOS/Linux: `./gradlew shadowJar`) and copy
-`build/libs/gigabyte.jar` into an otherwise empty test folder. Unless a test says otherwise, launch it from that folder
-with `java -jar gigabyte.jar`. Back up `data/gigabyte.json` before any test that changes or corrupts it.
+`build/libs/gigabyte.jar` into an otherwise empty test folder. Unless a test says otherwise, open a terminal in that
+folder and run `java -jar gigabyte.jar`. In the instructions below, `data/gigabyte.json` and its numbered backups are
+inside this test folder because it contains the JAR. Back up the data file before any test that changes or corrupts it.
 </box>
 
 Every command that takes indexes (`edit`, `delete`, `addgig`, `editgig`, `setstatus`, `deletegig`, `addpayment`,
@@ -1486,7 +1489,7 @@ Use a disposable fresh sample-data folder for each test. Deletion is permanent a
 
 1. **Missing data file**
    1. In a test folder, close the app and rename `data/gigabyte.json` to
-      `gigabyte.backup.json`, then relaunch.<br>
+      `data/gigabyte.backup.json`, then relaunch.<br>
       Expected: Gigabyte starts with the six sample clients and their sample gigs. The backup file is unchanged.
 
 1. **Corrupted data file**
