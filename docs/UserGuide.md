@@ -714,7 +714,9 @@ problem, and restart before entering more commands.
 
 #### Editing the data file
 
-Gigabyte data is saved automatically as a JSON file `[JAR file location]/data/gigabyte.json`. Advanced users are welcome to update data directly by editing that data file.
+Gigabyte data is saved automatically at `[JAR file location]/data/gigabyte.json`, regardless of the directory from
+which you launch the app.
+Advanced users are welcome to update data directly by editing that data file.
 
 Client records are stored in the `clients` array with stable `uid` values. Gigs refer to clients by `clientUid`, store
 their titles as plain text, and are referenced by payment obligations using `gigUid`. Fees and payment amounts are
