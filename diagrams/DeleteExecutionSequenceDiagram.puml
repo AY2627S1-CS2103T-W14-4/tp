@@ -1,0 +1,40 @@
+﻿@startuml
+!include style.puml
+skinparam ArrowFontStyle plain
+
+box Logic LOGIC_COLOR_T1
+participant ":LogicManager" as logic LOGIC_COLOR
+participant ":DeleteClientCommand" as command LOGIC_COLOR
+end box
+
+box Model MODEL_COLOR_T1
+participant ":Model" as model MODEL_COLOR
+end box
+
+activate logic
+logic -> command : execute(model)
+activate command
+command -> model : getFilteredClientList()
+activate model
+model --> command : displayed clients
+deactivate model
+note right of command
+  Resolve index 1 against the displayed list.
+  An invalid index raises CommandException.
+end note
+
+command -> model : deleteClient(selected client)
+activate model
+alt client has associated gigs
+    model --> command : ClientHasGigsException
+    deactivate model
+    command --> logic : CommandException
+else client has no associated gigs
+    model --> command : deletion complete
+    deactivate model
+    command --> logic : CommandResult
+end
+deactivate command
+deactivate logic
+
+@enduml

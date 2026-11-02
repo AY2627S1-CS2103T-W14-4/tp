@@ -40,7 +40,7 @@ Storage --[hidden] Model
 Command .[hidden]up.> Storage
 Command .right.> Model
 note right of XYZCommand
-  Concrete v1.4 commands include AddGigCommand,
+  Concrete commands include AddGigCommand,
   EditGigCommand, DeleteGigCommand, FindGigCommand,
   EditPaymentCommand, DeletePaymentCommand,
   MarkPaymentPaidCommand and MarkPaymentUnpaidCommand.

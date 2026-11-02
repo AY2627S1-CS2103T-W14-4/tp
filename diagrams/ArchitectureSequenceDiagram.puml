@@ -2,38 +2,31 @@
 !include style.puml
 skinparam ArrowFontStyle plain
 
-Actor User as user USER_COLOR
-Participant ":UI" as ui UI_COLOR
-Participant ":Logic" as logic LOGIC_COLOR
-Participant ":Model" as model MODEL_COLOR
-Participant ":Storage" as storage STORAGE_COLOR
+actor User as user USER_COLOR
+participant ":UI" as ui UI_COLOR
+participant ":Logic" as logic LOGIC_COLOR
+participant ":Model" as model MODEL_COLOR
+participant ":Storage" as storage STORAGE_COLOR
 
-user -[USER_COLOR]> ui : "delete 1"
-activate ui UI_COLOR
+user -> ui : enter "delete 1"
+activate ui
+ui -> logic : execute("delete 1")
+activate logic
 
-ui -[UI_COLOR]> logic : execute("delete 1")
-activate logic LOGIC_COLOR
-
-logic -[LOGIC_COLOR]> model : deleteClient(p)
-activate model MODEL_COLOR
-
-model -[MODEL_COLOR]-> logic
+logic -> model : deleteClient(client)
+activate model
+model --> logic
 deactivate model
 
-logic -[LOGIC_COLOR]> storage : saveGigabyteData(gigabyteData)
-activate storage STORAGE_COLOR
-
-storage -[STORAGE_COLOR]> storage : Save to file
-activate storage STORAGE_COLOR_T1
-storage --[STORAGE_COLOR]> storage
+logic -> storage : saveGigabyteData(data)
+activate storage
+storage -> storage : write data to file
+storage --> logic
 deactivate storage
 
-storage --[STORAGE_COLOR]> logic
-deactivate storage
-
-logic --[LOGIC_COLOR]> ui
+logic --> ui : CommandResult
 deactivate logic
-
-ui--[UI_COLOR]> user
+ui --> user : show result
 deactivate ui
+
 @enduml
