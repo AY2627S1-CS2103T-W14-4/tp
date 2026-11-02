@@ -45,4 +45,4 @@ You can reach us at the email `gigabyte[at]comp.nus.edu.sg`
 [[github](https://github.com/ApproxNeo)]
 
 * Role: Developer
-* Responsibilities: Stable client and gig IDs, `setstatus`, `markpaid` and `deletepayment`, save file handling, releases
+* Responsibilities: Constraints and scope management, Save file handling, Releases, and Ensuring feature and patch compatibility and app stability
