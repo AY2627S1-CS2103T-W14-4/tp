@@ -243,12 +243,9 @@ The `Storage` component,
   fractional values for integer fields. `JsonAdaptedGig` and `JsonAdaptedPaymentObligation` read `feeCents`,
   `amountCents` and `paid` through `StrictJsonDeserializers`, which accept only a JSON integer or a JSON boolean
   and reject quoted values such as `"5025"` or `"true"` instead of converting them. The adapters require all three
-  top-level arrays and each record's required fields; IDs and titles are never generated during loading. Older
+  top-level arrays and each record's required fields; IDs and titles are never generated during loading. Invalid
   formats fail with `DataLoadingException`. User preferences continue to use the separate, permissive
   `JsonUtil.readJsonFile` path.
-* migrates `data/addressbook.json` to `data/gigabyte.json` during `MainApp.init`, before loading data, if the current
-  file does not exist. `JsonGigabyteDataStorage.migrateLegacyDataFile` moves the file without changing its contents
-  or replacing an existing destination. An `IOException` during migration stops startup.
 
 The save-file fields are:
 
@@ -261,8 +258,8 @@ The save-file fields are:
 
 UUIDs must be valid, references must resolve to saved records, titles must be valid text, and monetary values must
 be positive JSON integers of cents. `paid` must be JSON `true` or `false`. Null collections and null records are
-rejected. There is no automatic conversion of quoted numbers or booleans, `persons`, name- or index-based
-references, decimal amount fields, or missing IDs and titles.
+rejected. Quoted numbers or booleans, name- or index-based references, decimal amount fields, and missing IDs or
+titles do not satisfy the required format.
 
 #### Data file format
 
@@ -312,19 +309,6 @@ Loading proceeds in dependency order: clients, then gigs, then payment obligatio
 `clientUid` and `gigUid` to the canonical objects already loaded. Duplicate client records or client/gig UUIDs,
 unresolved parent references, and invalid field values detected during conversion cause the load to fail instead
 of returning partially loaded data.
-
-#### Backward compatibility and filename migration
-
-There is no schema-version field. The v1.4 loader accepts only the current required fields described above.
-It does not convert a v1.3 JSON shape: `persons`, absent collections or UUIDs, `clientName`, `gigIndex`, decimal
-`fee`/`amount`, and missing titles fail strict loading. `JsonGigabyteDataStorage#migrateLegacyDataFile` only moves
-`data/addressbook.json` to `data/gigabyte.json` when the destination is absent. It does not transform its contents.
-When both files exist, the current filename takes precedence and neither file is moved.
-
-This distinction matters during upgrade: a moved v1.3 file remains unsupported. Preserve a backup before launch;
-if loading fails, the app starts with an empty model and the next successful command overwrites the moved file.
-The manual compatibility test below checks both the filename move with current-format data and the rejection of a
-representative v1.3 file.
 
 #### Save lifecycle and failure behavior
 
@@ -425,7 +409,7 @@ payments, including when another view is open.
   and `gigUid`.
   * Pros: Links stay correct when two clients or gigs have identical display fields, and when a client's name or a
     gig's title is edited.
-  * Cons: The save file is harder to edit by hand, and older save files without IDs cannot be loaded.
+  * Cons: The save file is harder to edit by hand, and files without IDs cannot be loaded.
 
 * **Alternative 2:** Refer to the owner by its name (for clients) or its position in a list (for gigs).
   * Pros: Simpler save format that is easier to read.
@@ -1603,28 +1587,8 @@ Use a disposable fresh sample-data folder for each test. Deletion is permanent a
       Expected: `Persistence check` is still Alex's third gig with status `IN_PROGRESS`, deadline `2027-09-01`, and
       fee `$900.00`. Its Payment obligations panel shows `1. Amount: $450.00`, due `2027-09-15`, as `PAID`.
 
-1. **Previous save-file name**
-   1. In a test folder, close the app and rename `data/gigabyte.json` to `data/addressbook.json`, then relaunch.<br>
-      Expected: All saved data is loaded, `data/gigabyte.json` exists with the same contents, and
-      `data/addressbook.json` no longer exists. Subsequent commands save to `data/gigabyte.json`.
-   1. Close the app, place a different valid save at `data/addressbook.json` while keeping `data/gigabyte.json`,
-      then relaunch.<br>
-      Expected: Gigabyte loads `data/gigabyte.json` and leaves both files unchanged.
-
-1. **v1.3 format compatibility boundary**
-   1. In a disposable test folder, close the JAR and place a valid v1.3 JSON save using the older `persons`
-      collection at `data/addressbook.json`; ensure `data/gigabyte.json` is absent. Keep an untouched backup.
-      Relaunch the JAR.<br>
-      Expected for the current release candidate: the file is moved to `data/gigabyte.json` without conversion,
-      loading fails, and the app starts with empty data and a warning naming the numbered backup. Both the moved
-      file and the backup retain the original contents until a successful command replaces the moved file.
-      This is a release compatibility gap if v1.3 data loading is required.
-   1. Close the window without entering a command and compare the moved file with the backup.<br>
-      Expected: They are byte-for-byte identical. A separate test with current-format JSON in
-      `data/addressbook.json` loads successfully after the filename move.
-
 1. **Missing data file**
-   1. In a test folder with no `data/addressbook.json`, close the app and rename `data/gigabyte.json` to
+   1. In a test folder, close the app and rename `data/gigabyte.json` to
       `gigabyte.backup.json`, then relaunch.<br>
       Expected: Gigabyte starts with the six sample clients and their sample gigs. The backup file is unchanged.
 
@@ -1711,7 +1675,7 @@ features had to consider how a change to one record affects the records linked t
   and deleting one of two identical payments must remove only the indexed one (see
   [Deleting linked records safely](#deleting-linked-records-safely)).
 * **Strict and safe storage.** The save format stores links by UUID and money as integer cents. Loading rejects
-  unknown fields, missing fields, and broken references, and the old `addressbook.json` file name is migrated safely.
+  unknown fields, missing fields, and broken references.
 * **Exact money handling.** Fees and payment amounts use `BigDecimal` and integer cents, so totals in `summary` are
   exact to the cent.
 
