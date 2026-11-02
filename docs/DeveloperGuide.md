@@ -1596,6 +1596,26 @@ features had to consider how a change to one record affects the records linked t
   unknown fields, missing fields, and broken references.
 * **Exact money handling.** Fees and payment amounts use `BigDecimal` and integer cents, so totals in `summary` are
   exact to the cent.
+* **Backing up an unreadable save file without overwriting any file.** When the save file cannot be loaded, Gigabyte
+  starts with empty data, so the next save would replace the unreadable file. Before that can happen, the file is
+  copied to the first free `<filename>_backup-N` name beside it. The copy is created with `CREATE_NEW`, so an existing
+  file, directory, or link with that name is never replaced, even one that appears just after the name was checked.
+  If no backup can be made, every command except `help` and `exit` is rejected, so nothing is saved over the original
+  file (see [Save lifecycle and failure behavior](#save-lifecycle-and-failure-behavior)).
+* **Keeping keyboard navigation in step with the three panels.** The selected client decides which gigs are shown,
+  and the selected gig decides which payments are shown. Arrow keys therefore change rows through each list's
+  selection model, the same path a mouse click takes, so the gig and payment panels always match the selected rows.
+  Choosing a different client clears the payment panel. Because editing a client replaces its object in the same row,
+  the client list reacts only when the selected client's UUID changes, so an edit does not reset the gig panel.
+  While the gig list is refreshed, the temporary selections JavaFX makes are ignored, and the selected gig is found
+  again by its UUID, so the payment panel never switches to a neighboring gig. Tab is consumed so that focus moves
+  only between the command box and the lists.
+* **Stricter duplicate checks without losing saved data.** `add` and `edit` reject a client name that matches
+  another client's name after ignoring case and repeated spaces. Loading still uses the exact-name check, because a
+  stricter rule would reject an existing save file, start the app with empty data, and let the next save overwrite
+  that file. When editing, the client being edited is excluded by its UUID, so it is not reported as its own
+  duplicate. The check is also skipped when an edit changes only the case or spacing of the name, so an older file
+  that already holds two such names stays editable.
 
 **Reuse**
 
@@ -1609,6 +1629,24 @@ Gigabyte extends AB3 with gig tracking (`addgig`, `editgig`, `setstatus`, `delet
 `deadlines`), payment tracking (`addpayment`, `editpayment`, `markpaid`, `markunpaid`, `deletepayment`, and
 `outstanding`), and a work and payment `summary`. The GUI was extended from one list to three linked panels for
 clients, gigs, and payment obligations.
+
+v1.5 and v1.6 added:
+
+* **Keyboard navigation.** Up and Down select rows in the client, gig, and payment lists. Right moves from Clients to
+  Gigs, Left moves back one list, and Tab moves between the command box and the lists.
+* **Recovery from an unreadable save file.** The file is backed up to `<filename>_backup-N` before Gigabyte starts
+  with empty data. If the backup fails, all commands except `help` and `exit` are blocked so the file is not
+  overwritten.
+* **Files beside the JAR.** `data/gigabyte.json` and `preferences.json` are kept in the folder that contains
+  `gigabyte.jar`, not the folder the app was launched from.
+* **Duplicate client detection.** Client names that differ only in case or spacing are treated as duplicates by `add`
+  and `edit`. Adding or editing a client with the same phone number as another client, or the same email ignoring
+  case, shows a note naming that client.
+* **Case-insensitive command words.** For example, `ADDGIG` and `AddGig` work like `addgig`.
+* **Strict save-file values.** Loading rejects quoted numbers and booleans, such as `"5025"` for `feeCents` or
+  `"true"` for `paid`.
+* **Rejected values in error messages.** Errors for invalid gig titles, statuses, deadlines, fees, payment amounts,
+  and due dates show the value that was rejected.
 
 --------------------------------------------------------------------------------------------------------------------
 
