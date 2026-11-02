@@ -577,7 +577,7 @@ Priorities: High (must have) - `* * *`, Medium (nice to have) - `* *`, Low (unli
 | `* * *`  | freelancer                   | update a gig's status                                                      | see how far each piece of work has progressed                    |
 | `* * *`  | freelancer                   | delete a gig after its payment obligations are removed                     | remove cancelled work without leaving payments without a gig     |
 | `* * *`  | freelancer                   | find gigs by title                                                         | locate a gig without remembering which client it belongs to     |
-| `* * *`  | freelancer                   | view active gig deadlines, including overdue gigs, in chronological order  | prioritise my work                                               |
+| `* * *`  | freelancer                   | view active gig deadlines, including overdue gigs, in chronological order  | prioritize my work                                               |
 | `* * *`  | freelancer                   | record a payment obligation linked to a gig, with an amount and due date   | know what payment I expect and when                              |
 | `* * *`  | freelancer                   | correct a payment obligation's amount or due date                          | keep revised invoice details accurate                            |
 | `* * *`  | freelancer                   | mark a payment obligation as paid                                          | distinguish settled payments from money still owed               |
@@ -1249,7 +1249,7 @@ Use a fresh test folder for each numbered test below. Deletion is permanent and 
       `addpayment 1 1 a/50 d/2099-01-31`.
    1. Test case: `outstanding`, then `deletepayment 1 1 1`.<br>
       Expected: The overview immediately shows `No outstanding payment obligations.` without another command.
-      Selecting Test Client and Test gig shows `This gig has no payment obligations.`.
+      Selecting Test Client and Test gig shows `This gig has no payment obligations.`
 
 ### Editing payment obligations
 
@@ -1629,9 +1629,9 @@ clients, gigs, and payment obligations.
   and UML diagrams. These tools also assisted with preliminary pull
   request reviews, debugging implementation and build issues, and
   developing manual and automated test scenarios.
-* **Clement Neo (`approxneo`)** used **OpenAI Codex with Computer Use**
+* **Clement Neo (`ApproxNeo`)** used **OpenAI Codex with Computer Use**
   to generate and refine source code for storage and data-file loading,
-  and navigation commands. They were also used to generate and extend
+  and navigation commands. It was also used to generate and extend
   automated tests, and draft documentation.
 * **Axel Heng (`axelheng`)** used **OpenAI Codex and ChatGPT** to assist
   with source-code development, debugging, test generation, and documentation
