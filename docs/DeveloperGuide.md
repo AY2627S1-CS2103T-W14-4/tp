@@ -971,8 +971,8 @@ and is not repeated for each command.
       Expected: Six sample clients appear. The Gigs panel says `Select a client to view their gigs.`, and the
       Payment obligations panel says `Select a gig to view its payment obligations.`
    1. Select `Alex Yeoh`.<br>
-      Expected: The Gigs panel shows `Portfolio website redesign` and `Product launch photography`, including each
-      gig's status, deadline, and fee. The Payment obligations panel still says
+      Expected: The Gigs panel shows `1. Portfolio website redesign` and `2. Product launch photography`, including
+      each gig's status, deadline, and fee. The Payment obligations panel still says
       `Select a gig to view its payment obligations.`
    1. Select `Portfolio website redesign`.<br>
       Expected: The panel shows the sample `$1,250.00` obligation due `2027-01-15` as `PAID`.
@@ -1093,8 +1093,8 @@ Start each test in this section from a fresh test folder.
 
 1. **Filter gigs by status**
    1. Test case: `gigs s/IN_PROGRESS`<br>
-      Expected: The Gigs panel shows `Portfolio website redesign` and `Quarterly newsletter template`, including
-      their client names, and leaves the client list unchanged.
+      Expected: The Gigs panel shows `Portfolio website redesign` and `Quarterly newsletter template` without
+      numbers, including their client names, and leaves the client list unchanged.
    1. Test case: `gigs s/WAITING`<br>
       Expected: The command is rejected, the previous results remain visible, and no data changes.
    1. Test case: `gigs s/IN_PROGRESS s/COMPLETED`<br>

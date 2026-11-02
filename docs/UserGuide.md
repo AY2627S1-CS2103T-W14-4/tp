@@ -115,8 +115,8 @@ numbers, decimals, text, and indexes larger than the displayed list are invalid.
 * `find` replaces the displayed client list with its matching results. A later command therefore uses the numbers in
   those results, not the numbers from the earlier full list. Run `list` to restore the full client list.
 * A **gig index** is the gig's position in the chosen client's normal gig list, in recorded order. It never refers to
-  a row in `gigs`, `deadlines`, or `findgig` results. Select the client to inspect this order; selection is optional
-  when entering a command.
+  a row in `gigs`, `deadlines`, or `findgig` results, so those rows are not numbered. Select the client to see their
+  gigs numbered in this order; selection is optional when entering a command.
 * A **payment index** is the payment's position within that gig's payment list, sorted by due date and then recorded
   order. It never refers to a row in `outstanding`. Select the client and gig to inspect this order. A date edit can
   change subsequent payment indexes.
@@ -139,7 +139,8 @@ message.
 
 #### Viewing gigs and payment obligations
 
-Select a client in the client list to show only that client's gigs in the **Gigs** panel. Select a gig to show only
+Select a client in the client list to show only that client's gigs in the **Gigs** panel, numbered from 1 in the order
+they were recorded. These are the gig indexes that gig and payment commands use. Select a gig to show only
 its payment obligations in the **Payment obligations** panel beneath the gig list. Payment obligations are numbered
 from 1 and ordered by due date, earliest first. Obligations with the same due date retain the order in which they were
 recorded. These displayed payment indexes restart from 1 for each selected gig; `editpayment`, `markpaid`, `deletepayment` and

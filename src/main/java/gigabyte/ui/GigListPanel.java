@@ -109,8 +109,8 @@ public class GigListPanel extends UiPart<Region> {
                 }
 
                 String overdue = isOverdue(gig) ? "    OVERDUE" : "";
-                setText(String.format("%s%nClient: %s%nStatus: %s    Deadline: %s%s    Fee: %s",
-                        gig.getTitle(), gig.getClient().getName(), gig.getStatus(),
+                setText(String.format("%s%s%nClient: %s%nStatus: %s    Deadline: %s%s    Fee: %s",
+                        getIndexPrefix(getIndex()), gig.getTitle(), gig.getClient().getName(), gig.getStatus(),
                         gig.getDeadline(), overdue, gig.getAgreedFee().toDisplayString()));
             }
         };
@@ -118,6 +118,14 @@ public class GigListPanel extends UiPart<Region> {
         cell.getStyleClass().add("gig-list-cell");
         cell.prefWidthProperty().bind(gigListView.widthProperty().subtract(20));
         return cell;
+    }
+
+    /**
+     * Returns the one-based gig index prefix for the row at {@code rowIndex}.
+     * Only a single client's gig list shows indexes, as rows in the other views are not gig indexes.
+     */
+    private String getIndexPrefix(int rowIndex) {
+        return viewMode == ViewMode.CLIENT ? (rowIndex + 1) + ". " : "";
     }
 
     private boolean isOverdue(Gig gig) {
