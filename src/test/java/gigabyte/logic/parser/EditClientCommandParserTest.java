@@ -177,6 +177,14 @@ public class EditClientCommandParserTest {
     }
 
     @Test
+    public void parse_addressContainingPhonePrefix_success() {
+        String address = "Block 99 p/888";
+        String userInput = INDEX_FIRST_CLIENT.getOneBased() + " a/" + address;
+        EditClientDescriptor descriptor = new EditClientDescriptorBuilder().withAddress(address).build();
+        assertParseSuccess(parser, userInput, new EditClientCommand(INDEX_FIRST_CLIENT, descriptor));
+    }
+
+    @Test
     public void parse_multipleRepeatedFields_failure() {
         // More extensive testing of duplicate parameter detections is done in
         // AddClientCommandParserTest#parse_repeatedNonTagValue_failure()
