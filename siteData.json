@@ -40,8 +40,6 @@
       "title": "Developer Guide",
       "headings": {
         "gigabyte-developer-guide": "Gigabyte Developer Guide",
-        "acknowledgements": "Acknowledgements",
-        "notable-uses-of-ai": "Notable uses of AI",
         "setting-up-getting-started": "Setting up, getting started",
         "design": "Design",
         "architecture": "Architecture",
@@ -57,7 +55,6 @@
         "deleting-linked-records-safely": "Deleting linked records safely",
         "cross-client-gig-and-payment-views": "Cross-client gig and payment views",
         "work-and-payment-summary": "Work and payment summary",
-        "proposed-data-archiving": "[Proposed] Data archiving",
         "documentation-logging-testing-dev-ops": "Documentation, logging, testing, dev-ops",
         "appendix-requirements": "Appendix: Requirements",
         "product-scope": "Product scope",
@@ -82,7 +79,9 @@
         "deleting-a-client-with-gigs": "Deleting a client with gigs",
         "persistence-and-data-file-recovery": "Persistence and data-file recovery",
         "complete-end-to-end-workflow": "Complete end-to-end workflow",
-        "appendix-effort": "Appendix: Effort"
+        "appendix-effort": "Appendix: Effort",
+        "acknowledgements": "Acknowledgements",
+        "notable-uses-of-ai": "Notable uses of AI"
       },
       "headingKeywords": {}
     },
