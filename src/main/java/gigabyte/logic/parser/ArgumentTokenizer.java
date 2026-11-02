@@ -36,9 +36,33 @@ public class ArgumentTokenizer {
      * @return           List of zero-based prefix positions in the given arguments string
      */
     private static List<PrefixPosition> findAllPrefixPositions(String argsString, Prefix... prefixes) {
-        return Arrays.stream(prefixes)
+        List<PrefixPosition> positions = Arrays.stream(prefixes)
                 .flatMap(prefix -> findPrefixPositions(argsString, prefix).stream())
                 .collect(Collectors.toList());
+        positions.sort((first, second) -> first.getStartPosition() - second.getStartPosition());
+        return removeEmbeddedPhonePrefixes(positions);
+    }
+
+    /**
+     * Addresses are free-form, so a phone prefix immediately following an address can be part of the address.
+     * Once an address starts, a directly following phone prefix is treated as address text. This preserves the
+     * user's address instead of silently replacing the phone number.
+     */
+    private static List<PrefixPosition> removeEmbeddedPhonePrefixes(List<PrefixPosition> positions) {
+        int addressPosition = -1;
+        List<PrefixPosition> filtered = new ArrayList<>();
+        for (PrefixPosition position : positions) {
+            String prefix = position.getPrefix().getPrefix();
+            if (CliSyntax.PREFIX_PHONE.getPrefix().equals(prefix)) {
+                if (addressPosition >= 0 && filtered.size() == addressPosition + 1) {
+                    continue;
+                }
+            } else if (CliSyntax.PREFIX_ADDRESS.getPrefix().equals(prefix)) {
+                addressPosition = filtered.size();
+            }
+            filtered.add(position);
+        }
+        return filtered;
     }
 
     /**
