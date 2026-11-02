@@ -44,7 +44,7 @@ The bulk of the app's work is done by the following four components:
 
 **How the architecture components interact with each other**
 
-The *Sequence Diagram* below shows how the components interact with each other for the scenario where the user issues the command `delete 1`.
+The *Sequence Diagram* below shows how the components interact when `delete 1` successfully removes a client with no associated gigs. The details of parsing and index resolution are shown in the Logic section.
 
 <puml src="diagrams/ArchitectureSequenceDiagram.puml" width="574" />
 
@@ -94,20 +94,16 @@ Here's a (partial) class diagram of the `Logic` component:
 
 <puml src="diagrams/LogicClassDiagram.puml" width="550"/>
 
-The sequence diagram below illustrates the interactions within the `Logic` component, taking `execute("delete 1")` API call as an example.
-The command resolves the index against the currently displayed client list and passes the selected `Client` to
-the model. Invalid indexes and clients with associated gigs are rejected; only a successful deletion creates a
-`CommandResult`. The diagram omits storage interactions and assumes the save succeeds on the successful path.
+The first sequence diagram shows how `Logic` parses `execute("delete 1")` and creates a `DeleteClientCommand`.
 
-<puml src="diagrams/DeleteSequenceDiagram.puml" alt="Interactions Inside the Logic Component for the `delete 1` Command" />
+<puml src="diagrams/DeleteSequenceDiagram.puml" alt="Parsing the `delete 1` command" />
 
-<box type="info" seamless>
+The second diagram shows how the command resolves index 1 against the currently displayed client list. An invalid index raises `CommandException` before the model call. If the selected client has gigs, the model rejects the deletion and the command wraps that error as `CommandException`. Only a successful deletion returns a `CommandResult`. The diagram omits the save that `LogicManager` performs before returning a successful result.
 
-**Note:** The lifeline for `DeleteClientCommandParser` should end at the destroy marker (X), but due to a limitation of PlantUML, the lifeline continues till the end of diagram.
-</box>
+<puml src="diagrams/DeleteExecutionSequenceDiagram.puml" alt="Executing the `delete 1` command" />
 
 The following sequence diagram shows how the `findgig` command parses title keywords,
-creates a predicate, and applies the search result to the gig list displayed in the UI.
+creates a predicate, counts matching gigs, and passes the predicate to the UI. `GigListPanel` then filters the displayed gigs. The diagram omits the storage save performed by `LogicManager`.
 
 <puml src="diagrams/tracing/FindGigSequenceDiagram.puml" alt="Interactions for the `findgig` Command" />
 
