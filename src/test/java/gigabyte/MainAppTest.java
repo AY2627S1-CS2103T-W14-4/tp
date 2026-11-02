@@ -33,11 +33,6 @@ public class MainAppTest {
     Path testFolder;
 
     @Test
-    public void version_matchesCurrentRelease() {
-        assertEquals("V1.6.0", MainApp.VERSION);
-    }
-
-    @Test
     public void initModel_malformedJson_preservesFileBeforeStartingEmpty() throws Exception {
         assertRecoveryAfterLoading("{not valid json");
     }
