@@ -11,42 +11,6 @@
 
 --------------------------------------------------------------------------------------------------------------------
 
-## **Acknowledgements**
-
-* Gigabyte is based on the [AddressBook-Level3](https://github.com/se-edu/addressbook-level3) project created by the
-  [SE-EDU initiative](https://se-education.org). Its architecture, much of its `Main`, `Commons`, `Storage`, and `UI`
-  code, its test infrastructure, and the structure and some text and diagrams of this Developer Guide and the User
-  Guide were adapted from that project.
-* Libraries used: [JavaFX](https://openjfx.io/) (GUI), [Jackson](https://github.com/FasterXML/jackson) (JSON
-  serialization), and [JUnit 5](https://junit.org/junit5/) (testing).
-* Tools used: [Gradle](https://gradle.org/) with the [Shadow plugin](https://gradleup.com/shadow/) (build and JAR
-  packaging), [PlantUML](https://plantuml.com/) (UML diagrams), and [MarkBind](https://markbind.org/) (documentation
-  website).
-
-### Notable uses of AI
-
-* **Lim Kerjun (`patientotter`)** used **OpenAI Codex and ChatGPT**
-  extensively to generate and refine source code for gig and payment
-  commands, generate and extend automated tests, and draft documentation
-  and UML diagrams. These tools also assisted with preliminary pull
-  request reviews, debugging implementation and build issues, and
-  developing manual and automated test scenarios.
-* **Clement Neo (`approxneo`)** used **OpenAI Codex with Computer Use**
-  to generate and refine source code for storage and data-file loading,
-  and navigation commands. They were also used to generate and extend
-  automated tests, and draft documentation.
-* **Axel Heng (`axelheng`)** used **OpenAI Codex and ChatGPT** to assist
-  with source-code development, debugging, test generation, and documentation
-  refinement. The generated suggestions were reviewed, adapted, and validated
-  before being included.
-* **Tang Ming Hong (`minghong-dev`)** used **Claude Code** to generate and refine
-  source code, generate and extend automated tests, plan features, and draft and
-  restructure documentation. **ChatGPT** was used to validate and cross-check
-  Claude Code's plans and code changes. The generated output was reviewed,
-  adapted, and tested before being included.
-
---------------------------------------------------------------------------------------------------------------------
-
 ## **Setting up, getting started**
 
 Refer to the guide [_Setting up and getting started_](SettingUp.md).
@@ -243,12 +207,9 @@ The `Storage` component,
   fractional values for integer fields. `JsonAdaptedGig` and `JsonAdaptedPaymentObligation` read `feeCents`,
   `amountCents` and `paid` through `StrictJsonDeserializers`, which accept only a JSON integer or a JSON boolean
   and reject quoted values such as `"5025"` or `"true"` instead of converting them. The adapters require all three
-  top-level arrays and each record's required fields; IDs and titles are never generated during loading. Older
+  top-level arrays and each record's required fields; IDs and titles are never generated during loading. Invalid
   formats fail with `DataLoadingException`. User preferences continue to use the separate, permissive
   `JsonUtil.readJsonFile` path.
-* migrates `data/addressbook.json` to `data/gigabyte.json` during `MainApp.init`, before loading data, if the current
-  file does not exist. `JsonGigabyteDataStorage.migrateLegacyDataFile` moves the file without changing its contents
-  or replacing an existing destination. An `IOException` during migration stops startup.
 
 The save-file fields are:
 
@@ -261,13 +222,14 @@ The save-file fields are:
 
 UUIDs must be valid, references must resolve to saved records, titles must be valid text, and monetary values must
 be positive JSON integers of cents. `paid` must be JSON `true` or `false`. Null collections and null records are
-rejected. There is no automatic conversion of quoted numbers or booleans, `persons`, name- or index-based
-references, decimal amount fields, or missing IDs and titles.
+rejected. Quoted numbers or booleans, name- or index-based references, decimal amount fields, and missing IDs or
+titles do not satisfy the required format.
 
 #### Data file format
 
-`MainApp` uses `data/gigabyte.json` for application data and `preferences.json` for GUI preferences. Both paths
-are relative to the process's working directory. `JsonSerializableGigabyteData` stores three top-level arrays:
+The folder containing `gigabyte.jar` is the base for application files, regardless of the process's working directory.
+`MainApp` uses `[JAR folder]/data/gigabyte.json` for application data and `[JAR folder]/preferences.json` for GUI
+preferences. Log files are also kept in the JAR folder. `JsonSerializableGigabyteData` stores three top-level arrays:
 `clients`, `gigs`, and `paymentObligations`. The following is a complete example with one record of each type:
 
 ```json
@@ -313,19 +275,6 @@ Loading proceeds in dependency order: clients, then gigs, then payment obligatio
 unresolved parent references, and invalid field values detected during conversion cause the load to fail instead
 of returning partially loaded data.
 
-#### Backward compatibility and filename migration
-
-There is no schema-version field. The v1.4 loader accepts only the current required fields described above.
-It does not convert a v1.3 JSON shape: `persons`, absent collections or UUIDs, `clientName`, `gigIndex`, decimal
-`fee`/`amount`, and missing titles fail strict loading. `JsonGigabyteDataStorage#migrateLegacyDataFile` only moves
-`data/addressbook.json` to `data/gigabyte.json` when the destination is absent. It does not transform its contents.
-When both files exist, the current filename takes precedence and neither file is moved.
-
-This distinction matters during upgrade: a moved v1.3 file remains unsupported. Preserve a backup before launch;
-if loading fails, the app starts with an empty model and the next successful command overwrites the moved file.
-The manual compatibility test below checks both the filename move with current-format data and the rejection of a
-representative v1.3 file.
-
 #### Save lifecycle and failure behavior
 
 `LogicManager#execute` performs these steps in order:
@@ -351,8 +300,9 @@ each save, so a failed write does not guarantee that the previous file contents 
 At startup, a missing data file causes `MainApp` to use sample data. A malformed JSON file or a validation failure
 reported as `DataLoadingException` causes `MainApp` to request a backup through `Storage#backupGigabyteData` before
 starting with empty data. `JsonGigabyteDataStorage` copies the original bytes to the first available sibling path
-`<filename>_backup-N`, starting at 1 (for example, `gigabyte.json_backup-1`). The copy never replaces an existing
-file or directory; a filename collision advances to the next number. The original file is not changed at startup.
+`<filename>_backup-N`, starting at 1 (for example, `[JAR folder]/data/gigabyte.json_backup-1`).
+The copy never replaces an existing file or directory; a filename collision advances to the next number. The original
+file is not changed at startup.
 `MainApp` passes a warning and the backup path through `UiManager` to the main window's command result area.
 After a successful backup, the next successful save, even after `list`, replaces the original with the current
 model while preserving the backup.
@@ -425,7 +375,7 @@ payments, including when another view is open.
   and `gigUid`.
   * Pros: Links stay correct when two clients or gigs have identical display fields, and when a client's name or a
     gig's title is edited.
-  * Cons: The save file is harder to edit by hand, and older save files without IDs cannot be loaded.
+  * Cons: The save file is harder to edit by hand, and files without IDs cannot be loaded.
 
 * **Alternative 2:** Refer to the owner by its name (for clients) or its position in a list (for gigs).
   * Pros: Simpler save format that is easier to read.
@@ -589,160 +539,6 @@ a client calls `GigListPanel#showGigsFor`, which leaves the cross-client view an
 The command reads "today" from a `java.time.Clock` that defaults to the system clock. Tests pass a fixed clock so
 that results which depend on overdue dates stay deterministic.
 
-### \[Proposed\] Undo/redo feature
-
-#### Proposed Implementation
-
-The proposed undo/redo mechanism is facilitated by `VersionedGigabyteData`. It extends `GigabyteData` with an undo/redo history, stored internally as an `gigabyteDataStateList` and `currentStatePointer`. Additionally, it implements the following operations:
-
-* `VersionedGigabyteData#commit()` -- Saves the current Gigabyte data state in its history.
-* `VersionedGigabyteData#undo()` -- Restores the previous Gigabyte data state from its history.
-* `VersionedGigabyteData#redo()` -- Restores a previously undone Gigabyte data state from its history.
-
-These operations are exposed in the `Model` interface as `Model#commitGigabyteData()`, `Model#undoGigabyteData()` and `Model#redoGigabyteData()` respectively.
-
-Given below is an example usage scenario and how the undo/redo mechanism behaves at each step.
-
-Step 1. The user launches the application for the first time. The `VersionedGigabyteData` will be initialized with the initial Gigabyte data state, and the `currentStatePointer` pointing to that single Gigabyte data state.
-
-<puml src="diagrams/UndoRedoState0.puml" alt="UndoRedoState0" />
-
-Step 2. The user executes `delete 5` command to delete the 5th client in the Gigabyte data. The `delete` command calls `Model#commitGigabyteData()`, causing the modified state of the Gigabyte data after the `delete 5` command executes to be saved in the `gigabyteDataStateList`, and the `currentStatePointer` is shifted to the newly inserted Gigabyte data state.
-
-<puml src="diagrams/UndoRedoState1.puml" alt="UndoRedoState1" />
-
-Step 3. The user executes `add n/David …​` to add a new client. The `add` command also calls `Model#commitGigabyteData()`, causing another modified Gigabyte data state to be saved into the `gigabyteDataStateList`.
-
-<puml src="diagrams/UndoRedoState2.puml" alt="UndoRedoState2" />
-
-<box type="info" seamless>
-
-**Note:** If a command fails its execution, it will not call `Model#commitGigabyteData()`, so the Gigabyte data state will not be saved into the `gigabyteDataStateList`.
-</box>
-
-Step 4. The user now decides that adding the client was a mistake, and decides to undo that action by executing the `undo` command. The `undo` command will call `Model#undoGigabyteData()`, which will shift the `currentStatePointer` once to the left, pointing it to the previous Gigabyte data state, and restores the Gigabyte data to that state.
-
-<puml src="diagrams/UndoRedoState3.puml" alt="UndoRedoState3" />
-
-
-<box type="info" seamless>
-
-**Note:** If the `currentStatePointer` is at index 0, pointing to the initial GigabyteData state, then there are no previous GigabyteData states to restore. The `undo` command uses `Model#canUndoGigabyteData()` to check if this is the case. If so, it will return an error to the user rather
-than attempting to perform the undo.
-</box>
-
-The following sequence diagram shows how an undo operation goes through the `Logic` component:
-
-<puml src="diagrams/UndoSequenceDiagram-Logic.puml" alt="UndoSequenceDiagram-Logic" />
-
-<box type="info" seamless>
-
-**Note:** The lifeline for `UndoCommand` should end at the destroy marker (X), but due to a limitation of PlantUML, it continues to the end of the diagram.
-</box>
-
-Similarly, how an undo operation goes through the `Model` component is shown below:
-
-<puml src="diagrams/UndoSequenceDiagram-Model.puml" alt="UndoSequenceDiagram-Model" />
-
-The `redo` command does the opposite — it calls `Model#redoGigabyteData()`, which shifts the `currentStatePointer` once to the right, pointing to the previously undone state, and restores the Gigabyte data to that state.
-
-<box type="info" seamless>
-
-**Note:** If the `currentStatePointer` is at index `gigabyteDataStateList.size() - 1`, pointing to the latest Gigabyte data state, then there are no undone GigabyteData states to restore. The `redo` command uses `Model#canRedoGigabyteData()` to check if this is the case. If so, it will return an error to the user rather than attempting to perform the redo.
-</box>
-
-Step 5. The user then decides to execute the command `list`. Commands that do not modify the Gigabyte data, such as `list`, will usually not call `Model#commitGigabyteData()`, `Model#undoGigabyteData()` or `Model#redoGigabyteData()`. Thus, the `gigabyteDataStateList` remains unchanged.
-
-<puml src="diagrams/UndoRedoState4.puml" alt="UndoRedoState4" />
-
-Step 6. The user executes `clear`, which calls `Model#commitGigabyteData()`. Since the `currentStatePointer` is not pointing at the end of the `gigabyteDataStateList`, all Gigabyte data states after the `currentStatePointer` will be purged. Reason: It no longer makes sense to redo the `add n/David …` command. This is the behavior that most modern desktop applications follow.
-
-<puml src="diagrams/UndoRedoState5.puml" alt="UndoRedoState5" />
-
-The following activity diagram summarizes what happens when a user executes a new command:
-
-<puml src="diagrams/CommitActivityDiagram.puml" width="250" />
-
-#### Design considerations:
-
-**Aspect: How undo & redo execute:**
-
-* **Alternative 1 (current choice):** Saves the entire Gigabyte data.
-  * Pros: Easy to implement.
-  * Cons: May have performance issues in terms of memory usage.
-
-* **Alternative 2:** Individual command knows how to undo/redo by
-  itself.
-  * Pros: Will use less memory (e.g. for `delete`, just save the client being deleted).
-  * Cons: We must ensure that the implementation of each individual command is correct. This is harder in Gigabyte
-    than in AB3 because one command can change linked records, e.g., editing a client also replaces that client's
-    gigs and relinks their payment obligations.
-
-### \[Proposed\] Data archiving
-
-#### Proposed Implementation
-
-The proposed archiving mechanism would let freelancers move completed work out of their active data, while keeping
-it in a separate file for reference. It would be facilitated by an `ArchiveCommand`, a new `Storage` method,
-`Storage#saveArchive(ReadOnlyGigabyteData archive, Path archiveFilePath)`, and a new `Model` method,
-`Model#removeArchivedGigs(ReadOnlyGigabyteData archive)`.
-
-Commands only receive the `Model`, so `ArchiveCommand` cannot save files itself. Instead, `LogicManager`, which
-already holds both the `Model` and the `Storage`, would coordinate the two saves, in the same way that it saves the
-active data after every command today.
-
-Given below is an example usage scenario and how the archiving mechanism would behave.
-
-Step 1. The user executes `archive`. `ArchiveCommand#execute` collects every gig whose status is `COMPLETED` and all
-of whose payment obligations are marked paid. Completed gigs that still have unpaid obligations are left in the active
-data, so money that is still owed stays visible in `outstanding`.
-
-Step 2. `ArchiveCommand` builds a new `GigabyteData` containing the selected gigs, their payment obligations, and the
-clients they belong to. Because gigs and payments are linked by UUID, the archive can be saved in the existing save
-format. The command does not change the `Model`. It returns the archive to `LogicManager` in its `CommandResult`.
-
-Step 3. `LogicManager` saves the archive to a new file whose name includes the date and time of the command, down to
-the second, e.g., `data/archive/gigabyte-2027-01-31T14-05-09.json`. Hyphens are used instead of colons so that the name
-is valid on Windows. `Storage#saveArchive` only creates new files: it opens the file with
-`StandardOpenOption.CREATE_NEW`, so it never replaces an existing archive, even when `archive` is run several times on
-the same day. If a file with that name already exists, or the save fails for any other reason, `LogicManager` throws a
-`CommandException`. The `Model` and the active data file have not been changed, so nothing needs to be rolled back,
-and the user can simply run `archive` again.
-
-Step 4. Only after the archive is saved, `LogicManager` calls `Model#removeArchivedGigs`, which removes the archived
-gigs (matched by UUID) and their payment obligations from the active data. Clients are kept, even when all their gigs
-were archived, so that new gigs can still be added for them.
-
-Step 5. `LogicManager` saves the active data as it does after every command. If this save fails, the error is
-reported as for any other failed save. The active data file on disk then still contains the archived records, so they
-exist in both files until the next successful save, but no record is lost.
-
-#### Design considerations:
-
-**Aspect: Which component coordinates the two saves:**
-
-* **Alternative 1 (proposed choice):** `LogicManager` saves the archive returned by the command, then updates the
-  `Model`.
-  * Pros: Commands keep depending only on `Model`. Saving the archive before changing the `Model` means a failed
-    archive save never needs a rollback.
-  * Cons: `LogicManager` gains logic that is specific to one command, and the two files are not updated atomically.
-
-* **Alternative 2:** Give `ArchiveCommand` access to `Storage` so that it saves the archive itself.
-  * Pros: All archiving logic is kept in one class.
-  * Cons: Breaks the current architecture, in which commands interact only with the `Model`, and makes the command
-    harder to test with a model stub.
-
-**Aspect: Where archived records are kept:**
-
-* **Alternative 1 (proposed choice):** Save archived records in a separate JSON file.
-  * Pros: The active data file stays small, and the existing loading and validation code can read an archive file.
-  * Cons: Archived records cannot be searched from within the app without a separate "view archive" feature.
-
-* **Alternative 2:** Keep archived records in the active data file with an `archived` flag.
-  * Pros: Archived records can be restored, searched, and included in `summary` easily.
-  * Cons: Every view and command would have to filter out archived records, and the save format would change.
-
-
 --------------------------------------------------------------------------------------------------------------------
 
 ## **Documentation, logging, testing, dev-ops**
@@ -798,13 +594,11 @@ Priorities: High (must have) - `* * *`, Medium (nice to have) - `* *`, Low (unli
 | `* *`    | user                         | hide private contact details                                               | minimize chance of someone else seeing them by accident          |
 | `* *`    | careless user                | undo my last command                                                       | recover quickly from a mistaken edit or deletion                 |
 | `*`      | freelancer with many clients | sort clients by name                                                       | locate a client easily                                           |
-| `*`      | freelancer                   | archive completed gigs                                                     | keep the active view focused on current work                     |
 
 <box type="info" seamless>
 
-**Note:** The last four user stories (hiding private contact details, undoing a command, sorting clients, and
-archiving completed gigs) are not implemented in the current release. They are planned features for a future
-release.
+**Note:** The last three user stories (hiding private contact details, undoing a command, and sorting
+clients) are not implemented in the current release. They are planned features for a future release.
 </box>
 
 ### Use cases
@@ -1713,8 +1507,8 @@ Use a disposable fresh sample-data folder for each test. Deletion is permanent a
       `data/addressbook.json` loads successfully after the filename move.
 
 1. **Missing data file**
-   1. In a test folder with no `data/addressbook.json`, close the app and rename `data/gigabyte.json` to
-      `gigabyte.backup.json`, then relaunch.<br>
+   1. In a test folder, close the app and rename `data/gigabyte.json` to
+      `data/gigabyte.backup.json`, then relaunch.<br>
       Expected: Gigabyte starts with the six sample clients and their sample gigs. The backup file is unchanged.
 
 1. **Corrupted data file**
@@ -1800,7 +1594,7 @@ features had to consider how a change to one record affects the records linked t
   and deleting one of two identical payments must remove only the indexed one (see
   [Deleting linked records safely](#deleting-linked-records-safely)).
 * **Strict and safe storage.** The save format stores links by UUID and money as integer cents. Loading rejects
-  unknown fields, missing fields, and broken references, and the old `addressbook.json` file name is migrated safely.
+  unknown fields, missing fields, and broken references.
 * **Exact money handling.** Fees and payment amounts use `BigDecimal` and integer cents, so totals in `summary` are
   exact to the cent.
 
@@ -1816,3 +1610,39 @@ Gigabyte extends AB3 with gig tracking (`addgig`, `editgig`, `setstatus`, `delet
 `deadlines`), payment tracking (`addpayment`, `editpayment`, `markpaid`, `markunpaid`, `deletepayment`, and
 `outstanding`), and a work and payment `summary`. The GUI was extended from one list to three linked panels for
 clients, gigs, and payment obligations.
+
+--------------------------------------------------------------------------------------------------------------------
+
+## **Acknowledgements**
+
+* Gigabyte is based on the [AddressBook-Level3](https://github.com/se-edu/addressbook-level3) project created by the
+  [SE-EDU initiative](https://se-education.org). Its architecture, much of its `Main`, `Commons`, `Storage`, and `UI`
+  code, its test infrastructure, and the structure and some text and diagrams of this Developer Guide and the User
+  Guide were adapted from that project.
+* Libraries used: [JavaFX](https://openjfx.io/) (GUI), [Jackson](https://github.com/FasterXML/jackson) (JSON
+  serialization), and [JUnit 5](https://junit.org/junit5/) (testing).
+* Tools used: [Gradle](https://gradle.org/) with the [Shadow plugin](https://gradleup.com/shadow/) (build and JAR
+  packaging), [PlantUML](https://plantuml.com/) (UML diagrams), and [MarkBind](https://markbind.org/) (documentation
+  website).
+
+### Notable uses of AI
+
+* **Lim Kerjun (`patientotter`)** used **OpenAI Codex and ChatGPT**
+  extensively to generate and refine source code for gig and payment
+  commands, generate and extend automated tests, and draft documentation
+  and UML diagrams. These tools also assisted with preliminary pull
+  request reviews, debugging implementation and build issues, and
+  developing manual and automated test scenarios.
+* **Clement Neo (`approxneo`)** used **OpenAI Codex with Computer Use**
+  to generate and refine source code for storage and data-file loading,
+  and navigation commands. They were also used to generate and extend
+  automated tests, and draft documentation.
+* **Axel Heng (`axelheng`)** used **OpenAI Codex and ChatGPT** to assist
+  with source-code development, debugging, test generation, and documentation
+  refinement. The generated suggestions were reviewed, adapted, and validated
+  before being included.
+* **Tang Ming Hong (`minghong-dev`)** used **Claude Code** to generate and refine
+  source code, generate and extend automated tests, plan features, and draft and
+  restructure documentation. **ChatGPT** was used to validate and cross-check
+  Claude Code's plans and code changes. The generated output was reviewed,
+  adapted, and tested before being included.
