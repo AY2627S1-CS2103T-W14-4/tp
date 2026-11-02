@@ -543,8 +543,10 @@ that results which depend on overdue dates stay deterministic.
 
 ## **Documentation, logging, testing, dev-ops**
 
-* [Testing guide](Testing.md)
+* [Documentation guide](Documentation.md)
 * [Logging guide](Logging.md)
+* [Testing guide](Testing.md)
+* [DevOps guide](DevOps.md)
 * [Setting up and building](SettingUp.md)
 
 --------------------------------------------------------------------------------------------------------------------
