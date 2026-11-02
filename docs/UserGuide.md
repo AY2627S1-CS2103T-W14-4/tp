@@ -80,6 +80,10 @@
   inside names and gig titles. See the cautions in [`add`](#adding-a-client-add), [`edit`](#editing-a-client-edit),
   [`addgig`](#creating-a-gig-addgig) and [`editgig`](#editing-a-gig-editgig).
 
+* Lowercase ` p/` starts a phone field even after an address: `edit 1 a/Block 99 p/888` changes both fields.
+  To store phone-like text in an address, use uppercase `P/`, e.g. `edit 1 a/Block 99 P/888`, or write it without
+  the slash. The uppercase form changes only the address and preserves the phone.
+
 * Money amounts are displayed with a dollar sign, comma thousands separators, and two decimal places,
   for example, `$1,234.50`. Enter amounts without dollar signs or commas, such as `a/1234.50` or `f/1234.50`.
 

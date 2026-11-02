@@ -138,11 +138,26 @@ public class AddClientCommandParserTest {
     }
 
     @Test
-    public void parse_addressContainingPhonePrefix_success() {
-        String address = "Block 99 p/888";
+    public void parse_addressContainingUppercasePhonePrefix_success() {
+        String address = "Block 99 P/888";
         Client expectedClient = new ClientBuilder(BOB).withAddress(address).withTags().build();
         assertParseSuccess(parser, NAME_DESC_BOB + PHONE_DESC_BOB + EMAIL_DESC_BOB + " a/" + address,
                 new AddClientCommand(expectedClient));
+    }
+
+    @Test
+    public void parse_phoneAfterAddress_success() {
+        Client expectedClient = new ClientBuilder(BOB).withTags().build();
+        assertParseSuccess(parser, NAME_DESC_BOB + EMAIL_DESC_BOB + ADDRESS_DESC_BOB + PHONE_DESC_BOB,
+                new AddClientCommand(expectedClient));
+    }
+
+    @Test
+    public void parse_invalidOrRepeatedPhoneAfterAddress_failure() {
+        assertParseFailure(parser, NAME_DESC_BOB + EMAIL_DESC_BOB + ADDRESS_DESC_BOB + INVALID_PHONE_DESC,
+                Phone.MESSAGE_CONSTRAINTS);
+        assertParseFailure(parser, NAME_DESC_BOB + PHONE_DESC_BOB + EMAIL_DESC_BOB + ADDRESS_DESC_BOB + PHONE_DESC_AMY,
+                Messages.getErrorMessageForDuplicatePrefixes(PREFIX_PHONE));
     }
 
     @Test
