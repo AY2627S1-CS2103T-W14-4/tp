@@ -3,99 +3,26 @@
 skinparam ArrowFontStyle plain
 
 box Logic LOGIC_COLOR_T1
-participant ":LogicManager" as LogicManager LOGIC_COLOR
-participant ":GigabyteParser" as GigabyteParser LOGIC_COLOR
-participant ":DeleteClientCommandParser" as DeleteClientCommandParser LOGIC_COLOR
-participant "d:DeleteClientCommand" as DeleteClientCommand LOGIC_COLOR
-participant "r:CommandResult" as CommandResult LOGIC_COLOR
+participant ":LogicManager" as logic LOGIC_COLOR
+participant ":GigabyteParser" as parser LOGIC_COLOR
+participant ":DeleteClientCommandParser" as deleteParser LOGIC_COLOR
+participant ":DeleteClientCommand" as command LOGIC_COLOR
 end box
 
-box Model MODEL_COLOR_T1
-participant "m:Model" as Model MODEL_COLOR
-end box
+[-> logic : execute("delete 1")
+activate logic
+logic -> parser : parseCommand("delete 1")
+activate parser
+create deleteParser
+parser -> deleteParser : new DeleteClientCommandParser()
+activate deleteParser
+parser -> deleteParser : parse("1")
+create command
+deleteParser -> command : new DeleteClientCommand(index)
+deleteParser --> parser : command
+deactivate deleteParser
+parser --> logic : command
+deactivate parser
+deactivate logic
 
-[-> LogicManager : execute("delete 1")
-activate LogicManager
-
-LogicManager -> GigabyteParser : parseCommand("delete 1")
-activate GigabyteParser
-
-create DeleteClientCommandParser
-GigabyteParser -> DeleteClientCommandParser
-activate DeleteClientCommandParser
-
-DeleteClientCommandParser --> GigabyteParser
-deactivate DeleteClientCommandParser
-
-GigabyteParser -> DeleteClientCommandParser : parse("1")
-activate DeleteClientCommandParser
-
-create DeleteClientCommand
-DeleteClientCommandParser -> DeleteClientCommand
-activate DeleteClientCommand
-
-DeleteClientCommand --> DeleteClientCommandParser :
-deactivate DeleteClientCommand
-
-DeleteClientCommandParser --> GigabyteParser : d
-deactivate DeleteClientCommandParser
-'Hidden arrow to position the destroy marker below the end of the activation bar.
-DeleteClientCommandParser -[hidden]-> GigabyteParser
-destroy DeleteClientCommandParser
-
-GigabyteParser --> LogicManager : d
-deactivate GigabyteParser
-
-LogicManager -> DeleteClientCommand : execute(m)
-activate DeleteClientCommand
-
-DeleteClientCommand -> Model : getFilteredClientList()
-activate Model
-
-Model --> DeleteClientCommand : lastShownList
-deactivate Model
-
-alt targetIndex.getZeroBased() >= lastShownList.size()
-    DeleteClientCommand --> LogicManager : throws CommandException\n(invalid displayed client index)
-    [<-- LogicManager : throws CommandException
-else index is within the displayed client list
-    note right of DeleteClientCommand
-        clientToDelete = lastShownList.get(targetIndex.getZeroBased())
-        For "delete 1", the zero-based index is 0.
-    end note
-
-    DeleteClientCommand -> Model : deleteClient(clientToDelete)
-    activate Model
-
-    alt client has associated gigs
-        Model --> DeleteClientCommand : throws ClientHasGigsException
-        deactivate Model
-        note right of DeleteClientCommand
-            Wrap ClientHasGigsException in CommandException.
-            The client and its linked records remain unchanged.
-        end note
-        DeleteClientCommand --> LogicManager : throws CommandException
-        [<-- LogicManager : throws CommandException
-    else client has no associated gigs
-        Model --> DeleteClientCommand
-        deactivate Model
-
-        create CommandResult
-        DeleteClientCommand -> CommandResult : new CommandResult(successMessage)
-        activate CommandResult
-
-        CommandResult --> DeleteClientCommand : r
-        deactivate CommandResult
-
-        DeleteClientCommand --> LogicManager : r
-        note left of LogicManager
-            Save the updated data before returning r.
-            Storage interactions are omitted here.
-        end note
-        [<-- LogicManager : r
-    end
-end
-
-deactivate DeleteClientCommand
-deactivate LogicManager
 @enduml
