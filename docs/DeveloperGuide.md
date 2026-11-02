@@ -11,42 +11,6 @@
 
 --------------------------------------------------------------------------------------------------------------------
 
-## **Acknowledgements**
-
-* Gigabyte is based on the [AddressBook-Level3](https://github.com/se-edu/addressbook-level3) project created by the
-  [SE-EDU initiative](https://se-education.org). Its architecture, much of its `Main`, `Commons`, `Storage`, and `UI`
-  code, its test infrastructure, and the structure and some text and diagrams of this Developer Guide and the User
-  Guide were adapted from that project.
-* Libraries used: [JavaFX](https://openjfx.io/) (GUI), [Jackson](https://github.com/FasterXML/jackson) (JSON
-  serialization), and [JUnit 5](https://junit.org/junit5/) (testing).
-* Tools used: [Gradle](https://gradle.org/) with the [Shadow plugin](https://gradleup.com/shadow/) (build and JAR
-  packaging), [PlantUML](https://plantuml.com/) (UML diagrams), and [MarkBind](https://markbind.org/) (documentation
-  website).
-
-### Notable uses of AI
-
-* **Lim Kerjun (`patientotter`)** used **OpenAI Codex and ChatGPT**
-  extensively to generate and refine source code for gig and payment
-  commands, generate and extend automated tests, and draft documentation
-  and UML diagrams. These tools also assisted with preliminary pull
-  request reviews, debugging implementation and build issues, and
-  developing manual and automated test scenarios.
-* **Clement Neo (`approxneo`)** used **OpenAI Codex with Computer Use**
-  to generate and refine source code for storage and data-file loading,
-  and navigation commands. They were also used to generate and extend
-  automated tests, and draft documentation.
-* **Axel Heng (`axelheng`)** used **OpenAI Codex and ChatGPT** to assist
-  with source-code development, debugging, test generation, and documentation
-  refinement. The generated suggestions were reviewed, adapted, and validated
-  before being included.
-* **Tang Ming Hong (`minghong-dev`)** used **Claude Code** to generate and refine
-  source code, generate and extend automated tests, plan features, and draft and
-  restructure documentation. **ChatGPT** was used to validate and cross-check
-  Claude Code's plans and code changes. The generated output was reviewed,
-  adapted, and tested before being included.
-
---------------------------------------------------------------------------------------------------------------------
-
 ## **Setting up, getting started**
 
 Refer to the guide [_Setting up and getting started_](SettingUp.md).
@@ -573,71 +537,6 @@ a client calls `GigListPanel#showGigsFor`, which leaves the cross-client view an
 The command reads "today" from a `java.time.Clock` that defaults to the system clock. Tests pass a fixed clock so
 that results which depend on overdue dates stay deterministic.
 
-### \[Proposed\] Data archiving
-
-#### Proposed Implementation
-
-The proposed archiving mechanism would let freelancers move completed work out of their active data, while keeping
-it in a separate file for reference. It would be facilitated by an `ArchiveCommand`, a new `Storage` method,
-`Storage#saveArchive(ReadOnlyGigabyteData archive, Path archiveFilePath)`, and a new `Model` method,
-`Model#removeArchivedGigs(ReadOnlyGigabyteData archive)`.
-
-Commands only receive the `Model`, so `ArchiveCommand` cannot save files itself. Instead, `LogicManager`, which
-already holds both the `Model` and the `Storage`, would coordinate the two saves, in the same way that it saves the
-active data after every command today.
-
-Given below is an example usage scenario and how the archiving mechanism would behave.
-
-Step 1. The user executes `archive`. `ArchiveCommand#execute` collects every gig whose status is `COMPLETED` and all
-of whose payment obligations are marked paid. Completed gigs that still have unpaid obligations are left in the active
-data, so money that is still owed stays visible in `outstanding`.
-
-Step 2. `ArchiveCommand` builds a new `GigabyteData` containing the selected gigs, their payment obligations, and the
-clients they belong to. Because gigs and payments are linked by UUID, the archive can be saved in the existing save
-format. The command does not change the `Model`. It returns the archive to `LogicManager` in its `CommandResult`.
-
-Step 3. `LogicManager` saves the archive to a new file whose name includes the date and time of the command, down to
-the second, e.g., `data/archive/gigabyte-2027-01-31T14-05-09.json`. Hyphens are used instead of colons so that the name
-is valid on Windows. `Storage#saveArchive` only creates new files: it opens the file with
-`StandardOpenOption.CREATE_NEW`, so it never replaces an existing archive, even when `archive` is run several times on
-the same day. If a file with that name already exists, or the save fails for any other reason, `LogicManager` throws a
-`CommandException`. The `Model` and the active data file have not been changed, so nothing needs to be rolled back,
-and the user can simply run `archive` again.
-
-Step 4. Only after the archive is saved, `LogicManager` calls `Model#removeArchivedGigs`, which removes the archived
-gigs (matched by UUID) and their payment obligations from the active data. Clients are kept, even when all their gigs
-were archived, so that new gigs can still be added for them.
-
-Step 5. `LogicManager` saves the active data as it does after every command. If this save fails, the error is
-reported as for any other failed save. The active data file on disk then still contains the archived records, so they
-exist in both files until the next successful save, but no record is lost.
-
-#### Design considerations:
-
-**Aspect: Which component coordinates the two saves:**
-
-* **Alternative 1 (proposed choice):** `LogicManager` saves the archive returned by the command, then updates the
-  `Model`.
-  * Pros: Commands keep depending only on `Model`. Saving the archive before changing the `Model` means a failed
-    archive save never needs a rollback.
-  * Cons: `LogicManager` gains logic that is specific to one command, and the two files are not updated atomically.
-
-* **Alternative 2:** Give `ArchiveCommand` access to `Storage` so that it saves the archive itself.
-  * Pros: All archiving logic is kept in one class.
-  * Cons: Breaks the current architecture, in which commands interact only with the `Model`, and makes the command
-    harder to test with a model stub.
-
-**Aspect: Where archived records are kept:**
-
-* **Alternative 1 (proposed choice):** Save archived records in a separate JSON file.
-  * Pros: The active data file stays small, and the existing loading and validation code can read an archive file.
-  * Cons: Archived records cannot be searched from within the app without a separate "view archive" feature.
-
-* **Alternative 2:** Keep archived records in the active data file with an `archived` flag.
-  * Pros: Archived records can be restored, searched, and included in `summary` easily.
-  * Cons: Every view and command would have to filter out archived records, and the save format would change.
-
-
 --------------------------------------------------------------------------------------------------------------------
 
 ## **Documentation, logging, testing, dev-ops**
@@ -693,13 +592,11 @@ Priorities: High (must have) - `* * *`, Medium (nice to have) - `* *`, Low (unli
 | `* *`    | user                         | hide private contact details                                               | minimize chance of someone else seeing them by accident          |
 | `* *`    | careless user                | undo my last command                                                       | recover quickly from a mistaken edit or deletion                 |
 | `*`      | freelancer with many clients | sort clients by name                                                       | locate a client easily                                           |
-| `*`      | freelancer                   | archive completed gigs                                                     | keep the active view focused on current work                     |
 
 <box type="info" seamless>
 
-**Note:** The last four user stories (hiding private contact details, undoing a command, sorting clients, and
-archiving completed gigs) are not implemented in the current release. They are planned features for a future
-release.
+**Note:** The last three user stories (hiding private contact details, undoing a command, and sorting
+clients) are not implemented in the current release. They are planned features for a future release.
 </box>
 
 ### Use cases
@@ -1691,3 +1588,39 @@ Gigabyte extends AB3 with gig tracking (`addgig`, `editgig`, `setstatus`, `delet
 `deadlines`), payment tracking (`addpayment`, `editpayment`, `markpaid`, `markunpaid`, `deletepayment`, and
 `outstanding`), and a work and payment `summary`. The GUI was extended from one list to three linked panels for
 clients, gigs, and payment obligations.
+
+--------------------------------------------------------------------------------------------------------------------
+
+## **Acknowledgements**
+
+* Gigabyte is based on the [AddressBook-Level3](https://github.com/se-edu/addressbook-level3) project created by the
+  [SE-EDU initiative](https://se-education.org). Its architecture, much of its `Main`, `Commons`, `Storage`, and `UI`
+  code, its test infrastructure, and the structure and some text and diagrams of this Developer Guide and the User
+  Guide were adapted from that project.
+* Libraries used: [JavaFX](https://openjfx.io/) (GUI), [Jackson](https://github.com/FasterXML/jackson) (JSON
+  serialization), and [JUnit 5](https://junit.org/junit5/) (testing).
+* Tools used: [Gradle](https://gradle.org/) with the [Shadow plugin](https://gradleup.com/shadow/) (build and JAR
+  packaging), [PlantUML](https://plantuml.com/) (UML diagrams), and [MarkBind](https://markbind.org/) (documentation
+  website).
+
+### Notable uses of AI
+
+* **Lim Kerjun (`patientotter`)** used **OpenAI Codex and ChatGPT**
+  extensively to generate and refine source code for gig and payment
+  commands, generate and extend automated tests, and draft documentation
+  and UML diagrams. These tools also assisted with preliminary pull
+  request reviews, debugging implementation and build issues, and
+  developing manual and automated test scenarios.
+* **Clement Neo (`approxneo`)** used **OpenAI Codex with Computer Use**
+  to generate and refine source code for storage and data-file loading,
+  and navigation commands. They were also used to generate and extend
+  automated tests, and draft documentation.
+* **Axel Heng (`axelheng`)** used **OpenAI Codex and ChatGPT** to assist
+  with source-code development, debugging, test generation, and documentation
+  refinement. The generated suggestions were reviewed, adapted, and validated
+  before being included.
+* **Tang Ming Hong (`minghong-dev`)** used **Claude Code** to generate and refine
+  source code, generate and extend automated tests, plan features, and draft and
+  restructure documentation. **ChatGPT** was used to validate and cross-check
+  Claude Code's plans and code changes. The generated output was reviewed,
+  adapted, and tested before being included.
