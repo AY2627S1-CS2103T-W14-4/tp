@@ -38,7 +38,7 @@ You can reach us by opening an issue on our [GitHub issue tracker](https://githu
 * Role: Developer
 * Responsibilities: Client gig view, payment obligation model, `deadlines`, `findgig` and `summary`, sample data
 
-### Clement
+### Clement Neo
 
 <img src="images/approxneo.png" width="200px">
 
