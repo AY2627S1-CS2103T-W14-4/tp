@@ -25,6 +25,8 @@ import gigabyte.model.tag.Tag;
 public class ParserUtilTest {
     private static final String INVALID_NAME = "R@chel";
     private static final String INVALID_PHONE = "+65a1234";
+    private static final String PHONE_OVER_DIGIT_LIMIT = "1234567890123456";
+    private static final String FORMATTED_PHONE_OVER_DIGIT_LIMIT = "+123 4567-8901 23456";
     private static final String INVALID_ADDRESS = " ";
     private static final String INVALID_EMAIL = "example.com";
     private static final String INVALID_TAG = "#friend";
@@ -119,6 +121,23 @@ public class ParserUtilTest {
     @Test
     public void parsePhone_invalidValue_throwsParseException() {
         assertThrows(ParseException.class, () -> ParserUtil.parsePhone(INVALID_PHONE));
+    }
+
+    @Test
+    public void parsePhone_overDigitLimit_throwsParseException() {
+        assertThrows(ParseException.class, Phone.MESSAGE_CONSTRAINTS, () ->
+                ParserUtil.parsePhone(PHONE_OVER_DIGIT_LIMIT));
+        assertThrows(ParseException.class, Phone.MESSAGE_CONSTRAINTS, () ->
+                ParserUtil.parsePhone(FORMATTED_PHONE_OVER_DIGIT_LIMIT));
+    }
+
+    @Test
+    public void parsePhone_atDigitLimit_returnsPhone() throws Exception {
+        String phoneAtLimit = "123456789012345";
+        assertEquals(new Phone(phoneAtLimit), ParserUtil.parsePhone(WHITESPACE + phoneAtLimit + WHITESPACE));
+
+        String formattedPhoneAtLimit = "+123 4567-8901 2345";
+        assertEquals(new Phone(formattedPhoneAtLimit), ParserUtil.parsePhone(formattedPhoneAtLimit));
     }
 
     @Test

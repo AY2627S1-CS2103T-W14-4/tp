@@ -97,6 +97,15 @@ public class JsonAdaptedClientTest {
     }
 
     @Test
+    public void toModelType_phoneOverDigitLimit_returnsClient() throws Exception {
+        // The digit limit is only enforced on user input, so numbers saved by older versions still load.
+        String phoneOverDigitLimit = "1234567890123456";
+        JsonAdaptedClient client = new JsonAdaptedClient(VALID_UID, VALID_NAME, phoneOverDigitLimit, VALID_EMAIL,
+                VALID_ADDRESS, VALID_TAGS);
+        assertEquals(new Phone(phoneOverDigitLimit), client.toModelType().getPhone());
+    }
+
+    @Test
     public void toModelType_nullPhone_throwsIllegalValueException() {
         JsonAdaptedClient client =
                 new JsonAdaptedClient(VALID_UID, VALID_NAME, null, VALID_EMAIL, VALID_ADDRESS, VALID_TAGS);
