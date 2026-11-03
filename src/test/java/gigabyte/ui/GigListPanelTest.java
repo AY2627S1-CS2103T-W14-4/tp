@@ -402,12 +402,46 @@ public class GigListPanelTest {
         ListCell<Gig> cell = (ListCell<Gig>) panel.getGigListView().lookup(".list-cell");
         String text = cell.getText();
 
-        assertTrue(text.startsWith(ALICE_GIG.getTitle().toString()));
+        assertTrue(text.startsWith("1. " + ALICE_GIG.getTitle()));
         assertTrue(text.contains("Status: " + ALICE_GIG.getStatus()));
         assertTrue(text.contains("Client: " + ALICE_GIG.getClient().getName()));
         assertTrue(text.contains("Deadline: " + ALICE_GIG.getDeadline()));
         assertTrue(text.contains("Fee: $100.00"));
         assertTrue(cell.isWrapText());
+    }
+
+    @Test
+    public void gigCell_clientView_showsOneBasedGigIndexes() {
+        Gig secondAliceGig = new Gig(ALICE, new GigTitle("Logo refresh"), GigStatus.NOT_STARTED,
+                new Deadline("2027-02-28"), new Fee("50"));
+        ObservableList<Gig> gigs = FXCollections.observableArrayList(ALICE_GIG, BENSON_GIG, secondAliceGig);
+        GigListPanel panel = new GigListPanel(gigs);
+        panel.showGigsFor(ALICE);
+
+        List<ListCell<Gig>> cells = renderCells(panel);
+        assertTrue(cells.get(0).getText().startsWith("1. " + ALICE_GIG.getTitle()));
+        assertTrue(cells.get(1).getText().startsWith("2. " + secondAliceGig.getTitle()));
+
+        gigs.remove(ALICE_GIG);
+
+        assertTrue(renderCells(panel).get(0).getText().startsWith("1. " + secondAliceGig.getTitle()));
+    }
+
+    @Test
+    public void gigCell_crossClientViews_showNoIndexes() {
+        GigListPanel panel = createPanel();
+        panel.showGigsFor(ALICE);
+        assertTrue(renderCells(panel).get(0).getText().startsWith("1. "));
+
+        // Same single row as the client view, so the prefix must be removed on the view change alone.
+        panel.showGigsWithStatus(GigStatus.IN_PROGRESS);
+        assertTrue(renderCells(panel).get(0).getText().startsWith(ALICE_GIG.getTitle().toString()));
+
+        panel.showDeadlineOverview();
+        assertTrue(renderCells(panel).get(0).getText().startsWith(ALICE_GIG.getTitle().toString()));
+
+        panel.showGigsMatchingTitle(new GigTitleContainsKeywordsPredicate(List.of("Logo")));
+        assertTrue(renderCells(panel).get(0).getText().startsWith(BENSON_GIG.getTitle().toString()));
     }
 
     @Test
