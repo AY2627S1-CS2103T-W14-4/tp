@@ -180,9 +180,9 @@ Adds a client to the client list.
 Format: `add n/NAME p/PHONE_NUMBER e/EMAIL a/ADDRESS [t/TAG]... `
 
 * `NAME` may contain only letters, digits and spaces. Other characters, such as `'`, `-`, `.` and `/`, are rejected.
-* `PHONE_NUMBER` must have at least 3 digits and may start with a `+`. Digits may be grouped with single spaces
-  or hyphens, e.g. `+65 9123 4567`, `6123-4567` or `+1-202-555-0143`. Letters, brackets and other symbols are not
-  allowed, and the number cannot start or end with a space or hyphen, or contain two in a row.
+* `PHONE_NUMBER` must have at least 3 and at most 15 digits, and may start with a `+`. Digits may be grouped with
+  single spaces or hyphens, e.g. `+65 9123 4567`, `6123-4567` or `+1-202-555-0143`. Letters, brackets and other
+  symbols are not allowed, and the number cannot start or end with a space or hyphen, or contain two in a row.
 * The phone number is saved and shown exactly as you type it.
 * Each `TAG` must contain only letters and digits (no spaces or symbols) and be at most 25 characters long.
 * The client is rejected if its name matches an existing client's name after ignoring case, leading and trailing

@@ -83,6 +83,28 @@ public class PhoneTest {
     }
 
     @Test
+    public void isWithinDigitLimit() {
+        // null phone number
+        assertThrows(NullPointerException.class, () -> Phone.isWithinDigitLimit(null));
+
+        // EP: at most 15 digits -> within limit
+        assertTrue(Phone.isWithinDigitLimit("911"));
+        assertTrue(Phone.isWithinDigitLimit("123456789012345")); // boundary: exactly 15 digits
+        assertTrue(Phone.isWithinDigitLimit("+123 4567-8901 2345")); // boundary: '+', spaces and hyphens not counted
+
+        // EP: more than 15 digits -> over limit
+        assertFalse(Phone.isWithinDigitLimit("1234567890123456")); // boundary: 16 digits
+        assertFalse(Phone.isWithinDigitLimit("+123 4567-8901 23456")); // boundary: 16 digits with separators
+        assertFalse(Phone.isWithinDigitLimit("9".repeat(200)));
+    }
+
+    @Test
+    public void constructor_phoneOverDigitLimit_success() {
+        // The digit limit is only enforced on user input, so numbers from older data files still load.
+        assertEquals("1234567890123456", new Phone("1234567890123456").value);
+    }
+
+    @Test
     public void equals() {
         Phone phone = new Phone("999");
 
