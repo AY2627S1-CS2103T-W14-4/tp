@@ -396,8 +396,9 @@ client index, which they look up in `Model#getFilteredClientList()` themselves.
 `GigListPanel` and `PaymentObligationListPanel` use the same `GigOrdering` and `PaymentObligationOrdering` logic when
 displaying a selected client's gigs and a selected gig's payments. This keeps the numbers shown in those panels equal
 to the numbers that commands expect. The cross-client views (`gigs`, `findgig`, `deadlines`, and `outstanding`) are
-filtered or sorted differently, so their row numbers are only for display. Commands still use the per-client indexes,
-even while one of these views is visible.
+filtered or sorted differently, so their rows are not command indexes: gig rows in these views are not numbered, and
+the numbers in `outstanding` are only for display. Commands still use the per-client indexes, even while one of these
+views is visible.
 
 #### Design considerations:
 
@@ -1028,7 +1029,7 @@ Start each numbered test from a fresh test folder. Client and gig indexes use th
 and the selected client's normal recorded gig order, even while an overview is open.
 
 1. **Edit details and reorder the deadline view**
-   1. Test case: `deadlines`, select Alex's second gig, then
+   1. Test case: `deadlines`, select `Product launch photography` (Alex's second gig), then
       `editgig 1 2 t/Revised photography d/2026-10-01 f/1350`.<br>
       Expected: Alex's second gig retains its UID, `NOT_STARTED` status, and `$1,200.00` payment. The deadline
       overview refreshes without another `deadlines` command; the revised gig moves to the first row and stays
