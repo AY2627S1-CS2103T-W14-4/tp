@@ -6,7 +6,7 @@
 
 # Gigabyte User Guide
 
-**Gigabyte** is a desktop application for freelancers who manage multiple clients, projects, and payment deadlines. It is optimized for use through a Command Line Interface (CLI) while retaining the benefits of a Graphical User Interface (GUI).
+**Gigabyte** is a desktop application for freelancers who manage multiple clients, gigs, and payment deadlines. It is optimized for use through a Command Line Interface (CLI) while retaining the benefits of a Graphical User Interface (GUI).
 
 <!-- * Table of Contents -->
 <page-nav-print />
@@ -243,7 +243,7 @@ Examples:
 
 Edits an existing client in the client list.
 
-Format: `edit INDEX [n/NAME] [p/PHONE] [e/EMAIL] [a/ADDRESS] [t/TAG]... `
+Format: `edit INDEX [n/NAME] [p/PHONE_NUMBER] [e/EMAIL] [a/ADDRESS] [t/TAG]... `
 
 * Edits the client at the specified `INDEX`. The index refers to the index number shown in the displayed client list. The index **must be a positive integer** 1, 2, 3, ...
 * At least one of the optional fields must be provided.
@@ -665,10 +665,10 @@ Examples:
 * `deletepayment 1 2 1` deletes Alex's second gig's sample payment.
 * `find Bernice` followed by `deletepayment 1 1 1` deletes Bernice's first gig's sample payment.
 
-Example success message:
+Success message for `deletepayment 1 2 1` on fresh sample data:
 
 ```text
-Deleted payment obligation for Alex Yeoh, gig 1 (Portfolio website redesign), payment 1: Amount: $1,250.00; Due date: 2027-01-15; Previous state: PAID
+Deleted payment obligation for Alex Yeoh, gig 2 (Product launch photography), payment 1: Amount: $1,200.00; Due date: 2027-03-01; Previous state: UNPAID
 ```
 
 Unsuccessful examples:
@@ -809,7 +809,7 @@ Action     | Format, Examples
 **Add**    | `add n/NAME p/PHONE_NUMBER e/EMAIL a/ADDRESS [t/TAG]... ` <br> e.g., `add n/James Ho p/22224444 e/jamesho@example.com a/123, Clementi Rd, 1234665 t/corporate t/repeat`
 **List**   | `list`
 **Find**   | `find KEYWORD [MORE_KEYWORDS]`<br> e.g., `find James Jake`
-**Edit**   | `edit INDEX [n/NAME] [p/PHONE_NUMBER] [e/EMAIL] [a/ADDRESS] [t/TAG]... `<br> e.g.,`edit 2 n/James Lee e/jameslee@example.com`
+**Edit**   | `edit INDEX [n/NAME] [p/PHONE_NUMBER] [e/EMAIL] [a/ADDRESS] [t/TAG]... `<br> e.g., `edit 2 n/James Lee e/jameslee@example.com`
 **Delete client permanently** | `delete INDEX`<br> e.g., `delete 3`
 
 ### Gigs
