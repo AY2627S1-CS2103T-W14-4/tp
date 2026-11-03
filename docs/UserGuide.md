@@ -778,7 +778,6 @@ home folder before launching the JAR. Keep a backup of both copies. The file mus
 
 ## Known issues
 
-1. **If you minimize the Help Window** and then run the `help` command (or use the `Help` menu, or the keyboard shortcut `F1`) again, the original Help Window will remain minimized, and no new Help Window will appear. The remedy is to manually restore the minimized Help Window.
 1. **Running two copies of Gigabyte from the same folder loses changes.** Each copy keeps its own data and saves it
    after every command, so a command in one copy, even `list`, overwrites changes made in the other. Close any other
    Gigabyte window before making changes.
