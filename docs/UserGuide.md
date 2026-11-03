@@ -81,12 +81,12 @@
   For example, if the command specifies `n/NAME p/PHONE_NUMBER`, `p/PHONE_NUMBER n/NAME` is also acceptable.
 
 * A prefix such as `a/` or `t/` starts a new parameter wherever it follows a space, even inside a value. Avoid them
-  inside names and gig titles. See the cautions in [`add`](#adding-a-client-add), [`edit`](#editing-a-client-edit),
-  [`addgig`](#creating-a-gig-addgig) and [`editgig`](#editing-a-gig-editgig).
+  inside names, addresses and gig titles. See the cautions in [`add`](#adding-a-client-add),
+  [`edit`](#editing-a-client-edit), [`addgig`](#creating-a-gig-addgig) and [`editgig`](#editing-a-gig-editgig).
 
-* Lowercase ` p/` starts a phone field even after an address: `edit 1 a/Block 99 p/888` changes both fields.
-  To store phone-like text in an address, use uppercase `P/`, e.g. `edit 1 a/Block 99 P/888`, or write it without
-  the slash. The uppercase form changes only the address and preserves the phone.
+* Lowercase ` p/`, ` n/`, ` e/` and ` t/` start a new field even after an address: `edit 1 a/Block 99 p/888` changes
+  both the address and the phone. To store such text in an address, write the prefix in uppercase, e.g.
+  `edit 1 a/Block 99 P/888`, or write it without the slash. The uppercase form changes only the address.
 
 * Money amounts are displayed with a dollar sign, comma thousands separators, and two decimal places,
   for example, `$1,234.50`. Enter amounts without dollar signs or commas, such as `a/1234.50` or `f/1234.50`.
@@ -207,6 +207,14 @@ Write such names without the slash, e.g. `Muthu al Raju` or `Raj so Kumar`. Writ
 help, because names cannot contain `/`.
 </box>
 
+<box type="warning" seamless>
+
+**Caution: ` t/` inside an address adds a tag.**<br>
+`add n/Lee p/91234567 e/lee@example.com a/Blk 5 t/ower` is **saved without any error** with the address `Blk 5` and
+the tag `ower`. ` n/`, ` e/` or ` p/` inside an address is rejected instead, because that prefix is repeated. Write
+the prefix in uppercase, e.g. `a/Blk 5 T/ower`, or without the slash.
+</box>
+
 <box type="tip" seamless>
 
 **Tip:** A client can have any number of tags, including zero.
@@ -264,11 +272,17 @@ Format: `edit INDEX [n/NAME] [p/PHONE_NUMBER] [e/EMAIL] [a/ADDRESS] [t/TAG]... `
 
 <box type="warning" seamless>
 
-**Caution: `a/` or `t/` inside a new name silently changes other fields.**<br>
+**Caution: a prefix inside a new name or address silently changes other fields.**<br>
 `edit 1 n/Muthu a/l Raju` saves the name `Muthu` and **overwrites the address** with `l Raju`. `edit 1 n/Lee t/a`
 saves the name `Lee` and **replaces all tags** with `a`. No error is shown. Write such names without the slash, as
-described in [`add`](#adding-a-client-add). If this happens, check the result message and run `edit` again with the
-correct name, address and tags.
+described in [`add`](#adding-a-client-add).
+
+The same applies to ` n/`, ` p/`, ` e/` and ` t/` inside a new address. For example, `edit 1 a/Unit 5 n/a` saves the
+address `Unit 5` and **renames the client** to `a`. Write the prefix in uppercase, e.g. `a/Unit 5 N/A`, or without
+the slash.
+
+If this happens, check the result message and run `edit` again with the correct name, phone, email, address and
+tags.
 </box>
 
 Examples:
@@ -786,9 +800,10 @@ home folder before launching the JAR. Keep a backup of both copies. The file mus
    rejected. If a title with emoji is rejected for length, shorten it.
 1. **Saving is not atomic.** A failed disk write can leave the destination file incomplete. Keep an external backup
    before large or destructive changes.
-1. **Prefixes inside names and gig titles start a new field.** This applies to ` a/` or ` t/` inside a client name,
-   and to ` t/`, ` s/`, ` d/` or ` f/` inside a gig title. `add`, `edit` and `editgig` can then save the wrong fields
-   without an error. Write such names and titles without the slash. See the cautions in
+1. **Prefixes inside names, addresses and gig titles start a new field.** This applies to ` a/` or ` t/` inside a
+   client name, to ` n/`, ` p/`, ` e/` or ` t/` inside an address, and to ` t/`, ` s/`, ` d/` or ` f/` inside a gig
+   title. `add`, `edit` and `editgig` can then save the wrong fields without an error. Write such names and titles
+   without the slash, and write such prefixes in an address in uppercase, e.g. `T/`. See the cautions in
    [`add`](#adding-a-client-add), [`edit`](#editing-a-client-edit), [`addgig`](#creating-a-gig-addgig) and
    [`editgig`](#editing-a-gig-editgig).
 
