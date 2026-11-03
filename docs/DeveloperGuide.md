@@ -157,23 +157,15 @@ The `Model` component,
   edits replace linked immutable objects while retaining those identifiers and links. Payment edits replace the
   selected immutable obligation while preserving its canonical gig and paid state. Payment-status changes replace
   the exact immutable obligation while retaining its gig, amount, and due date.
-* replaces gigs through `Model#setGig` when details or status change. `GigabyteData#setGig` relinks dependent
-  payments to the replacement object. `EditGigCommand` preserves the gig UID, client, status, and payments; a
-  deadline edit refreshes and can reorder the deadline overview. `FindGigCommand` searches all gig titles without
-  changing the filtered client list.
+* replaces gigs through `Model#setGig` when details or status change. `GigabyteData#setGig` checks that the
+  replacement keeps the gig's UID and client, and relinks dependent payments to the replacement object.
 * deletes gigs by stable UID through `Model#deleteGig` and `GigabyteData#removeGig`. Any paid or unpaid obligation
-  raises `GigHasPaymentsException` before mutation. Removing one observable-list entry preserves other references;
-  the gig panel clears a removed selection before its filtered/sorted views process the removal.
+  raises `GigHasPaymentsException` before mutation. Removing one observable-list entry preserves other references.
 * deletes payments through `Model#deletePaymentObligation`, delegated to `GigabyteData`. Removal uses object
   identity to delete exactly one stored instance because separate obligations can have identical fields.
-  `DeletePaymentCommand` resolves indexes using `GigOrdering` and `PaymentObligationOrdering`, as `markpaid` does.
-  The observable removal refreshes the selected payment list or outstanding overview and its empty state.
-  `LogicManager` saves the resulting data through the existing storage path after successful execution.
 * defines the order in which a client's gigs and a gig's payment obligations are numbered, through the
   `GigOrdering` and `PaymentObligationOrdering` utility classes. Commands and the UI both use these classes, so a
   displayed index always refers to the same object in both places.
-* uses `CommandUtil` in indexed commands to resolve the displayed client, its gig, and that gig's payment obligation.
-  The helper centralizes out-of-range checks and delegates gig and payment list ordering to the ordering utilities.
 * stores a `UserPrefs` object that represents the user’s preferences (currently, just the GUI settings). This is exposed to the outside as a `ReadOnlyUserPrefs` object.
 * does not depend on any of the other three components (as the `Model` represents data entities of the domain, they should make sense on their own without depending on other components)
 
@@ -389,14 +381,17 @@ in the following order:
 1. The client index is resolved against `Model#getFilteredClientList()`, so it follows the client list currently on
    screen (including `find` results), just like AB3's `delete` and `edit` commands.
 1. The gig index is resolved against `GigOrdering#forClient(model.getGigList(), client)`, which keeps the client's gigs
-   in the order they appear in the stored gig list. (`setstatus` uses an equivalent filter on the stored gig list.)
+   in the order they appear in the stored gig list.
 1. The payment index (for `editpayment`, `markpaid`, `markunpaid`, and `deletepayment`) is resolved against
    `PaymentObligationOrdering#forGig(model.getPaymentObligationList(), gig)`, which sorts the gig's payments by due date
    and then by their position in the stored list.
 
 All commands that take a gig index (`addpayment`, `editgig`, `setstatus`, `deletegig`, `editpayment`, `markpaid`,
-`markunpaid`, and `deletepayment`) resolve it this way. If any index is out of range, the command throws a
-`CommandException` before changing the model, so a command never changes some records and then fails.
+`markunpaid`, and `deletepayment`) resolve their indexes through `CommandUtil`, a helper class in the `Logic`
+component (`gigabyte.logic.commands`). Its `getClient`, `getGig`, and `getPaymentObligation` methods carry out the
+three steps above. If any index is out of range, they throw a `CommandException` before the command changes the
+model, so a command never changes some records and then fails. The client commands `edit` and `delete` take only a
+client index, which they look up in `Model#getFilteredClientList()` themselves.
 
 `GigListPanel` and `PaymentObligationListPanel` use the same `GigOrdering` and `PaymentObligationOrdering` logic when
 displaying a selected client's gigs and a selected gig's payments. This keeps the numbers shown in those panels equal
