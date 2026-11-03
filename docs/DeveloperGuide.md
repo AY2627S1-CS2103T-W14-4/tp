@@ -1381,8 +1381,8 @@ Start each test in this section from a fresh test folder unless the test says ot
 
 ### Viewing the summary
 
-Start this section from a fresh test folder. The overdue figures below assume the test runs before `2026-12-15`.
-From that date onwards, the sample `$1,800.00` obligation is also overdue, so add `1 ($1,800.00)` to each overdue
+Start this section from a fresh test folder. The overdue figures below assume the test runs through `2026-12-15`.
+From `2026-12-16` onwards, the sample `$1,800.00` obligation is also overdue, so add `1 ($1,800.00)` to each overdue
 figure.
 
 1. **Summary of the sample data**
