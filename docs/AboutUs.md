@@ -45,4 +45,4 @@ You can reach us by opening an issue on our [GitHub issue tracker](https://githu
 [[github](https://github.com/ApproxNeo)]
 
 * Role: Developer
-* Responsibilities: Constraints and scope management, Save file handling, Releases, and Ensuring feature and patch compatibility and app stability
+* Responsibilities: Constraints and scope management, save file handling, releases, and ensuring feature and patch compatibility and app stability
